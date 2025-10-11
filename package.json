@@ -1,0 +1,14 @@
+{
+  "name": "telegram-game-hub",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node bot/index.js",
+    "dev": "NODE_ENV=development node bot/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "telegraf": "^4.16.3",
+    "express": "^4.19.2"
+  }
+}
