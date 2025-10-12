@@ -5,212 +5,316 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tic-Tac-Toe</title>
   <style>
-    :root {
-      --bg: #0f1115;
-      --tile: #0f1115;
-      --tile-border: #1c1f26;
-      --text: #ffffff;
-      --text-dim: #f3f4f6;
-      --accent: #ef4444;
+    :root{
+      --tile:#0f1115;
+      --tile-border:#1c1f26;
+      --x:#10b981;      /* X = зелёный */
+      --o:#facc15;      /* O = жёлтый */
+      --accent:#ef4444; /* заголовок крестик */
+      --text:#111827;
+      --muted:#6b7280;
     }
-    html, body {
-      margin: 0; padding: 0;
-      background: #fff; color: #111827;
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
-    }
-    .wrap{ max-width: 680px; margin: 0 auto; padding: 16px; }
-    h1{ font-size: 28px; font-weight: 800; display:flex; gap:8px; align-items:center; margin:0 0 8px; }
-    h1 .x { color: var(--accent); }
-    .row{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; }
-    .btn{
-      padding: 8px 14px; border-radius: 14px;
-      border: 1px solid #e5e7eb; background:#f3f4f6; cursor:pointer;
-    }
-    .btn:active{ transform: scale(.98); }
-    .btn.dark{ background:#111827; color:#f9fafb; border-color:#111827; }
-    .muted{ color:#6b7280; }
-
-    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:12px; }
+    html,body{margin:0;padding:0;background:#fff;color:var(--text);
+      font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    .wrap{max-width:680px;margin:0 auto;padding:16px;position:relative;}
+    h1{font-size:28px;font-weight:800;display:flex;gap:8px;align-items:center;margin:0 0 8px;}
+    h1 .x{color:var(--accent);}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 12px;}
+    .muted{color:var(--muted)}
+    .btn{padding:8px 14px;border-radius:14px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer}
+    .btn:active{transform:scale(.98)}
+    .btn.dark{background:#111827;color:#f9fafb;border-color:#111827}
+    .seg{display:inline-flex;background:#111827;border-radius:12px;overflow:hidden}
+    .seg button{background:transparent;border:none;color:#f9fafb;padding:8px 12px;cursor:pointer}
+    .seg button.active{background:#374151}
+    .grid-wrap{position:relative;margin-top:12px}
+    .grid{display:grid;gap:12px}
     .cell{
-      height: 112px; border-radius: 18px; background: var(--tile);
-      border: 1px solid var(--tile-border);
-      box-shadow: 0 1px 3px rgba(0,0,0,.2);
-      display:flex; align-items:center; justify-content:center;
-      touch-action: manipulation; user-select:none; -webkit-user-select:none;
+      height:112px;border-radius:18px;background:var(--tile);
+      border:1px solid var(--tile-border);
+      box-shadow:0 1px 3px rgba(0,0,0,.2);
+      display:flex;align-items:center;justify-content:center;
+      touch-action:manipulation;user-select:none;-webkit-user-select:none;
     }
-    .cell:active{ transform: scale(.99); }
-    .mark{
-      font-size: 56px; line-height: 1; font-weight: 900;
-      color: var(--text); letter-spacing: -0.02em;
-      opacity: 1;
-      text-shadow: 0 0 1px rgba(0,0,0,.25);
-    }
-    .mark.o{ color: var(--text-dim); }
-    .status{ margin-top:14px; min-height: 28px; font-size: 18px; }
-    .hidden{ display:none !important; }
+    .cell:active{transform:scale(.99)}
+    .mark{font-size:56px;line-height:1;font-weight:900;letter-spacing:-.02em;text-shadow:0 0 1px rgba(0,0,0,.25)}
+    .mark.x{color:var(--x)}
+    .mark.o{color:var(--o)}
+    .status{margin-top:14px;min-height:28px;font-size:18px}
+    /* линия победы */
+    .overlay{position:absolute;inset:0;pointer-events:none}
+    .overlay line{stroke-width:10px;stroke-linecap:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+    @media (max-width:420px){ .cell{height:92px} .mark{font-size:48px} }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1><span class="x">✖</span> Tic-Tac-Toe</h1>
+<div class="wrap">
+  <h1><span class="x">✖</span> Tic-Tac-Toe</h1>
 
-    <div class="row" id="chooseRow">
-      <span class="muted">Выбери, кем играть:</span>
-      <button class="btn dark" id="playX">Play as X</button>
-      <button class="btn dark" id="playO">Play as O</button>
+  <!-- режимы -->
+  <div class="row">
+    <span class="muted">Режим:</span>
+    <div class="seg" id="modeSeg">
+      <button data-size="3" class="active">Классика 3×3</button>
+      <button data-size="5">Усложнённая 5×5</button>
     </div>
-
-    <div class="row" id="infoRow" class="hidden" style="display:none">
-      <span>Ход: <b id="turnLabel">X</b></span>
-      <button class="btn" id="resetBtn">Сброс</button>
-    </div>
-
-    <div class="grid" id="board"></div>
-
-    <div class="status" id="status"></div>
   </div>
 
-  <script>
-    // ===== Game logic (vs AI, minimax for 3x3) =====
-    const boardEl = document.getElementById('board');
-    const statusEl = document.getElementById('status');
-    const turnLabel = document.getElementById('turnLabel');
-    const chooseRow = document.getElementById('chooseRow');
-    const infoRow = document.getElementById('infoRow');
-    const btnX = document.getElementById('playX');
-    const btnO = document.getElementById('playO');
-    const resetBtn = document.getElementById('resetBtn');
+  <!-- выбор стороны -->
+  <div class="row" id="chooseRow">
+    <span class="muted">Выбери, кем играть:</span>
+    <button class="btn dark" id="playX">Play as X</button>
+    <button class="btn dark" id="playO">Play as O</button>
+  </div>
 
-    const LINES = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6],
-    ];
+  <!-- инфо-бар -->
+  <div class="row" id="infoRow" style="display:none">
+    <span>Ход: <b id="turnLabel">X</b></span>
+    <button class="btn" id="resetBtn">Сброс</button>
+  </div>
 
-    let board, player, ai, turn;
+  <!-- поле -->
+  <div class="grid-wrap">
+    <div class="grid" id="board"></div>
+    <svg class="overlay" id="winSvg"></svg>
+  </div>
 
-    function init() {
-      board = Array(9).fill(null);
-      turn = 'X';
-      statusEl.textContent = '';
-      turnLabel.textContent = turn;
-      boardEl.innerHTML = '';
-      for (let i = 0; i < 9; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'cell';
-        btn.dataset.idx = i;
-        btn.addEventListener('click', onCellClick);
-        const span = document.createElement('span');
-        span.className = 'mark hidden';
-        span.textContent = '•';
-        btn.appendChild(span);
-        boardEl.appendChild(btn);
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  const boardEl  = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const turnLabel= document.getElementById('turnLabel');
+  const chooseRow= document.getElementById('chooseRow');
+  const infoRow  = document.getElementById('infoRow');
+  const btnX     = document.getElementById('playX');
+  const btnO     = document.getElementById('playO');
+  const resetBtn = document.getElementById('resetBtn');
+  const winSvg   = document.getElementById('winSvg');
+  const modeSeg  = document.getElementById('modeSeg');
+
+  let size = 3;          // 3 или 5
+  let winLen = 3;        // 3 для 3×3, 4 для 5×5
+  let board, player, ai, turn, lines;
+
+  // --- генерация всех выигрышных линий для size/winLen ---
+  function genLines(n, k){
+    const L = [];
+    // rows
+    for (let r=0;r<n;r++){
+      for (let c=0;c<=n-k;c++){
+        const arr=[]; for (let t=0;t<k;t++) arr.push(r*n + c+t); L.push(arr);
       }
     }
-
-    function setMark(el, mark){
-      const span = el.querySelector('.mark');
-      span.textContent = mark;
-      span.classList.remove('hidden');
-      span.classList.toggle('o', mark === 'O');
-    }
-
-    function checkWinner(b){
-      for (const [a,b1,c] of LINES) {
-        if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
+    // cols
+    for (let c=0;c<n;c++){
+      for (let r=0;r<=n-k;r++){
+        const arr=[]; for (let t=0;t<k;t++) arr.push((r+t)*n + c); L.push(arr);
       }
-      return null;
     }
-    function emptyMoves(b){ return b.map((v,i)=>v?null:i).filter(v=>v!==null); }
-    function isDraw(b){ return !checkWinner(b) && emptyMoves(b).length===0; }
-
-    function minimax(b, playerNow, aiM, humanM, alpha, beta){
-      const win = checkWinner(b);
-      if (win === aiM) return {score:10};
-      if (win === humanM) return {score:-10};
-      if (isDraw(b)) return {score:0};
-
-      const maximizing = playerNow === aiM;
-      let best = {score: maximizing ? -Infinity : Infinity, idx: -1};
-      for (const idx of emptyMoves(b)) {
-        const copy = b.slice();
-        copy[idx] = playerNow;
-        const nxt = minimax(copy, playerNow===aiM ? humanM : aiM, aiM, humanM, alpha, beta);
-        if (maximizing){
-          if (nxt.score > best.score){ best = {score:nxt.score, idx}; }
-          alpha = Math.max(alpha, nxt.score);
-        } else {
-          if (nxt.score < best.score){ best = {score:nxt.score, idx}; }
-          beta = Math.min(beta, nxt.score);
-        }
-        if (beta <= alpha) break;
+    // diag \
+    for (let r=0;r<=n-k;r++){
+      for (let c=0;c<=n-k;c++){
+        const arr=[]; for (let t=0;t<k;t++) arr.push((r+t)*n + (c+t)); L.push(arr);
       }
-      return best;
     }
-    function bestMove(b, aiM, humanM){
-      let best = {idx: emptyMoves(b)[0], score: -Infinity};
-      for (const idx of emptyMoves(b)) {
-        const copy = b.slice();
-        copy[idx] = aiM;
-        const r = minimax(copy, humanM, aiM, humanM, -Infinity, Infinity);
-        if (r.score > best.score) best = {idx, score:r.score};
+    // diag /
+    for (let r=0;r<=n-k;r++){
+      for (let c=k-1;c<n;c++){
+        const arr=[]; for (let t=0;t<k;t++) arr.push((r+t)*n + (c-t)); L.push(arr);
       }
-      return best.idx;
     }
+    return L;
+  }
 
-    function gameOverState(){
-      const w = checkWinner(board);
-      if (w){ statusEl.textContent = `Победитель: ${w}`; return true; }
-      if (isDraw(board)){ statusEl.textContent = 'Ничья'; return true; }
-      return false;
+  function checkWinner(b){
+    for (const line of lines){
+      const f = b[line[0]];
+      if (!f) continue;
+      let ok=true;
+      for (let i=1;i<line.length;i++) if (b[line[i]]!==f) {ok=false;break;}
+      if (ok) return {winner:f, line};
     }
+    return null;
+  }
+  const empties = (b)=> b.map((v,i)=>v?null:i).filter(v=>v!==null);
+  const isDraw  = (b)=> !checkWinner(b) && empties(b).length===0;
 
-    function onCellClick(e){
-      const idx = +e.currentTarget.dataset.idx;
-      if (!player || turn !== player) return;
-      if (board[idx]) return;
-
-      board[idx] = player;
-      setMark(e.currentTarget, player);
-      if (gameOverState()) return (turn = null);
-
-      turn = ai; turnLabel.textContent = turn;
-      // AI small delay for UX
-      setTimeout(()=>{
-        const aiIdx = bestMove(board, ai, player);
-        board[aiIdx] = ai;
-        const cell = boardEl.querySelector(`.cell[data-idx="${aiIdx}"]`);
-        setMark(cell, ai);
-        if (gameOverState()) return (turn = null);
-        turn = player; turnLabel.textContent = turn;
-      }, 120);
+  // --- minimax (только для 3×3) ---
+  function minimax(b, playerNow, aiM, humM, alpha, beta){
+    const cw = checkWinner(b); if (cw) return {score: cw.winner===aiM?10:-10};
+    if (isDraw(b)) return {score:0};
+    const maximizing = playerNow===aiM;
+    let best = {score: maximizing ? -Infinity : Infinity, idx:-1};
+    for (const idx of empties(b)){
+      const copy=b.slice(); copy[idx]=playerNow;
+      const nxt=minimax(copy, playerNow===aiM?humM:aiM, aiM, humM, alpha, beta);
+      if (maximizing){ if (nxt.score>best.score) best={score:nxt.score,idx}; alpha=Math.max(alpha,nxt.score); }
+      else { if (nxt.score<best.score) best={score:nxt.score,idx}; beta=Math.min(beta,nxt.score); }
+      if (beta<=alpha) break;
     }
+    return best;
+  }
+  function bestMove3(b, aiM, humM){
+    let best={idx:empties(b)[0],score:-Infinity};
+    for (const idx of empties(b)){
+      const copy=b.slice(); copy[idx]=aiM;
+      const r=minimax(copy, humM, aiM, humM, -Infinity, Infinity);
+      if (r.score>best.score) best={idx,score:r.score};
+    }
+    return best.idx;
+  }
 
-    // Choose handlers
-    btnX.onclick = () => {
-      player = 'X'; ai = 'O';
-      chooseRow.style.display = 'none';
-      infoRow.style.display = 'flex';
-      init();
-    };
-    btnO.onclick = () => {
-      player = 'O'; ai = 'X';
-      chooseRow.style.display = 'none';
-      infoRow.style.display = 'flex';
-      init();
-      // AI starts
-      setTimeout(()=>{
-        const aiIdx = bestMove(board, ai, player);
-        board[aiIdx] = ai;
-        const cell = boardEl.querySelector(`.cell[data-idx="${aiIdx}"]`);
-        setMark(cell, ai);
-        turn = player; turnLabel.textContent = turn;
-      }, 120);
-    };
-    resetBtn.onclick = () => { init(); turn = 'X'; turnLabel.textContent = turn; statusEl.textContent=''; };
+  // --- быстрый ИИ для 5×5 ---
+  function bestMove5(b, aiM, humM){
+    // 1) выиграть сейчас
+    for (const i of empties(b)){ const c=b.slice(); c[i]=aiM; if (checkWinner(c)) return i; }
+    // 2) блок оппонента
+    for (const i of empties(b)){ const c=b.slice(); c[i]=humM; if (checkWinner(c)) return i; }
+    // 3) оценка клеток
+    let bestIdx=empties(b)[0], bestScore=-1;
+    const center=Math.floor((size*size)/2);
+    for (const i of empties(b)){
+      let score=0;
+      // центр
+      if (i===center) score+=3;
+      // «потенциал» по линиям
+      for (const ln of lines){
+        if (!ln.includes(i)) continue;
+        const vals=ln.map(x=>b[x]);
+        if (vals.includes(humM) && vals.includes(aiM)) continue; // линия "загрязнена"
+        const aiCnt=vals.filter(v=>v===aiM).length;
+        const huCnt=vals.filter(v=>v===humM).length;
+        score += aiCnt*2 + (huCnt===0?1:0);
+      }
+      if (score>bestScore){ bestScore=score; bestIdx=i; }
+    }
+    return bestIdx;
+  }
 
-    // initial board (no side chosen yet)
+  function aiMove(){
+    const idx = (size===3) ? bestMove3(board, ai, player) : bestMove5(board, ai, player);
+    placeMark(idx, ai);
+    if (endIfNeeded()) return;
+    turn=player; turnLabel.textContent=turn;
+  }
+
+  // --- построение поля/сброс ---
+  function buildBoard(){
+    boardEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    boardEl.innerHTML=''; winSvg.innerHTML='';
+    board = Array(size*size).fill(null);
+    for (let i=0;i<size*size;i++){
+      const b=document.createElement('button');
+      b.className='cell'; b.dataset.idx=i;
+      b.addEventListener('click', onCellClick);
+      const s=document.createElement('span');
+      s.className='mark'; s.textContent='·'; s.style.opacity='0';
+      b.appendChild(s);
+      boardEl.appendChild(b);
+    }
+  }
+
+  function init(){
+    lines = genLines(size, winLen);
+    buildBoard();
+    statusEl.textContent='';
+    turn='X'; turnLabel.textContent=turn;
+    winSvg.innerHTML='';
+  }
+
+  function placeMark(i, mark){
+    board[i]=mark;
+    const cell=boardEl.querySelector(`.cell[data-idx="${i}"]`);
+    const span=cell.querySelector('.mark');
+    span.textContent=mark;
+    span.style.opacity='1';
+    span.classList.toggle('x', mark==='X');
+    span.classList.toggle('o', mark==='O');
+  }
+
+  function drawWinLine(win){
+    const line = win.line;
+    const aIdx=line[0], bIdx=line[line.length-1];
+    const aEl=boardEl.querySelector(`.cell[data-idx="${aIdx}"]`);
+    const bEl=boardEl.querySelector(`.cell[data-idx="${bIdx}"]`);
+    const gridRect=boardEl.getBoundingClientRect();
+    const ar=aEl.getBoundingClientRect();
+    const br=bEl.getBoundingClientRect();
+    // центры клеток в координатах grid
+    const ax = ar.left - gridRect.left + ar.width/2;
+    const ay = ar.top  - gridRect.top  + ar.height/2;
+    const bx = br.left - gridRect.left + br.width/2;
+    const by = br.top  - gridRect.top  + br.height/2;
+
+    winSvg.innerHTML='';
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1', ax); l.setAttribute('y1', ay);
+    l.setAttribute('x2', bx); l.setAttribute('y2', by);
+    l.setAttribute('stroke', win.winner==='X' ? getComputedStyle(document.documentElement).getPropertyValue('--x') : getComputedStyle(document.documentElement).getPropertyValue('--o'));
+    winSvg.appendChild(l);
+  }
+
+  function endIfNeeded(){
+    const res=checkWinner(board);
+    if (res){
+      statusEl.textContent=`Победитель: ${res.winner}`;
+      drawWinLine(res);
+      turn=null; return true;
+    }
+    if (isDraw(board)){
+      statusEl.textContent='Ничья';
+      turn=null; return true;
+    }
+    return false;
+  }
+
+  function onCellClick(e){
+    const idx=+e.currentTarget.dataset.idx;
+    if (!player || turn!==player) return;
+    if (board[idx]) return;
+    placeMark(idx, player);
+    if (endIfNeeded()) return;
+    turn=ai; turnLabel.textContent=turn;
+    setTimeout(aiMove, 120);
+  }
+
+  function maybeStartAIIfFirst(){
+    // если пользователь выбрал O, то первым ходит X (AI)
+    if (player==='O' && ai==='X' && turn==='X'){
+      setTimeout(aiMove, 120);
+    }
+  }
+
+  // --- UI handlers ---
+  btnX.onclick = () => {
+    player='X'; ai='O'; chooseRow.style.display='none'; infoRow.style.display='flex';
     init();
-  </script>
+  };
+  btnO.onclick = () => {
+    player='O'; ai='X'; chooseRow.style.display='none'; infoRow.style.display='flex';
+    init();           // построили новое поле
+    maybeStartAIIfFirst(); // AI делает первый ход сразу
+  };
+  resetBtn.onclick = () => {
+    init();           // сохраняем выбранные player/ai/size
+    if (player && ai) maybeStartAIIfFirst();
+  };
+
+  modeSeg.addEventListener('click', (e)=>{
+    const btn=e.target.closest('button'); if(!btn) return;
+    [...modeSeg.querySelectorAll('button')].forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    size = +btn.dataset.size;
+    winLen = (size===3)?3:4; // для 5×5 играем до 4 в ряд
+    // смена режима = новый матч, заново выбрать сторону
+    player=null; ai=null; chooseRow.style.display='flex'; infoRow.style.display='none';
+    init();
+  });
+
+  // первый рендер (без выбранной стороны)
+  init();
+</script>
 </body>
 </html>
