@@ -61,4 +61,156 @@
     </div>
 
     <div class="row" id="infoRow" class="hidden" style="display:none">
-      <span>Ход: <b id="turnLabel">X</b></s
+      <span>Ход: <b id="turnLabel">X</b></span>
+      <button class="btn" id="resetBtn">Сброс</button>
+    </div>
+
+    <div class="grid" id="board"></div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    // ===== Game logic (vs AI, minimax for 3x3) =====
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const turnLabel = document.getElementById('turnLabel');
+    const chooseRow = document.getElementById('chooseRow');
+    const infoRow = document.getElementById('infoRow');
+    const btnX = document.getElementById('playX');
+    const btnO = document.getElementById('playO');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6],
+    ];
+
+    let board, player, ai, turn;
+
+    function init() {
+      board = Array(9).fill(null);
+      turn = 'X';
+      statusEl.textContent = '';
+      turnLabel.textContent = turn;
+      boardEl.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'cell';
+        btn.dataset.idx = i;
+        btn.addEventListener('click', onCellClick);
+        const span = document.createElement('span');
+        span.className = 'mark hidden';
+        span.textContent = '•';
+        btn.appendChild(span);
+        boardEl.appendChild(btn);
+      }
+    }
+
+    function setMark(el, mark){
+      const span = el.querySelector('.mark');
+      span.textContent = mark;
+      span.classList.remove('hidden');
+      span.classList.toggle('o', mark === 'O');
+    }
+
+    function checkWinner(b){
+      for (const [a,b1,c] of LINES) {
+        if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
+      }
+      return null;
+    }
+    function emptyMoves(b){ return b.map((v,i)=>v?null:i).filter(v=>v!==null); }
+    function isDraw(b){ return !checkWinner(b) && emptyMoves(b).length===0; }
+
+    function minimax(b, playerNow, aiM, humanM, alpha, beta){
+      const win = checkWinner(b);
+      if (win === aiM) return {score:10};
+      if (win === humanM) return {score:-10};
+      if (isDraw(b)) return {score:0};
+
+      const maximizing = playerNow === aiM;
+      let best = {score: maximizing ? -Infinity : Infinity, idx: -1};
+      for (const idx of emptyMoves(b)) {
+        const copy = b.slice();
+        copy[idx] = playerNow;
+        const nxt = minimax(copy, playerNow===aiM ? humanM : aiM, aiM, humanM, alpha, beta);
+        if (maximizing){
+          if (nxt.score > best.score){ best = {score:nxt.score, idx}; }
+          alpha = Math.max(alpha, nxt.score);
+        } else {
+          if (nxt.score < best.score){ best = {score:nxt.score, idx}; }
+          beta = Math.min(beta, nxt.score);
+        }
+        if (beta <= alpha) break;
+      }
+      return best;
+    }
+    function bestMove(b, aiM, humanM){
+      let best = {idx: emptyMoves(b)[0], score: -Infinity};
+      for (const idx of emptyMoves(b)) {
+        const copy = b.slice();
+        copy[idx] = aiM;
+        const r = minimax(copy, humanM, aiM, humanM, -Infinity, Infinity);
+        if (r.score > best.score) best = {idx, score:r.score};
+      }
+      return best.idx;
+    }
+
+    function gameOverState(){
+      const w = checkWinner(board);
+      if (w){ statusEl.textContent = `Победитель: ${w}`; return true; }
+      if (isDraw(board)){ statusEl.textContent = 'Ничья'; return true; }
+      return false;
+    }
+
+    function onCellClick(e){
+      const idx = +e.currentTarget.dataset.idx;
+      if (!player || turn !== player) return;
+      if (board[idx]) return;
+
+      board[idx] = player;
+      setMark(e.currentTarget, player);
+      if (gameOverState()) return (turn = null);
+
+      turn = ai; turnLabel.textContent = turn;
+      // AI small delay for UX
+      setTimeout(()=>{
+        const aiIdx = bestMove(board, ai, player);
+        board[aiIdx] = ai;
+        const cell = boardEl.querySelector(`.cell[data-idx="${aiIdx}"]`);
+        setMark(cell, ai);
+        if (gameOverState()) return (turn = null);
+        turn = player; turnLabel.textContent = turn;
+      }, 120);
+    }
+
+    // Choose handlers
+    btnX.onclick = () => {
+      player = 'X'; ai = 'O';
+      chooseRow.style.display = 'none';
+      infoRow.style.display = 'flex';
+      init();
+    };
+    btnO.onclick = () => {
+      player = 'O'; ai = 'X';
+      chooseRow.style.display = 'none';
+      infoRow.style.display = 'flex';
+      init();
+      // AI starts
+      setTimeout(()=>{
+        const aiIdx = bestMove(board, ai, player);
+        board[aiIdx] = ai;
+        const cell = boardEl.querySelector(`.cell[data-idx="${aiIdx}"]`);
+        setMark(cell, ai);
+        turn = player; turnLabel.textContent = turn;
+      }, 120);
+    };
+    resetBtn.onclick = () => { init(); turn = 'X'; turnLabel.textContent = turn; statusEl.textContent=''; };
+
+    // initial board (no side chosen yet)
+    init();
+  </script>
+</body>
+</html>
