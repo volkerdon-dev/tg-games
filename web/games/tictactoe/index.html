@@ -10,53 +10,85 @@
       --tile-border:#1c1f26;
       --x:#10b981;      /* X = зелёный */
       --o:#facc15;      /* O = жёлтый */
-      --accent:#ef4444; /* заголовок крестик */
+      --accent:#ef4444;
       --text:#111827;
       --muted:#6b7280;
     }
     html,body{margin:0;padding:0;background:#fff;color:var(--text);
       font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
-    .wrap{max-width:680px;margin:0 auto;padding:16px;position:relative;}
+    .wrap{max-width:760px;margin:0 auto;padding:16px;position:relative;}
     h1{font-size:28px;font-weight:800;display:flex;gap:8px;align-items:center;margin:0 0 8px;}
     h1 .x{color:var(--accent);}
+    .topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .status-top{min-height:28px;margin:4px 0 8px;font-size:18px;font-weight:700}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 12px;}
     .muted{color:var(--muted)}
     .btn{padding:8px 14px;border-radius:14px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer}
     .btn:active{transform:scale(.98)}
     .btn.dark{background:#111827;color:#f9fafb;border-color:#111827}
+    .btn.primary{background:#111827;color:#f9fafb;border-color:#111827}
+    .btn.ghost{background:transparent;border-color:#e5e7eb}
     .seg{display:inline-flex;background:#111827;border-radius:12px;overflow:hidden}
     .seg button{background:transparent;border:none;color:#f9fafb;padding:8px 12px;cursor:pointer}
     .seg button.active{background:#374151}
     .grid-wrap{position:relative;margin-top:12px}
     .grid{display:grid;gap:12px}
     .cell{
-      height:112px;border-radius:18px;background:var(--tile);
+      aspect-ratio:1/1;border-radius:18px;background:var(--tile);
       border:1px solid var(--tile-border);
       box-shadow:0 1px 3px rgba(0,0,0,.2);
       display:flex;align-items:center;justify-content:center;
       touch-action:manipulation;user-select:none;-webkit-user-select:none;
+      min-height:84px;
     }
     .cell:active{transform:scale(.99)}
     .mark{font-size:56px;line-height:1;font-weight:900;letter-spacing:-.02em;text-shadow:0 0 1px rgba(0,0,0,.25)}
     .mark.x{color:var(--x)}
     .mark.o{color:var(--o)}
-    .status{margin-top:14px;min-height:28px;font-size:18px}
-    /* линия победы */
+    .info-row{display:none;gap:10px;align-items:center;margin:8px 0 4px}
     .overlay{position:absolute;inset:0;pointer-events:none}
-    .overlay line{stroke-width:10px;stroke-linecap:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
-    @media (max-width:420px){ .cell{height:92px} .mark{font-size:48px} }
+    .overlay line{
+      stroke-width:10px;stroke-linecap:round;
+      filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));
+      stroke-dasharray:600; stroke-dashoffset:600;
+      animation: draw 350ms ease-out forwards;
+    }
+    @keyframes draw { to { stroke-dashoffset:0; } }
+    .score{display:flex;gap:10px;align-items:center}
+    .badge{border:1px solid #e5e7eb;border-radius:12px;padding:6px 10px;background:#fff}
+    @media (max-width:420px){ .mark{font-size:48px} }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1><span class="x">✖</span> Tic-Tac-Toe</h1>
+  <div class="topbar">
+    <h1><span class="x">✖</span> Tic-Tac-Toe</h1>
+    <!-- Счёт -->
+    <div class="score">
+      <span class="badge">X побед: <b id="scoreX">0</b></span>
+      <span class="badge">O побед: <b id="scoreO">0</b></span>
+      <span class="badge">Ничьи: <b id="scoreD">0</b></span>
+    </div>
+  </div>
 
-  <!-- режимы -->
+  <!-- СТАТУС СВЕРХУ -->
+  <div id="statusTop" class="status-top"></div>
+
+  <!-- режим поля -->
   <div class="row">
     <span class="muted">Режим:</span>
     <div class="seg" id="modeSeg">
-      <button data-size="3" class="active">Классика 3×3</button>
-      <button data-size="5">Усложнённая 5×5</button>
+      <button data-size="3" data-win="3" class="active">Классика 3×3</button>
+      <button data-size="4" data-win="4">Средняя 4×4</button>
+      <button data-size="5" data-win="5">Усложнённая 5×5</button>
+    </div>
+
+    <!-- сложность (для 4×4/5×5) -->
+    <span class="muted">Сложность:</span>
+    <div class="seg" id="diffSeg">
+      <button data-diff="easy">Лёгкая</button>
+      <button data-diff="medium" class="active">Средняя</button>
+      <button data-diff="hard">Сложная</button>
     </div>
   </div>
 
@@ -67,10 +99,11 @@
     <button class="btn dark" id="playO">Play as O</button>
   </div>
 
-  <!-- инфо-бар -->
-  <div class="row" id="infoRow" style="display:none">
+  <!-- инфо-бар (ход/сброс/ещё) -->
+  <div class="info-row" id="infoRow">
     <span>Ход: <b id="turnLabel">X</b></span>
     <button class="btn" id="resetBtn">Сброс</button>
+    <button class="btn primary" id="againBtn" style="display:none">Сыграть ещё</button>
   </div>
 
   <!-- поле -->
@@ -78,134 +111,159 @@
     <div class="grid" id="board"></div>
     <svg class="overlay" id="winSvg"></svg>
   </div>
-
-  <div class="status" id="status"></div>
 </div>
 
 <script>
-  const boardEl  = document.getElementById('board');
-  const statusEl = document.getElementById('status');
-  const turnLabel= document.getElementById('turnLabel');
-  const chooseRow= document.getElementById('chooseRow');
-  const infoRow  = document.getElementById('infoRow');
-  const btnX     = document.getElementById('playX');
-  const btnO     = document.getElementById('playO');
-  const resetBtn = document.getElementById('resetBtn');
-  const winSvg   = document.getElementById('winSvg');
-  const modeSeg  = document.getElementById('modeSeg');
+  const boardEl   = document.getElementById('board');
+  const statusTop = document.getElementById('statusTop');
+  const turnLabel = document.getElementById('turnLabel');
+  const chooseRow = document.getElementById('chooseRow');
+  const infoRow   = document.getElementById('infoRow');
+  const btnX      = document.getElementById('playX');
+  const btnO      = document.getElementById('playO');
+  const resetBtn  = document.getElementById('resetBtn');
+  const againBtn  = document.getElementById('againBtn');
+  const winSvg    = document.getElementById('winSvg');
+  const modeSeg   = document.getElementById('modeSeg');
+  const diffSeg   = document.getElementById('diffSeg');
 
-  let size = 3;          // 3 или 5
-  let winLen = 3;        // 3 для 3×3, 4 для 5×5
+  const scoreXEl  = document.getElementById('scoreX');
+  const scoreOEl  = document.getElementById('scoreO');
+  const scoreDEl  = document.getElementById('scoreD');
+
+  let size = 3;      // 3, 4, 5
+  let winLen = 3;    // 3 для 3×3, 4 для 4×4, 5 для 5×5
+  let diff = 'medium'; // easy / medium / hard (для 4×4/5×5)
   let board, player, ai, turn, lines;
+  let scoreX=0, scoreO=0, scoreD=0;
 
-  // --- генерация всех выигрышных линий для size/winLen ---
-  function genLines(n, k){
-    const L = [];
-    // rows
-    for (let r=0;r<n;r++){
-      for (let c=0;c<=n-k;c++){
-        const arr=[]; for (let t=0;t<k;t++) arr.push(r*n + c+t); L.push(arr);
-      }
-    }
-    // cols
-    for (let c=0;c<n;c++){
-      for (let r=0;r<=n-k;r++){
-        const arr=[]; for (let t=0;t<k;t++) arr.push((r+t)*n + c); L.push(arr);
-      }
-    }
-    // diag \
-    for (let r=0;r<=n-k;r++){
-      for (let c=0;c<=n-k;c++){
-        const arr=[]; for (let t=0;t<k;t++) arr.push((r+t)*n + (c+t)); L.push(arr);
-      }
-    }
-    // diag /
-    for (let r=0;r<=n-k;r++){
-      for (let c=k-1;c<n;c++){
-        const arr=[]; for (let t=0;t<k;t++) arr.push((r+t)*n + (c-t)); L.push(arr);
-      }
-    }
-    return L;
+  function updateScoreUI(){
+    scoreXEl.textContent = scoreX;
+    scoreOEl.textContent = scoreO;
+    scoreDEl.textContent = scoreD;
   }
 
+  function genLines(n, k){
+    const L=[];
+    for(let r=0;r<n;r++){ for(let c=0;c<=n-k;c++){ const a=[]; for(let t=0;t<k;t++) a.push(r*n+c+t); L.push(a); } }
+    for(let c=0;c<n;c++){ for(let r=0;r<=n-k;r++){ const a=[]; for(let t=0;t<k;t++) a.push((r+t)*n+c); L.push(a); } }
+    for(let r=0;r<=n-k;r++){ for(let c=0;c<=n-k;c++){ const a=[]; for(let t=0;t<k;t++) a.push((r+t)*n+(c+t)); L.push(a); } }
+    for(let r=0;r<=n-k;r++){ for(let c=k-1;c<n;c++){ const a=[]; for(let t=0;t<k;t++) a.push((r+t)*n+(c-t)); L.push(a); } }
+    return L;
+  }
   function checkWinner(b){
     for (const line of lines){
-      const f = b[line[0]];
-      if (!f) continue;
-      let ok=true;
-      for (let i=1;i<line.length;i++) if (b[line[i]]!==f) {ok=false;break;}
-      if (ok) return {winner:f, line};
-    }
-    return null;
+      const f=b[line[0]]; if(!f) continue;
+      let ok=true; for(let i=1;i<line.length;i++) if(b[line[i]]!==f){ok=false;break;}
+      if (ok) return {winner:f,line};
+    } return null;
   }
   const empties = (b)=> b.map((v,i)=>v?null:i).filter(v=>v!==null);
   const isDraw  = (b)=> !checkWinner(b) && empties(b).length===0;
 
-  // --- minimax (только для 3×3) ---
+  // minimax (только 3×3)
   function minimax(b, playerNow, aiM, humM, alpha, beta){
-    const cw = checkWinner(b); if (cw) return {score: cw.winner===aiM?10:-10};
-    if (isDraw(b)) return {score:0};
-    const maximizing = playerNow===aiM;
-    let best = {score: maximizing ? -Infinity : Infinity, idx:-1};
-    for (const idx of empties(b)){
+    const cw=checkWinner(b); if(cw) return {score:cw.winner===aiM?10:-10};
+    if(isDraw(b)) return {score:0};
+    const maximizing=playerNow===aiM;
+    let best={score:maximizing?-Infinity:Infinity, idx:-1};
+    for(const idx of empties(b)){
       const copy=b.slice(); copy[idx]=playerNow;
-      const nxt=minimax(copy, playerNow===aiM?humM:aiM, aiM, humM, alpha, beta);
-      if (maximizing){ if (nxt.score>best.score) best={score:nxt.score,idx}; alpha=Math.max(alpha,nxt.score); }
-      else { if (nxt.score<best.score) best={score:nxt.score,idx}; beta=Math.min(beta,nxt.score); }
-      if (beta<=alpha) break;
+      const nxt=minimax(copy, playerNow===aiM?humM:aiM, aiM, humM, alpha,beta);
+      if(maximizing){ if(nxt.score>best.score) best={score:nxt.score,idx}; alpha=Math.max(alpha,nxt.score); }
+      else{ if(nxt.score<best.score) best={score:nxt.score,idx}; beta=Math.min(beta,nxt.score); }
+      if(beta<=alpha) break;
     }
     return best;
   }
   function bestMove3(b, aiM, humM){
-    let best={idx:empties(b)[0],score:-Infinity};
-    for (const idx of empties(b)){
+    let best={idx:empties(b)[0], score:-Infinity};
+    for(const idx of empties(b)){
       const copy=b.slice(); copy[idx]=aiM;
       const r=minimax(copy, humM, aiM, humM, -Infinity, Infinity);
-      if (r.score>best.score) best={idx,score:r.score};
+      if(r.score>best.score) best={idx,score:r.score};
     }
     return best.idx;
   }
 
-  // --- быстрый ИИ для 5×5 ---
-  function bestMove5(b, aiM, humM){
-    // 1) выиграть сейчас
-    for (const i of empties(b)){ const c=b.slice(); c[i]=aiM; if (checkWinner(c)) return i; }
-    // 2) блок оппонента
-    for (const i of empties(b)){ const c=b.slice(); c[i]=humM; if (checkWinner(c)) return i; }
-    // 3) оценка клеток
-    let bestIdx=empties(b)[0], bestScore=-1;
-    const center=Math.floor((size*size)/2);
-    for (const i of empties(b)){
-      let score=0;
-      // центр
-      if (i===center) score+=3;
-      // «потенциал» по линиям
-      for (const ln of lines){
-        if (!ln.includes(i)) continue;
-        const vals=ln.map(x=>b[x]);
-        if (vals.includes(humM) && vals.includes(aiM)) continue; // линия "загрязнена"
-        const aiCnt=vals.filter(v=>v===aiM).length;
-        const huCnt=vals.filter(v=>v===humM).length;
-        score += aiCnt*2 + (huCnt===0?1:0);
+  // эвристика оценки для больших досок
+  function heuristic(b, aiM, humM){
+    let score=0;
+    for (const ln of lines){
+      const vals=ln.map(i=>b[i]);
+      const aiCnt=vals.filter(v=>v===aiM).length;
+      const huCnt=vals.filter(v=>v===humM).length;
+      if (aiCnt>0 && huCnt>0) continue; // линия "загрязнена"
+      // бонусы за построение/блок
+      score += (aiCnt*aiCnt)*3; // квадратичный рост за свои камни
+      score += (huCnt===0 ? 1 : 0);
+      if (huCnt>0 && aiCnt===0) score -= huCnt*2; // штраф если линия у оппонента
+    }
+    return score;
+  }
+
+  // Лучший ход для 4×4/5×5 с учётом diff
+  function bestMoveLarge(b, aiM, humM){
+    const empty = empties(b);
+    if (empty.length===0) return -1;
+
+    if (diff==='easy'){
+      // чисто случайный допустимый ход
+      return empty[Math.floor(Math.random()*empty.length)];
+    }
+
+    // Всегда сначала: выиграть → блок
+    for (const i of empty){ const c=b.slice(); c[i]=aiM; if(checkWinner(c)) return i; }
+    for (const i of empty){ const c=b.slice(); c[i]=humM; if(checkWinner(c)) return i; }
+
+    if (diff==='medium'){
+      // хорошая эвристика без заглядывания вперёд
+      let bestIdx=empty[0], bestScore=-1;
+      const center=Math.floor((size*size)/2);
+      for (const i of empty){
+        const c=b.slice(); c[i]=aiM;
+        let s=heuristic(c, aiM, humM);
+        if (i===center) s+=4;
+        bestIdx = (s>bestScore)? (bestScore=s, i) : bestIdx;
       }
-      if (score>bestScore){ bestScore=score; bestIdx=i; }
+      return bestIdx;
+    }
+
+    // hard: один полуход вперёд (lookahead 1-ply с ответом оппонента)
+    let bestIdx=empty[0], bestVal=-Infinity;
+    for (const i of empty){
+      const afterMe=b.slice(); afterMe[i]=aiM;
+      // предположим, что соперник ответит лучшим блоком/усилением
+      let worstForUs=Infinity;
+      const replies = empties(afterMe);
+      if (replies.length===0){
+        const v=heuristic(afterMe, aiM, humM);
+        if (v>bestVal){ bestVal=v; bestIdx=i; }
+        continue;
+      }
+      for (const j of replies){
+        const afterH=afterMe.slice(); afterH[j]=humM;
+        const v=heuristic(afterH, aiM, humM);
+        if (v<worstForUs) worstForUs=v;
+      }
+      if (worstForUs>bestVal){ bestVal=worstForUs; bestIdx=i; }
     }
     return bestIdx;
   }
 
   function aiMove(){
-    const idx = (size===3) ? bestMove3(board, ai, player) : bestMove5(board, ai, player);
+    const idx = (size===3) ? bestMove3(board, ai, player) : bestMoveLarge(board, ai, player);
     placeMark(idx, ai);
     if (endIfNeeded()) return;
     turn=player; turnLabel.textContent=turn;
   }
 
-  // --- построение поля/сброс ---
+  // UI/инициализация
   function buildBoard(){
-    boardEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    boardEl.style.gridTemplateColumns=`repeat(${size},1fr)`;
     boardEl.innerHTML=''; winSvg.innerHTML='';
-    board = Array(size*size).fill(null);
-    for (let i=0;i<size*size;i++){
+    board=Array(size*size).fill(null);
+    for(let i=0;i<size*size;i++){
       const b=document.createElement('button');
       b.className='cell'; b.dataset.idx=i;
       b.addEventListener('click', onCellClick);
@@ -214,57 +272,62 @@
       b.appendChild(s);
       boardEl.appendChild(b);
     }
+    againBtn.style.display='none';
   }
-
   function init(){
     lines = genLines(size, winLen);
     buildBoard();
-    statusEl.textContent='';
+    statusTop.textContent='';
     turn='X'; turnLabel.textContent=turn;
     winSvg.innerHTML='';
   }
 
   function placeMark(i, mark){
+    if (i<0) return;
     board[i]=mark;
     const cell=boardEl.querySelector(`.cell[data-idx="${i}"]`);
     const span=cell.querySelector('.mark');
-    span.textContent=mark;
-    span.style.opacity='1';
+    span.textContent=mark; span.style.opacity='1';
     span.classList.toggle('x', mark==='X');
     span.classList.toggle('o', mark==='O');
   }
 
   function drawWinLine(win){
-    const line = win.line;
+    const line=win.line;
     const aIdx=line[0], bIdx=line[line.length-1];
     const aEl=boardEl.querySelector(`.cell[data-idx="${aIdx}"]`);
     const bEl=boardEl.querySelector(`.cell[data-idx="${bIdx}"]`);
     const gridRect=boardEl.getBoundingClientRect();
     const ar=aEl.getBoundingClientRect();
     const br=bEl.getBoundingClientRect();
-    // центры клеток в координатах grid
-    const ax = ar.left - gridRect.left + ar.width/2;
-    const ay = ar.top  - gridRect.top  + ar.height/2;
-    const bx = br.left - gridRect.left + br.width/2;
-    const by = br.top  - gridRect.top  + br.height/2;
-
+    const ax=ar.left-gridRect.left+ar.width/2;
+    const ay=ar.top -gridRect.top +ar.height/2;
+    const bx=br.left-gridRect.left+br.width/2;
+    const by=br.top -gridRect.top +br.height/2;
     winSvg.innerHTML='';
     const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-    l.setAttribute('x1', ax); l.setAttribute('y1', ay);
-    l.setAttribute('x2', bx); l.setAttribute('y2', by);
-    l.setAttribute('stroke', win.winner==='X' ? getComputedStyle(document.documentElement).getPropertyValue('--x') : getComputedStyle(document.documentElement).getPropertyValue('--o'));
+    l.setAttribute('x1',ax); l.setAttribute('y1',ay);
+    l.setAttribute('x2',bx); l.setAttribute('y2',by);
+    l.setAttribute('stroke', win.winner==='X'
+      ? getComputedStyle(document.documentElement).getPropertyValue('--x')
+      : getComputedStyle(document.documentElement).getPropertyValue('--o'));
     winSvg.appendChild(l);
   }
 
   function endIfNeeded(){
     const res=checkWinner(board);
     if (res){
-      statusEl.textContent=`Победитель: ${res.winner}`;
+      statusTop.textContent=`Победитель: ${res.winner}`;
       drawWinLine(res);
+      if (res.winner==='X') scoreX++; else scoreO++;
+      updateScoreUI();
+      againBtn.style.display='inline-block';
       turn=null; return true;
     }
     if (isDraw(board)){
-      statusEl.textContent='Ничья';
+      statusTop.textContent='Ничья';
+      scoreD++; updateScoreUI();
+      againBtn.style.display='inline-block';
       turn=null; return true;
     }
     return false;
@@ -281,39 +344,38 @@
   }
 
   function maybeStartAIIfFirst(){
-    // если пользователь выбрал O, то первым ходит X (AI)
     if (player==='O' && ai==='X' && turn==='X'){
       setTimeout(aiMove, 120);
     }
   }
 
-  // --- UI handlers ---
-  btnX.onclick = () => {
-    player='X'; ai='O'; chooseRow.style.display='none'; infoRow.style.display='flex';
-    init();
-  };
-  btnO.onclick = () => {
-    player='O'; ai='X'; chooseRow.style.display='none'; infoRow.style.display='flex';
-    init();           // построили новое поле
-    maybeStartAIIfFirst(); // AI делает первый ход сразу
-  };
-  resetBtn.onclick = () => {
-    init();           // сохраняем выбранные player/ai/size
-    if (player && ai) maybeStartAIIfFirst();
-  };
+  // handlers
+  btnX.onclick=()=>{ player='X'; ai='O'; chooseRow.style.display='none'; infoRow.style.display='flex'; init(); };
+  btnO.onclick=()=>{ player='O'; ai='X'; chooseRow.style.display='none'; infoRow.style.display='flex'; init(); maybeStartAIIfFirst(); };
+  resetBtn.onclick=()=>{ init(); if (player && ai) maybeStartAIIfFirst(); };
+  againBtn.onclick=()=>{ init(); if (player && ai) maybeStartAIIfFirst(); };
 
-  modeSeg.addEventListener('click', (e)=>{
+  modeSeg.addEventListener('click',(e)=>{
     const btn=e.target.closest('button'); if(!btn) return;
     [...modeSeg.querySelectorAll('button')].forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    size = +btn.dataset.size;
-    winLen = (size===3)?3:4; // для 5×5 играем до 4 в ряд
-    // смена режима = новый матч, заново выбрать сторону
+    size=+btn.dataset.size; winLen=+btn.dataset.win;
+    // новый режим = новая партия, просим выбрать сторону
     player=null; ai=null; chooseRow.style.display='flex'; infoRow.style.display='none';
+    statusTop.textContent='';
     init();
   });
 
-  // первый рендер (без выбранной стороны)
+  diffSeg.addEventListener('click',(e)=>{
+    const btn=e.target.closest('button'); if(!btn) return;
+    [...diffSeg.querySelectorAll('button')].forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    diff=btn.dataset.diff;
+  });
+
+  // для 3×3 сложность неактуальна — просто визуально оставим выбранной "Средняя"
+  // первый старт
+  updateScoreUI();
   init();
 </script>
 </body>
