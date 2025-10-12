@@ -1,71 +1,64 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tic-Tac-Toe</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root{--bg:var(--tg-theme-bg-color,#0f0f12);--text:var(--tg-theme-text-color,#fff);--accent:var(--tg-theme-button-color,#2ea6ff)}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto}
-    .wrap{max-width:520px;margin:0 auto;padding:16px}
-    h1{margin:8px 0 16px;font-size:22px}
-    .board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-    .cell{height:120px;display:grid;place-items:center;background:#15171c;border-radius:12px;cursor:pointer;font-size:64px;font-weight:700}
-    .panel{display:flex;justify-content:space-between;align-items:center;margin:12px 0}
-    .btn{border:none;border-radius:12px;padding:10px 14px;cursor:pointer}
-    .primary{background:var(--accent);color:var(--tg-theme-button-text-color,#000)}
-    .ghost{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.15)}
+    :root {
+      --bg: #0f1115;
+      --tile: #0f1115;
+      --tile-border: #1c1f26;
+      --text: #ffffff;
+      --text-dim: #f3f4f6;
+      --accent: #ef4444;
+    }
+    html, body {
+      margin: 0; padding: 0;
+      background: #fff; color: #111827;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    }
+    .wrap{ max-width: 680px; margin: 0 auto; padding: 16px; }
+    h1{ font-size: 28px; font-weight: 800; display:flex; gap:8px; align-items:center; margin:0 0 8px; }
+    h1 .x { color: var(--accent); }
+    .row{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; }
+    .btn{
+      padding: 8px 14px; border-radius: 14px;
+      border: 1px solid #e5e7eb; background:#f3f4f6; cursor:pointer;
+    }
+    .btn:active{ transform: scale(.98); }
+    .btn.dark{ background:#111827; color:#f9fafb; border-color:#111827; }
+    .muted{ color:#6b7280; }
+
+    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:12px; }
+    .cell{
+      height: 112px; border-radius: 18px; background: var(--tile);
+      border: 1px solid var(--tile-border);
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      display:flex; align-items:center; justify-content:center;
+      touch-action: manipulation; user-select:none; -webkit-user-select:none;
+    }
+    .cell:active{ transform: scale(.99); }
+    .mark{
+      font-size: 56px; line-height: 1; font-weight: 900;
+      color: var(--text); letter-spacing: -0.02em;
+      opacity: 1;
+      text-shadow: 0 0 1px rgba(0,0,0,.25);
+    }
+    .mark.o{ color: var(--text-dim); }
+    .status{ margin-top:14px; min-height: 28px; font-size: 18px; }
+    .hidden{ display:none !important; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>❌ Tic-Tac-Toe</h1>
-    <div class="panel">
-      <div id="status">Ход: X</div>
-      <div>
-        <button id="reset" class="btn ghost">Сброс</button>
-        <button id="send" class="btn primary">Отправить</button>
-      </div>
+    <h1><span class="x">✖</span> Tic-Tac-Toe</h1>
+
+    <div class="row" id="chooseRow">
+      <span class="muted">Выбери, кем играть:</span>
+      <button class="btn dark" id="playX">Play as X</button>
+      <button class="btn dark" id="playO">Play as O</button>
     </div>
-    <div id="board" class="board"></div>
-  </div>
-  <script>
-    const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
-    const status = document.getElementById('status');
-    const boardEl = document.getElementById('board');
-    const resetBtn = document.getElementById('reset');
-    const sendBtn = document.getElementById('send');
 
-    let board = Array(9).fill(null);
-    let turn = 'X';
-    let finished = false;
-
-    function render(){
-      boardEl.innerHTML = '';
-      board.forEach((v,i)=>{
-        const cell=document.createElement('button');
-        cell.className='cell'; cell.textContent=v||''; cell.disabled=!!v||finished; cell.onclick=()=>move(i);
-        boardEl.appendChild(cell);
-      });
-      const w = winner(board);
-      if (w){ status.textContent = `Победа: ${w}`; finished = true; tg?.HapticFeedback?.notificationOccurred('success'); }
-      else if (!board.includes(null)){ status.textContent='Ничья'; finished = true; }
-      else { status.textContent = `Ход: ${turn}`; }
-    }
-    function move(i){ if (board[i]||finished) return; board[i]=turn; turn=(turn==='X')?'O':'X'; render(); }
-    function winner(b){
-      const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-      for (const [a,b2,c] of L){ if (b[a] && b[a]===b[b2] && b[a]===b[c]) return b[a]; }
-      return null;
-    }
-    resetBtn.onclick = ()=>{ board=Array(9).fill(null); turn='X'; finished=false; render(); };
-    sendBtn.onclick = ()=>{
-      const w = winner(board);
-      const score = w==='X'?3 : w==='O'?2 : 1; // простая метрика
-      const payload = { type:'score', game:'tictactoe', score, at:new Date().toISOString() };
-      try { tg?.sendData?.(JSON.stringify(payload)); tg?.close?.(); } catch(e){ console.error(e); }
-    };
-    render();
-  </script>
-</body>
-</html>
+    <div class="row" id="infoRow" class="hidden" style="display:none">
+      <span>Ход: <b id="turnLabel">X</b></s
