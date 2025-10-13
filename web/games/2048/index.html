@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>2048</title>
+<style>
+  :root{
+    --bg:#0f1115; --board:#111827; --tile:#1f2937; --grid:#1c2430;
+    --text:#e5e7eb; --muted:#9ca3af; --accent:#ef4444;
+  }
+  html,body{margin:0;padding:0;background:#fff;color:#111827;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  .wrap{max-width:760px;margin:0 auto;padding:16px;position:relative;}
+  h1{font-size:28px;font-weight:800;display:flex;gap:8px;align-items:center;margin:0 0 8px;}
+  .topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+  .left{display:flex;gap:10px;align-items:center}
+  .btn{padding:8px 14px;border-radius:14px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer}
+  .btn:active{transform:scale(.98)}
+  .btn.dark,.btn.primary{background:#111827;color:#f9fafb;border-color:#111827}
+  .badge{border:1px solid #e5e7eb;border-radius:12px;padding:6px 10px;background:#fff}
+  .muted{color:#6b7280}
+  .board{
+    margin-top:12px;background:var(--board);border-radius:16px;padding:12px;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .cell{
+    aspect-ratio:1/1;border-radius:12px;background:#0f1115;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:26px;font-weight:800;
+  }
+  .tile{display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:800;color:#0b1020}
+  .n2{background:#e9ecef;color:#111827}.n4{background:#d1d5db;color:#111827}
+  .n8{background:#f59e0b;color:#111827}.n16{background:#f97316}.n32{background:#ef4444;color:#fff}
+  .n64{background:#dc2626;color:#fff}.n128{background:#a855f7;color:#fff}
+  .n256{background:#6366f1;color:#fff}.n512{background:#06b6d4;color:#0b1020}
+  .n1024{background:#10b981;color:#0b1020}.n2048{background:#facc15;color:#0b1020}
+  .status{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  /* Game Over overlay */
+  .overlay{position:fixed;inset:0;background:rgba(17,24,39,.55);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;z-index:5}
+  .toast{background:#fff;color:#111827;border-radius:16px;padding:18px 18px 14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:center;min-width:260px;animation:pop .18s ease-out}
+  .toast h3{margin:0 0 8px;font-size:20px}
+  .toast p{margin:0 0 12px}
+  @keyframes pop{from{transform:scale(.96);opacity:.6}to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="left">
+      <button class="btn" id="backBtn">← В меню игр</button>
+      <h1>2048</h1>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="badge">Счёт: <b id="score">0</b></span>
+      <span class="badge">Рекорд: <b id="best">0</b></span>
+      <button class="btn dark" id="newBtn">Новая игра</button>
+    </div>
+  </div>
+
+  <div class="status">
+    <span class="muted">Управление: стрелки / WASD / свайпы</span>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="toast">
+      <h3 id="ovTitle">Игра окончена</h3>
+      <p id="ovText">Нет ходов...</p>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn primary" id="againBtn">Сыграть ещё</button>
+        <button class="btn" id="closeBtn">Закрыть</button>
+      </div>
+      <p class="muted" style="margin-top:8px;font-size:12px">
+        Основано на 2048 (© 2014 Gabriele Cirulli, MIT)
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- helpers & state ---
+  const N = 4;
+  const boardEl = document.getElementById('board');
+  const scoreEl = document.getElementById('score');
+  const bestEl  = document.getElementById('best');
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovText  = document.getElementById('ovText');
+  const againBtn= document.getElementById('againBtn');
+  const closeBtn= document.getElementById('closeBtn');
+  const newBtn  = document.getElementById('newBtn');
+  const backBtn = document.getElementById('backBtn');
+
+  let grid = []; // 2D array N x N
+  let score = 0;
+  let best  = +localStorage.getItem('best2048') || 0;
+
+  function resetGrid(){
+    grid = Array.from({length:N}, ()=>Array(N).fill(0));
+  }
+  function emptyCells(){
+    const cells=[];
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===0) cells.push([r,c]);
+    return cells;
+  }
+  function spawn(){
+    const cells=emptyCells();
+    if(!cells.length) return;
+    const [r,c] = cells[Math.floor(Math.random()*cells.length)];
+    grid[r][c] = Math.random()<0.9 ? 2 : 4;
+  }
+  function updateScore(delta){
+    score += delta;
+    scoreEl.textContent = score;
+    if(score>best){ best = score; bestEl.textContent = best; localStorage.setItem('best2048', best); }
+  }
+
+  function draw(){
+    boardEl.innerHTML='';
+    for(let r=0;r<N;r++){
+      for(let c=0;c<N;c++){
+        const v=grid[r][c];
+        const cell=document.createElement('div');
+        cell.className='cell';
+        if(v){
+          const tile=document.createElement('div');
+          tile.className='tile n'+v;
+          tile.textContent=v;
+          tile.style.width='100%'; tile.style.height='100%';
+          tile.style.display='flex'; tile.style.alignItems='center'; tile.style.justifyContent='center';
+          tile.style.fontSize = v>=1024 ? '22px':'26px';
+          cell.appendChild(tile);
+        }
+        boardEl.appendChild(cell);
+      }
+    }
+  }
+
+  // --- movement/merge ---
+  function slide(row){ // compress non-zero to the left
+    const arr=row.filter(v=>v!==0);
+    while(arr.length<N) arr.push(0);
+    return arr;
+  }
+  function combine(row){
+    let gained=0;
+    for(let i=0;i<N-1;i++){
+      if(row[i]!==0 && row[i]===row[i+1]){
+        row[i]*=2; row[i+1]=0; gained+=row[i];
+      }
+    }
+    return {row, gained};
+  }
+
+  function moveLeft(){
+    let moved=false, gainedTotal=0;
+    for(let r=0;r<N;r++){
+      let row=grid[r].slice();
+      row=slide(row);
+      const res=combine(row);
+      gainedTotal+=res.gained;
+      row=slide(res.row);
+      if(row.join(',')!==grid[r].join(',')){ moved=true; grid[r]=row; }
+    }
+    if(moved){ updateScore(gainedTotal); spawn(); draw(); checkEnd(); }
+  }
+  function moveRight(){
+    rotate180(); moveLeft(); rotate180();
+  }
+  function moveUp(){
+    rotateCCW(); moveLeft(); rotateCW();
+  }
+  function moveDown(){
+    rotateCW(); moveLeft(); rotateCCW();
+  }
+
+  // matrix rotations
+  function rotateCW(){
+    const g=Array.from({length:N},()=>Array(N).fill(0));
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[c][N-1-r]=grid[r][c];
+    grid=g;
+  }
+  function rotateCCW(){
+    const g=Array.from({length:N},()=>Array(N).fill(0));
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[N-1-c][r]=grid[r][c];
+    grid=g;
+  }
+  function rotate180(){ rotateCW(); rotateCW(); }
+
+  // --- endgame ---
+  function hasMoves(){
+    if(emptyCells().length>0) return true;
+    for(let r=0;r<N;r++) for(let c=0;c<N-1;c++) if(grid[r][c]===grid[r][c+1]) return true;
+    for(let c=0;c<N;c++) for(let r=0;r<N-1;r++) if(grid[r][c]===grid[r+1][c]) return true;
+    return false;
+  }
+  function has2048(){
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===2048) return true;
+    return false;
+  }
+  function checkEnd(){
+    if(has2048()){
+      ovTitle.textContent='Поздравляем!';
+      ovText.textContent='Вы достигли 2048 🎉';
+      overlay.style.display='flex';
+      return;
+    }
+    if(!hasMoves()){
+      ovTitle.textContent='Игра окончена';
+      ovText.textContent='Нет доступных ходов';
+      overlay.style.display='flex';
+    }
+  }
+
+  // --- input ---
+  window.addEventListener('keydown', (e)=>{
+    const k=e.key.toLowerCase();
+    if(k==='arrowleft'||k==='a') moveLeft();
+    else if(k==='arrowright'||k==='d') moveRight();
+    else if(k==='arrowup'||k==='w') moveUp();
+    else if(k==='arrowdown'||k==='s') moveDown();
+  });
+
+  // touch / swipe
+  let sx=0, sy=0;
+  boardEl.addEventListener('touchstart', (e)=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; }, {passive:true});
+  boardEl.addEventListener('touchend', (e)=>{
+    const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+    const ax=Math.abs(dx), ay=Math.abs(dy);
+    if(ax<20 && ay<20) return;
+    if(ax>ay){ dx>0 ? moveRight() : moveLeft(); } else { dy>0 ? moveDown() : moveUp(); }
+  }, {passive:true});
+
+  // buttons
+  document.getElementById('againBtn').onclick = ()=>{ overlay.style.display='none'; start(); };
+  document.getElementById('closeBtn').onclick = ()=>{ overlay.style.display='none'; };
+  newBtn.onclick = ()=> start();
+  backBtn.onclick = ()=> { window.location.href = '/'; };
+
+  // --- start ---
+  function start(){
+    score=0; scoreEl.textContent=score; bestEl.textContent=best;
+    resetGrid(); spawn(); spawn(); draw();
+  }
+  start();
+
+  // © 2014 Gabriele Cirulli — MIT (оригинал). Эта реализация написана с нуля и совместима с MIT.
+</script>
+</body>
+</html>
