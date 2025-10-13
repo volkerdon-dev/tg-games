@@ -6,11 +6,16 @@
 <title>2048</title>
 <style>
   :root{
-    --bg:#0f1115; --board:#111827; --tile:#1f2937; --grid:#1c2430;
-    --text:#e5e7eb; --muted:#9ca3af; --accent:#ef4444;
+    --board:#bbada0;         /* рамка/фон доски */
+    --cell:#eee4da66;        /* БЕЖЕВЫЕ пустые клетки */
+    --text:#111827;
+    --muted:#6b7280;
   }
-  html,body{margin:0;padding:0;background:#fff;color:#111827;
-    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  html,body{
+    margin:0;padding:0;background:#fff;color:var(--text);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+    overscroll-behavior: none; /* меньше "рывков" на iOS */
+  }
   .wrap{max-width:760px;margin:0 auto;padding:16px;position:relative;}
   h1{font-size:28px;font-weight:800;display:flex;gap:8px;align-items:center;margin:0 0 8px;}
   .topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
@@ -19,23 +24,38 @@
   .btn:active{transform:scale(.98)}
   .btn.dark,.btn.primary{background:#111827;color:#f9fafb;border-color:#111827}
   .badge{border:1px solid #e5e7eb;border-radius:12px;padding:6px 10px;background:#fff}
-  .muted{color:#6b7280}
+  .muted{color:var(--muted)}
   .board{
-    margin-top:12px;background:var(--board);border-radius:16px;padding:12px;
+    margin-top:12px;background:var(--board);border-radius:20px;padding:12px;
     display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
-    touch-action:none; user-select:none; -webkit-user-select:none;
+    touch-action:none; user-select:none; -webkit-user-select:none; /* отключаем нативную прокрутку */
   }
   .cell{
-    aspect-ratio:1/1;border-radius:12px;background:#0f1115;display:flex;align-items:center;justify-content:center;
+    aspect-ratio:1/1;border-radius:12px;background:var(--cell);
+    display:flex;align-items:center;justify-content:center;
     color:#fff;font-size:26px;font-weight:800;
+    box-shadow: inset 0 0 0 1px #a39387;
   }
-  .tile{display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:800;color:#0b1020}
-  .n2{background:#e9ecef;color:#111827}.n4{background:#d1d5db;color:#111827}
-  .n8{background:#f59e0b;color:#111827}.n16{background:#f97316}.n32{background:#ef4444;color:#fff}
-  .n64{background:#dc2626;color:#fff}.n128{background:#a855f7;color:#fff}
-  .n256{background:#6366f1;color:#fff}.n512{background:#06b6d4;color:#0b1020}
-  .n1024{background:#10b981;color:#0b1020}.n2048{background:#facc15;color:#0b1020}
+  .tile{
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    border-radius:12px;font-weight:800;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.08);
+  }
+  /* Классическая палитра 2048 */
+  .n2   {background:#eee4da;color:#776e65}
+  .n4   {background:#ede0c8;color:#776e65}
+  .n8   {background:#f2b179;color:#f9f9f9}
+  .n16  {background:#f59563;color:#fff}
+  .n32  {background:#f67c5f;color:#fff}
+  .n64  {background:#f65e3b;color:#fff}
+  .n128 {background:#edcf72;color:#fff}
+  .n256 {background:#edcc61;color:#fff}
+  .n512 {background:#edc850;color:#fff}
+  .n1024{background:#edc53f;color:#fff;font-size:22px}
+  .n2048{background:#edc22e;color:#fff;font-size:22px}
+
   .status{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
   /* Game Over overlay */
   .overlay{position:fixed;inset:0;background:rgba(17,24,39,.55);backdrop-filter:blur(2px);
     display:none;align-items:center;justify-content:center;z-index:5}
@@ -82,7 +102,6 @@
 </div>
 
 <script>
-  // --- helpers & state ---
   const N = 4;
   const boardEl = document.getElementById('board');
   const scoreEl = document.getElementById('score');
@@ -95,44 +114,30 @@
   const newBtn  = document.getElementById('newBtn');
   const backBtn = document.getElementById('backBtn');
 
-  let grid = []; // 2D array N x N
+  let grid = [];
   let score = 0;
   let best  = +localStorage.getItem('best2048') || 0;
 
-  function resetGrid(){
-    grid = Array.from({length:N}, ()=>Array(N).fill(0));
-  }
-  function emptyCells(){
-    const cells=[];
-    for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===0) cells.push([r,c]);
-    return cells;
-  }
+  function resetGrid(){ grid = Array.from({length:N},()=>Array(N).fill(0)); }
+  function emptyCells(){ const a=[]; for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!grid[r][c]) a.push([r,c]); return a; }
   function spawn(){
-    const cells=emptyCells();
-    if(!cells.length) return;
-    const [r,c] = cells[Math.floor(Math.random()*cells.length)];
-    grid[r][c] = Math.random()<0.9 ? 2 : 4;
+    const cells=emptyCells(); if(!cells.length) return;
+    const [r,c]=cells[Math.floor(Math.random()*cells.length)];
+    grid[r][c] = Math.random()<0.9?2:4;
   }
   function updateScore(delta){
-    score += delta;
-    scoreEl.textContent = score;
-    if(score>best){ best = score; bestEl.textContent = best; localStorage.setItem('best2048', best); }
+    score += delta; scoreEl.textContent = score;
+    if(score>best){ best=score; bestEl.textContent=best; localStorage.setItem('best2048', best); }
   }
-
   function draw(){
     boardEl.innerHTML='';
     for(let r=0;r<N;r++){
       for(let c=0;c<N;c++){
         const v=grid[r][c];
-        const cell=document.createElement('div');
-        cell.className='cell';
+        const cell=document.createElement('div'); cell.className='cell';
         if(v){
-          const tile=document.createElement('div');
-          tile.className='tile n'+v;
-          tile.textContent=v;
-          tile.style.width='100%'; tile.style.height='100%';
-          tile.style.display='flex'; tile.style.alignItems='center'; tile.style.justifyContent='center';
-          tile.style.fontSize = v>=1024 ? '22px':'26px';
+          const tile=document.createElement('div'); tile.className='tile n'+v;
+          tile.textContent=v; tile.style.fontSize = v>=1024 ? '22px' : '26px';
           cell.appendChild(tile);
         }
         boardEl.appendChild(cell);
@@ -140,108 +145,72 @@
     }
   }
 
-  // --- movement/merge ---
-  function slide(row){ // compress non-zero to the left
-    const arr=row.filter(v=>v!==0);
-    while(arr.length<N) arr.push(0);
-    return arr;
-  }
+  function slide(row){ const arr=row.filter(v=>v!==0); while(arr.length<N) arr.push(0); return arr; }
   function combine(row){
     let gained=0;
-    for(let i=0;i<N-1;i++){
-      if(row[i]!==0 && row[i]===row[i+1]){
-        row[i]*=2; row[i+1]=0; gained+=row[i];
-      }
-    }
-    return {row, gained};
+    for(let i=0;i<N-1;i++) if(row[i]&&row[i]===row[i+1]){ row[i]*=2; row[i+1]=0; gained+=row[i]; }
+    return {row,gained};
   }
 
   function moveLeft(){
-    let moved=false, gainedTotal=0;
+    let moved=false, gained=0;
     for(let r=0;r<N;r++){
-      let row=grid[r].slice();
-      row=slide(row);
-      const res=combine(row);
-      gainedTotal+=res.gained;
+      let row=slide(grid[r].slice());
+      const res=combine(row); gained+=res.gained;
       row=slide(res.row);
       if(row.join(',')!==grid[r].join(',')){ moved=true; grid[r]=row; }
     }
-    if(moved){ updateScore(gainedTotal); spawn(); draw(); checkEnd(); }
+    if(moved){ updateScore(gained); spawn(); draw(); checkEnd(); }
   }
-  function moveRight(){
-    rotate180(); moveLeft(); rotate180();
-  }
-  function moveUp(){
-    rotateCCW(); moveLeft(); rotateCW();
-  }
-  function moveDown(){
-    rotateCW(); moveLeft(); rotateCCW();
-  }
-
-  // matrix rotations
-  function rotateCW(){
-    const g=Array.from({length:N},()=>Array(N).fill(0));
-    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[c][N-1-r]=grid[r][c];
-    grid=g;
-  }
-  function rotateCCW(){
-    const g=Array.from({length:N},()=>Array(N).fill(0));
-    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[N-1-c][r]=grid[r][c];
-    grid=g;
-  }
+  function rotateCW(){ const g=Array.from({length:N},()=>Array(N).fill(0));
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[c][N-1-r]=grid[r][c]; grid=g; }
+  function rotateCCW(){ const g=Array.from({length:N},()=>Array(N).fill(0));
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[N-1-c][r]=grid[r][c]; grid=g; }
   function rotate180(){ rotateCW(); rotateCW(); }
+  function moveRight(){ rotate180(); moveLeft(); rotate180(); }
+  function moveUp(){ rotateCCW(); moveLeft(); rotateCW(); }
+  function moveDown(){ rotateCW(); moveLeft(); rotateCCW(); }
 
-  // --- endgame ---
   function hasMoves(){
-    if(emptyCells().length>0) return true;
+    if(emptyCells().length) return true;
     for(let r=0;r<N;r++) for(let c=0;c<N-1;c++) if(grid[r][c]===grid[r][c+1]) return true;
     for(let c=0;c<N;c++) for(let r=0;r<N-1;r++) if(grid[r][c]===grid[r+1][c]) return true;
     return false;
   }
-  function has2048(){
-    for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===2048) return true;
-    return false;
-  }
+  function has2048(){ for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===2048) return true; return false; }
   function checkEnd(){
-    if(has2048()){
-      ovTitle.textContent='Поздравляем!';
-      ovText.textContent='Вы достигли 2048 🎉';
-      overlay.style.display='flex';
-      return;
-    }
-    if(!hasMoves()){
-      ovTitle.textContent='Игра окончена';
-      ovText.textContent='Нет доступных ходов';
-      overlay.style.display='flex';
-    }
+    if(has2048()){ ovTitle.textContent='Поздравляем!'; ovText.textContent='Вы достигли 2048 🎉'; overlay.style.display='flex'; return; }
+    if(!hasMoves()){ ovTitle.textContent='Игра окончена'; ovText.textContent='Нет доступных ходов'; overlay.style.display='flex'; }
   }
 
-  // --- input ---
-  window.addEventListener('keydown', (e)=>{
-    const k=e.key.toLowerCase();
-    if(k==='arrowleft'||k==='a') moveLeft();
-    else if(k==='arrowright'||k==='d') moveRight();
-    else if(k==='arrowup'||k==='w') moveUp();
-    else if(k==='arrowdown'||k==='s') moveDown();
+  // --- управление (блокируем прокрутку) ---
+  window.addEventListener('keydown',(e)=>{
+    const k=e.key;
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(k)) e.preventDefault(); // не скроллим WebView
+    const s=k.toLowerCase();
+    if(s==='arrowleft'||s==='a') moveLeft();
+    else if(s==='arrowright'||s==='d') moveRight();
+    else if(s==='arrowup'||s==='w') moveUp();
+    else if(s==='arrowdown'||s==='s') moveDown();
   });
 
-  // touch / swipe
-  let sx=0, sy=0;
-  boardEl.addEventListener('touchstart', (e)=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; }, {passive:true});
-  boardEl.addEventListener('touchend', (e)=>{
+  let sx=0, sy=0, touching=false;
+  boardEl.addEventListener('touchstart',(e)=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; touching=true; }, {passive:false});
+  boardEl.addEventListener('touchmove', (e)=>{ if(touching) e.preventDefault(); }, {passive:false});  // гасим скролл Telegram WebApp
+  boardEl.addEventListener('touchend',(e)=>{
+    touching=false;
     const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
     const ax=Math.abs(dx), ay=Math.abs(dy);
     if(ax<20 && ay<20) return;
     if(ax>ay){ dx>0 ? moveRight() : moveLeft(); } else { dy>0 ? moveDown() : moveUp(); }
-  }, {passive:true});
+  }, {passive:false});
 
   // buttons
-  document.getElementById('againBtn').onclick = ()=>{ overlay.style.display='none'; start(); };
-  document.getElementById('closeBtn').onclick = ()=>{ overlay.style.display='none'; };
-  newBtn.onclick = ()=> start();
-  backBtn.onclick = ()=> { window.location.href = '/'; };
+  againBtn.onclick = ()=>{ overlay.style.display='none'; start(); };
+  closeBtn.onclick = ()=>{ overlay.style.display='none'; };
+  newBtn.onclick   = ()=> start();
+  backBtn.onclick  = ()=> { window.location.href = '/'; };
 
-  // --- start ---
   function start(){
     score=0; scoreEl.textContent=score; bestEl.textContent=best;
     resetGrid(); spawn(); spawn(); draw();
