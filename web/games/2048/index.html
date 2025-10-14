@@ -8,13 +8,12 @@
   :root{
     --board:#bbada0;         /* рамка/фон доски */
     --cell:#eee4da66;        /* БЕЖЕВЫЕ пустые клетки */
-    --text:#111827;
-    --muted:#6b7280;
+    --text:#111827; --muted:#6b7280;
   }
   html,body{
     margin:0;padding:0;background:#fff;color:var(--text);
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-    overscroll-behavior: none; /* меньше "рывков" на iOS */
+    overscroll-behavior: none;
   }
   .wrap{max-width:760px;margin:0 auto;padding:16px;position:relative;}
   h1{font-size:28px;font-weight:800;display:flex;gap:8px;align-items:center;margin:0 0 8px;}
@@ -25,23 +24,31 @@
   .btn.dark,.btn.primary{background:#111827;color:#f9fafb;border-color:#111827}
   .badge{border:1px solid #e5e7eb;border-radius:12px;padding:6px 10px;background:#fff}
   .muted{color:var(--muted)}
+
   .board{
     margin-top:12px;background:var(--board);border-radius:20px;padding:12px;
-    display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
-    touch-action:none; user-select:none; -webkit-user-select:none; /* отключаем нативную прокрутку */
+    display:grid;grid-template-columns:repeat(4,1fr);gap:12px;position:relative;
+    touch-action:none; user-select:none; -webkit-user-select:none; /* блокируем скролл в WebApp */
   }
   .cell{
     aspect-ratio:1/1;border-radius:12px;background:var(--cell);
     display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:26px;font-weight:800;
     box-shadow: inset 0 0 0 1px #a39387;
   }
+
+  /* Реальные тайлы рисуем ПОВЕРХ (абсолютно), чтобы анимировать перемещение */
+  .tiles-layer{position:absolute; inset:12px; pointer-events:none;}
   .tile{
-    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-    border-radius:12px;font-weight:800;
+    position:absolute; width:calc((100% - 3*12px)/4); height:calc((100% - 3*12px)/4);
+    border-radius:12px; font-weight:800; display:flex; align-items:center; justify-content:center;
     box-shadow: inset 0 -3px 0 rgba(0,0,0,.08);
+    transition: transform 120ms ease-out;
+    will-change: transform;
   }
-  /* Классическая палитра 2048 */
+  .pop{animation:pop .14s ease-out;}
+  @keyframes pop{from{transform:scale(.9);}to{transform:scale(1);} }
+
+  /* Палитра 2048 */
   .n2   {background:#eee4da;color:#776e65}
   .n4   {background:#ede0c8;color:#776e65}
   .n8   {background:#f2b179;color:#f9f9f9}
@@ -51,8 +58,8 @@
   .n128 {background:#edcf72;color:#fff}
   .n256 {background:#edcc61;color:#fff}
   .n512 {background:#edc850;color:#fff}
-  .n1024{background:#edc53f;color:#fff;font-size:22px}
-  .n2048{background:#edc22e;color:#fff;font-size:22px}
+  .n1024{background:#edc53f;color:#fff}
+  .n2048{background:#edc22e;color:#fff}
 
   .status{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
@@ -63,7 +70,6 @@
     box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:center;min-width:260px;animation:pop .18s ease-out}
   .toast h3{margin:0 0 8px;font-size:20px}
   .toast p{margin:0 0 12px}
-  @keyframes pop{from{transform:scale(.96);opacity:.6}to{transform:scale(1);opacity:1}}
 </style>
 </head>
 <body>
@@ -84,7 +90,16 @@
     <span class="muted">Управление: стрелки / WASD / свайпы</span>
   </div>
 
-  <div class="board" id="board"></div>
+  <div class="board" id="board">
+    <!-- сетка-подложка -->
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+
+    <!-- слой динамических тайлов -->
+    <div class="tiles-layer" id="tiles"></div>
+  </div>
 
   <div class="overlay" id="overlay">
     <div class="toast">
@@ -104,6 +119,7 @@
 <script>
   const N = 4;
   const boardEl = document.getElementById('board');
+  const tilesEl = document.getElementById('tiles');
   const scoreEl = document.getElementById('score');
   const bestEl  = document.getElementById('best');
   const overlay = document.getElementById('overlay');
@@ -114,98 +130,247 @@
   const newBtn  = document.getElementById('newBtn');
   const backBtn = document.getElementById('backBtn');
 
-  let grid = [];
+  // состояние
+  let grid = [];     // значения
+  let ids  = [];     // id тайла в каждой клетке (для анимаций)
+  let nextId = 1;
   let score = 0;
   let best  = +localStorage.getItem('best2048') || 0;
+  let moving = false; // блокируем повторный ход пока идёт анимация
 
-  function resetGrid(){ grid = Array.from({length:N},()=>Array(N).fill(0)); }
-  function emptyCells(){ const a=[]; for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!grid[r][c]) a.push([r,c]); return a; }
+  function resetGrid(){
+    grid = Array.from({length:N}, ()=>Array(N).fill(0));
+    ids  = Array.from({length:N}, ()=>Array(N).fill(0));
+  }
+  function emptyCells(){
+    const cells=[];
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===0) cells.push([r,c]);
+    return cells;
+  }
   function spawn(){
     const cells=emptyCells(); if(!cells.length) return;
-    const [r,c]=cells[Math.floor(Math.random()*cells.length)];
-    grid[r][c] = Math.random()<0.9?2:4;
+    const [r,c] = cells[Math.floor(Math.random()*cells.length)];
+    grid[r][c] = Math.random()<0.9 ? 2 : 4;
+    ids[r][c] = nextId++;
+    drawTiles(); // отрисуем и поп-эффект
+    const el = document.querySelector(`.tile[data-id="${ids[r][c]}"]`);
+    if (el) el.classList.add('pop');
   }
   function updateScore(delta){
-    score += delta; scoreEl.textContent = score;
-    if(score>best){ best=score; bestEl.textContent=best; localStorage.setItem('best2048', best); }
+    score += delta;
+    scoreEl.textContent = score;
+    if(score>best){ best = score; bestEl.textContent = best; localStorage.setItem('best2048', best); }
   }
-  function draw(){
-    boardEl.innerHTML='';
+
+  // позиционирование ячеек (для абсолютных тайлов)
+  function tileRect(r,c){
+    const gap = 12;
+    const boardRect = boardEl.getBoundingClientRect();
+    const innerSize = boardRect.width - 2*12; // padding
+    const cellSize = (innerSize - 3*gap) / 4;
+    const x = c*(cellSize+gap);
+    const y = r*(cellSize+gap);
+    return {x,y, size:cellSize};
+  }
+
+  function drawTiles(){
+    tilesEl.innerHTML='';
     for(let r=0;r<N;r++){
       for(let c=0;c<N;c++){
-        const v=grid[r][c];
-        const cell=document.createElement('div'); cell.className='cell';
-        if(v){
-          const tile=document.createElement('div'); tile.className='tile n'+v;
-          tile.textContent=v; tile.style.fontSize = v>=1024 ? '22px' : '26px';
-          cell.appendChild(tile);
-        }
-        boardEl.appendChild(cell);
+        const v=grid[r][c]; if(!v) continue;
+        const id=ids[r][c];
+        const {x,y} = tileRect(r,c);
+        const t=document.createElement('div');
+        t.className=`tile n${v}`;
+        t.dataset.id=id;
+        t.textContent=v;
+        if (v>=1024) t.style.fontSize='22px';
+        t.style.left=`${x}px`; t.style.top=`${y}px`;
+        tilesEl.appendChild(t);
       }
     }
   }
 
-  function slide(row){ const arr=row.filter(v=>v!==0); while(arr.length<N) arr.push(0); return arr; }
-  function combine(row){
-    let gained=0;
-    for(let i=0;i<N-1;i++) if(row[i]&&row[i]===row[i+1]){ row[i]*=2; row[i+1]=0; gained+=row[i]; }
-    return {row,gained};
-  }
+  // ---- логика хода без поворотов (и с картой перемещений) ----
+  function move(dir){ // 'left'|'right'|'up'|'down'
+    if (moving) return;
+    const before = JSON.stringify(grid);
+    const moves = [];     // [{id, from:{r,c}, to:{r,c}, merged:false}]
+    let gained = 0;
 
-  function moveLeft(){
-    let moved=false, gained=0;
-    for(let r=0;r<N;r++){
-      let row=slide(grid[r].slice());
-      const res=combine(row); gained+=res.gained;
-      row=slide(res.row);
-      if(row.join(',')!==grid[r].join(',')){ moved=true; grid[r]=row; }
+    if (dir==='left' || dir==='right'){
+      for (let r=0;r<N;r++){
+        const arr=[]; const arrId=[];
+        for (let c=0;c<N;c++){
+          const cc = (dir==='left')? c : (N-1-c);
+          if (grid[r][cc]!==0){ arr.push({v:grid[r][cc], c:cc}); arrId.push(ids[r][cc]); }
+        }
+        const out=[]; const outId=[];
+        let i=0;
+        while(i<arr.length){
+          if (i<arr.length-1 && arr[i].v===arr[i+1].v){
+            const val=arr[i].v*2;
+            const idKeep=arrId[i]; // сохраняем id первого как «слившийся»
+            out.push(val); outId.push(idKeep);
+            moves.push({id:arrId[i], from:{r,c:arr[i].c}, to:{r, c: (dir==='left'? out.length-1 : N-out.length)}, merged:true});
+            moves.push({id:arrId[i+1], from:{r,c:arr[i+1].c}, to:{r, c: (dir==='left'? out.length-1 : N-out.length)}, mergedInto:idKeep});
+            gained += val;
+            i+=2;
+          }else{
+            out.push(arr[i].v); outId.push(arrId[i]);
+            moves.push({id:arrId[i], from:{r,c:arr[i].c}, to:{r, c: (dir==='left'? out.length-1 : N-out.length)}, merged:false});
+            i++;
+          }
+        }
+        while(out.length<N){ out.push(0); outId.push(0); }
+        for (let c=0;c<N;c++){
+          const targetC = (dir==='left')? c : (N-1-c);
+          grid[r][targetC]=out[c];
+          ids[r][targetC]=outId[c];
+        }
+      }
+    } else { // up/down
+      for (let c=0;c<N;c++){
+        const arr=[]; const arrId=[];
+        for (let r=0;r<N;r++){
+          const rr = (dir==='up')? r : (N-1-r);
+          if (grid[rr][c]!==0){ arr.push({v:grid[rr][c], r:rr}); arrId.push(ids[rr][c]); }
+        }
+        const out=[]; const outId=[];
+        let i=0;
+        while(i<arr.length){
+          if (i<arr.length-1 && arr[i].v===arr[i+1].v){
+            const val=arr[i].v*2;
+            const idKeep=arrId[i];
+            out.push(val); outId.push(idKeep);
+            moves.push({id:arrId[i], from:{r:arr[i].r,c}, to:{r:(dir==='up'? out.length-1 : N-out.length), c}, merged:true});
+            moves.push({id:arrId[i+1], from:{r:arr[i+1].r,c}, to:{r:(dir==='up'? out.length-1 : N-out.length), c}, mergedInto:idKeep});
+            gained += val;
+            i+=2;
+          }else{
+            out.push(arr[i].v); outId.push(arrId[i]);
+            moves.push({id:arrId[i], from:{r:arr[i].r,c}, to:{r:(dir==='up'? out.length-1 : N-out.length), c}, merged:false});
+            i++;
+          }
+        }
+        while(out.length<N){ out.push(0); outId.push(0); }
+        for (let r=0;r<N;r++){
+          const targetR = (dir==='up')? r : (N-1-r);
+          grid[targetR][c]=out[r];
+          ids[targetR][c]=outId[r];
+        }
+      }
     }
-    if(moved){ updateScore(gained); spawn(); draw(); checkEnd(); }
-  }
-  function rotateCW(){ const g=Array.from({length:N},()=>Array(N).fill(0));
-    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[c][N-1-r]=grid[r][c]; grid=g; }
-  function rotateCCW(){ const g=Array.from({length:N},()=>Array(N).fill(0));
-    for(let r=0;r<N;r++) for(let c=0;c<N;c++) g[N-1-c][r]=grid[r][c]; grid=g; }
-  function rotate180(){ rotateCW(); rotateCW(); }
-  function moveRight(){ rotate180(); moveLeft(); rotate180(); }
-  function moveUp(){ rotateCCW(); moveLeft(); rotateCW(); }
-  function moveDown(){ rotateCW(); moveLeft(); rotateCCW(); }
 
+    const after = JSON.stringify(grid);
+    const moved = before!==after;
+    return {moved, moves, gained};
+  }
+
+  // ---- анимация перемещения (FLIP через «призрачные» тайлы) ----
+  function animateAndCommit(result){
+    if (!result.moved){ return; }
+    moving = true;
+
+    // создаём «призраков» на старых позициях и движем к новым
+    const ghosts=[];
+    for (const m of result.moves){
+      if (!m.from) continue;
+      if (m.mergedInto) continue; // второй сливается, визуально достаточно показать движение первого
+      const tFrom = tileRect(m.from.r, m.from.c);
+      const el=document.createElement('div');
+      el.className='tile '+ getClassForValueAt(m.to.r, m.to.c);
+      el.textContent = getValueAt(m.from.r, m.from.c); // приблизительно; визуально почти незаметно
+      el.style.left=`${tFrom.x}px`; el.style.top=`${tFrom.y}px`;
+      ghosts.push({el, to:m.to, merged:m.merged});
+      tilesEl.appendChild(el);
+    }
+
+    // запускаем анимацию
+    requestAnimationFrame(()=>{
+      for (const g of ghosts){
+        const tTo = tileRect(g.to.r, g.to.c);
+        const dx = tTo.x - parseFloat(g.el.style.left);
+        const dy = tTo.y - parseFloat(g.el.style.top);
+        g.el.style.transition='transform 120ms ease-out';
+        g.el.style.transform=`translate(${dx}px, ${dy}px)`;
+      }
+    });
+
+    // по завершению чистим и дорисовываем актуальное поле
+    setTimeout(()=>{
+      ghosts.forEach(g=>g.el.remove());
+      updateScore(result.gained);
+      drawTiles();
+
+      // пульс для слияний
+      for (const m of result.moves){
+        if (m.merged){
+          const sel = `.tile[data-id="${ids[m.to.r][m.to.c]}"]`;
+          const el = tilesEl.querySelector(sel);
+          if (el) el.classList.add('pop');
+        }
+      }
+
+      spawn();               // добавили новый тайл
+      checkEnd();
+      moving = false;
+    }, 140);
+  }
+
+  function getValueAt(r,c){ return grid[r]?.[c] ?? 0; }
+  function getClassForValueAt(r,c){
+    const v = grid[r]?.[c] ?? 0;
+    return v ? `n${v}` : '';
+  }
+
+  // --- конец игры/победа ---
   function hasMoves(){
-    if(emptyCells().length) return true;
+    if(emptyCells().length>0) return true;
     for(let r=0;r<N;r++) for(let c=0;c<N-1;c++) if(grid[r][c]===grid[r][c+1]) return true;
     for(let c=0;c<N;c++) for(let r=0;r<N-1;r++) if(grid[r][c]===grid[r+1][c]) return true;
     return false;
   }
-  function has2048(){ for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===2048) return true; return false; }
+  function has2048(){
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(grid[r][c]===2048) return true;
+    return false;
+  }
   function checkEnd(){
-    if(has2048()){ ovTitle.textContent='Поздравляем!'; ovText.textContent='Вы достигли 2048 🎉'; overlay.style.display='flex'; return; }
-    if(!hasMoves()){ ovTitle.textContent='Игра окончена'; ovText.textContent='Нет доступных ходов'; overlay.style.display='flex'; }
+    if(has2048()){
+      ovTitle.textContent='Поздравляем!'; ovText.textContent='Вы достигли 2048 🎉';
+      overlay.style.display='flex'; return;
+    }
+    if(!hasMoves()){
+      ovTitle.textContent='Игра окончена'; ovText.textContent='Нет доступных ходов';
+      overlay.style.display='flex';
+    }
   }
 
-  // --- управление (блокируем прокрутку) ---
-  window.addEventListener('keydown',(e)=>{
-    const k=e.key;
-    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(k)) e.preventDefault(); // не скроллим WebView
-    const s=k.toLowerCase();
-    if(s==='arrowleft'||s==='a') moveLeft();
-    else if(s==='arrowright'||s==='d') moveRight();
-    else if(s==='arrowup'||s==='w') moveUp();
-    else if(s==='arrowdown'||s==='s') moveDown();
+  // --- ввод ---
+  window.addEventListener('keydown', (e)=>{
+    const k=e.key.toLowerCase();
+    if(['arrowleft','arrowright','arrowup','arrowdown'].includes(k)) e.preventDefault();
+    if (moving) return;
+    if(k==='arrowleft'||k==='a') animateAndCommit(move('left'));
+    else if(k==='arrowright'||k==='d') animateAndCommit(move('right'));
+    else if(k==='arrowup'||k==='w') animateAndCommit(move('up'));
+    else if(k==='arrowdown'||k==='s') animateAndCommit(move('down'));
   });
 
   let sx=0, sy=0, touching=false;
   boardEl.addEventListener('touchstart',(e)=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; touching=true; }, {passive:false});
-  boardEl.addEventListener('touchmove', (e)=>{ if(touching) e.preventDefault(); }, {passive:false});  // гасим скролл Telegram WebApp
+  boardEl.addEventListener('touchmove', (e)=>{ if(touching) e.preventDefault(); }, {passive:false});
   boardEl.addEventListener('touchend',(e)=>{
+    if (moving) return;
     touching=false;
     const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
     const ax=Math.abs(dx), ay=Math.abs(dy);
-    if(ax<20 && ay<20) return;
-    if(ax>ay){ dx>0 ? moveRight() : moveLeft(); } else { dy>0 ? moveDown() : moveUp(); }
+    if(ax<30 && ay<30) return;
+    if(ax>ay){ dx>0 ? animateAndCommit(move('right')) : animateAndCommit(move('left')); }
+    else     { dy>0 ? animateAndCommit(move('down'))  : animateAndCommit(move('up'));  }
   }, {passive:false});
 
-  // buttons
+  // кнопки
   againBtn.onclick = ()=>{ overlay.style.display='none'; start(); };
   closeBtn.onclick = ()=>{ overlay.style.display='none'; };
   newBtn.onclick   = ()=> start();
@@ -213,10 +378,9 @@
 
   function start(){
     score=0; scoreEl.textContent=score; bestEl.textContent=best;
-    resetGrid(); spawn(); spawn(); draw();
+    resetGrid(); tilesEl.innerHTML=''; spawn(); spawn();
   }
   start();
-
   // © 2014 Gabriele Cirulli — MIT (оригинал). Эта реализация написана с нуля и совместима с MIT.
 </script>
 </body>
