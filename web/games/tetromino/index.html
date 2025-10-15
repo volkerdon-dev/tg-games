@@ -16,8 +16,8 @@
       --stroke:#dfe7ff;       /* обводки элементов */
       --accent:#2ea6ff;
 
-      /* яркая палитра фигур — контрастна на светлом grid */
-      --cI:#00d8ff;  /* I — яркий циан */
+      /* яркая палитра фигур — контраст на светлом grid */
+      --cI:#00d8ff;  /* I — циан */
       --cJ:#3d5afe;  /* J — синий/индиго */
       --cL:#ff9800;  /* L — оранжевый */
       --cO:#ffeb3b;  /* O — жёлтый */
@@ -133,7 +133,17 @@
   const COLS=10, ROWS=20;
   let TILE=30; // вычислим по экрану ниже
 
-  const COLORS={ I:'var(--cI)',J:'var(--cJ)',L:'var(--cL)',O:'var(--cO)',S:'var(--cS)',T:'var(--cT)',Z:'var(--cZ)' };
+  // ВАЖНО: читаем реальные цвета из CSS-переменных (без var() в canvas)
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#000';
+  let COLORS = {};
+  function loadColors(){
+    COLORS = {
+      I: css('--cI'), J: css('--cJ'), L: css('--cL'),
+      O: css('--cO'), S: css('--cS'), T: css('--cT'), Z: css('--cZ')
+    };
+  }
+  loadColors();
+
   const SHAPES={
     I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
     J:[[1,0,0],[1,1,1],[0,0,0]],
@@ -173,7 +183,7 @@
     canvas.height = ROWS * TILE;
   }
   fitCanvas();
-  window.addEventListener('resize', fitCanvas);
+  window.addEventListener('resize', ()=>{ fitCanvas(); loadColors(); });
 
   // Рандом-мешок 7 фигур
   let bag=[], nextPiece=null;
@@ -242,10 +252,10 @@
   function drawSquare(c,x,y,size,preview=false){
     c.save();
     // контур
-    c.fillStyle = c.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--tile-border');
+    c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tile-border');
     c.fillRect(x,y,size,size);
     // основа
-    c.fillStyle = ctx.fillStyle;
+    c.fillStyle = c === ctx ? ctx.fillStyle : c.fillStyle;
     c.fillRect(x+1,y+1,size-2,size-2);
     // лёгкий объём
     c.fillStyle='var(--tile-top)';    c.fillRect(x+1,y+1,size-2,2);
