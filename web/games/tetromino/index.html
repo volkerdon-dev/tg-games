@@ -7,24 +7,26 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
-      /* светлая, живая палитра */
+      /* светлая основа */
       --bg:#f7faff;           /* общий фон */
       --text:#0b1220;
       --hint:#6b7280;
       --card:#ffffff;         /* карточки/панели */
       --grid:#eaf1ff;         /* фон поля */
       --stroke:#dfe7ff;       /* обводки элементов */
-
-      /* пастельные цвета фигур — заметные на grid */
-      --cI:#9be7ff;  /* cyan */
-      --cJ:#a9b5ff;  /* indigo */
-      --cL:#ffbf8a;  /* orange */
-      --cO:#ffe57a;  /* yellow */
-      --cS:#8ff0b0;  /* green */
-      --cT:#ddb6ff;  /* purple */
-      --cZ:#ffadb4;  /* red/pink */
       --accent:#2ea6ff;
-      --tile-border:rgba(0,20,60,.10); /* тонкая контурная тень клетки */
+
+      /* яркая палитра фигур — контрастна на светлом grid */
+      --cI:#00d8ff;  /* I — яркий циан */
+      --cJ:#3d5afe;  /* J — синий/индиго */
+      --cL:#ff9800;  /* L — оранжевый */
+      --cO:#ffeb3b;  /* O — жёлтый */
+      --cS:#00e676;  /* S — лаймово-зелёный */
+      --cT:#b042ff;  /* T — фиолетовый */
+      --cZ:#ff5252;  /* Z — красный/розовый */
+
+      /* объём/контур клетки */
+      --tile-border:rgba(0,20,60,.18);
       --tile-top:rgba(255,255,255,.75);
       --tile-bottom:rgba(0,0,0,.06);
     }
