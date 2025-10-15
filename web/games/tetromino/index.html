@@ -2,41 +2,43 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Falling Blocks</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
-      --bg:#0f0f12; --text:#fafafa; --hint:#9aa0a6; --card:#111827; --grid:#1f2937;
-      --cI:#8dd3ff; --cJ:#8ea6ff; --cL:#ffc38d; --cO:#ffe78d;
-      --cS:#9ff2b2; --cT:#d7a4ff; --cZ:#ff9fa3; --accent:#2ea6ff;
+      /* светлая тема */
+      --bg:#f6f8fb; --text:#0b1220; --hint:#6b7280; --card:#ffffff; --grid:#e9eef5;
+      --cI:#bfe6ff; --cJ:#c9d2ff; --cL:#ffe1b8; --cO:#fff2b5;
+      --cS:#c9f6d6; --cT:#ead6ff; --cZ:#ffd1d4; --accent:#2ea6ff; --stroke:#d6dee8;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto}
-    .wrap{max-width:900px;margin:0 auto;padding:14px}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto;-webkit-tap-highlight-color:transparent}
+    .wrap{max-width:960px;margin:0 auto;padding:12px}
     header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-    .back{background:#0000;border:1px solid #2b2f36;color:var(--text);padding:8px 12px;border-radius:12px;text-decoration:none}
+    .back{background:#0000;border:1px solid var(--stroke);color:var(--text);padding:8px 12px;border-radius:12px;text-decoration:none}
     h1{margin:0;font-size:18px;flex:1;text-align:center}
-    .game{display:grid;grid-template-columns:1fr auto;gap:12px}
-    .panel{background:var(--card);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+    /* две колонки на широких, одна на мобильных */
+    .game{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+    @media (max-width:820px){ .game{grid-template-columns:1fr} }
+    .panel{background:var(--card);border-radius:16px;padding:12px;border:1px solid var(--stroke)}
     .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .stat{background:#121826;border:1px solid #202636;border-radius:12px;padding:8px}
+    .stat{background:#fff;border:1px solid var(--stroke);border-radius:12px;padding:8px}
     .stat b{display:block;font-size:12px;color:var(--hint)}
     .stat span{font-size:16px}
-    canvas{background:var(--grid);border-radius:16px;touch-action:none;display:block}
+    canvas{background:var(--grid);border-radius:16px;touch-action:none;display:block;border:1px solid var(--stroke)}
     .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-    .btn{border:none;border-radius:12px;padding:10px;font-size:14px;background:#1a2330;color:var(--text)}
-    .btn.primary{background:var(--accent);color:#000}
+    .btn{border:1px solid var(--stroke);border-radius:12px;padding:10px;font-size:14px;background:#fff;color:var(--text)}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#000}
     .overlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.6);
+      position:fixed;inset:0;background:rgba(0,0,0,.35);
       display:none;align-items:center;justify-content:center;padding:16px
     }
-    .card{background:var(--card);border:1px solid #202636;border-radius:16px;padding:16px;max-width:420px;width:100%;text-align:center}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:16px;padding:16px;max-width:420px;width:100%;text-align:center}
     .card h2{margin:0 0 8px}
     .muted{color:var(--hint);font-size:13px}
     footer{margin-top:8px;color:var(--hint);font-size:12px;text-align:center}
-    @media (max-width:720px){ .game{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
@@ -49,6 +51,7 @@
 
     <div class="game">
       <div class="panel">
+        <!-- Размер canvas задаём скриптом под экран, чтобы не «вылезал» -->
         <canvas id="board" width="300" height="600" aria-label="Игровое поле"></canvas>
 
         <div class="controls">
@@ -70,12 +73,12 @@
           <button class="btn" id="pause">Пауза</button>
           <button class="btn" id="restart">Заново</button>
         </div>
-        <p class="muted">Клавиши: ← → ↓, ↑ — поворот, Space — «Hard Drop», P — пауза.</p>
+        <p class="muted">Клавиши: ← → ↓, ↑ — поворот / тап по фигуре, Space — «Hard Drop», P — пауза. Жест: потяни вниз — опускание.</p>
       </aside>
     </div>
 
     <footer>
-      This is an independent falling blocks game. “Tetris” is a registered trademark of The Tetris Company, LLC.
+      Independent falling blocks game. “Tetris” is a registered trademark of The Tetris Company, LLC.
     </footer>
   </div>
 
@@ -91,11 +94,15 @@
   </div>
 
 <script>
+/* Falling Blocks (MIT) — © 2025.
+   “Tetris” is a registered trademark of The Tetris Company, LLC. */
 (() => {
   const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
 
   // --- Константы и состояние ---
-  const COLS=10, ROWS=20, TILE=30;
+  const COLS=10, ROWS=20;
+  let TILE=30; // вычислим по экрану ниже
+
   const COLORS={ I:'var(--cI)',J:'var(--cJ)',L:'var(--cL)',O:'var(--cO)',S:'var(--cS)',T:'var(--cT)',Z:'var(--cZ)' };
   const SHAPES={
     I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
@@ -106,6 +113,7 @@
     T:[[0,1,0],[1,1,1],[0,0,0]],
     Z:[[1,1,0],[0,1,1],[0,0,0]],
   };
+
   const canvas=document.getElementById('board');
   const ctx=canvas.getContext('2d');
 
@@ -121,6 +129,21 @@
   const $ovTitle = document.getElementById('ovTitle');
   const $ovText  = document.getElementById('ovText');
 
+  // адаптивный размер: поле 10×20 должно умещаться в экран
+  function fitCanvas(){
+    const padding = 24; // внутренние отступы карточки
+    const vw = Math.min(window.innerWidth, document.documentElement.clientWidth);
+    const vh = Math.min(window.innerHeight, document.documentElement.clientHeight);
+    // оставим место на панель/кнопки (примерно 200–260px)
+    const maxW = vw - padding*2;
+    const maxH = vh - 260;
+    TILE = Math.max(14, Math.floor(Math.min(maxW / COLS, maxH / ROWS)));
+    canvas.width  = COLS * TILE;
+    canvas.height = ROWS * TILE;
+  }
+  fitCanvas();
+  window.addEventListener('resize', fitCanvas);
+
   // Рандом-мешок 7 фигур
   let bag=[], nextPiece=null;
   function refillBag(){
@@ -135,12 +158,12 @@
     return { type:t, shape:SHAPES[t].map(r=>r.slice()), x: Math.floor((COLS - SHAPES[t][0].length)/2), y:0 };
   }
 
-  // Текущее состояние игры
+  // Состояние игры
   let piece, score, lines, level, fallInterval, lastTime=0, dropAcc=0, paused=false, over=false;
 
   function reset(){
     for(let r=0;r<ROWS;r++) board[r].fill(null);
-    score=0; lines=0; level=1; fallInterval=800; paused=false; over=false;
+    score=0; lines=0; level=1; fallInterval=900; paused=false; over=false;
     nextPiece = pullPiece();
     spawn();
     updatePanel();
@@ -157,7 +180,7 @@
 
   function drawNext(){
     const c = document.createElement('canvas'); c.width=64; c.height=64;
-    const cx=c.getContext('2d'); cx.fillStyle='transparent'; cx.clearRect(0,0,64,64);
+    const cx=c.getContext('2d'); cx.clearRect(0,0,64,64);
     const sh = nextPiece.shape, size = Math.max(sh.length, sh[0].length);
     const s=14, off=((64 - size*s)/2)|0;
     cx.fillStyle = COLORS[nextPiece.type];
@@ -174,21 +197,22 @@
   }
 
   function levelUp(){
-    level++; fallInterval = Math.max(90, 800 - (level-1)*70);
+    level++; fallInterval = Math.max(120, 900 - (level-1)*80);
   }
 
   // Рендер
   function drawSquare(c,x,y,size){
     c.fillRect(x,y,size,size);
-    c.fillStyle='rgba(255,255,255,.1)'; c.fillRect(x,y,size,3); // простая подсветка
-    c.fillStyle='rgba(0,0,0,.2)'; c.fillRect(x,y+size-3,size,3);
+    // тонкий светлый объём
+    c.fillStyle='rgba(255,255,255,.7)'; c.fillRect(x,y,size,2);
+    c.fillStyle='rgba(0,0,0,.06)'; c.fillRect(x,y+size-2,size,2);
     c.fillStyle=ctx.fillStyle;
   }
 
   function drawBoard(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     // сетка
-    ctx.strokeStyle='#0f1620';
+    ctx.strokeStyle='#dde5f0';
     for(let r=0;r<=ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,r*TILE); ctx.lineTo(COLS*TILE,r*TILE); ctx.stroke(); }
     for(let c=0;c<=COLS;c++){ ctx.beginPath(); ctx.moveTo(c*TILE,0); ctx.lineTo(c*TILE,ROWS*TILE); ctx.stroke(); }
     // заполненные клетки
@@ -235,11 +259,11 @@
 
   function tryRotate(){
     const r = rotate(piece.shape);
-    // простые wall-kicks
     const kicks = [0,-1,1,-2,2];
     for(const k of kicks){
-      if(!collides(k,0,r)){ piece.shape=r; piece.x += k; return; }
+      if(!collides(k,0,r)){ piece.shape=r; piece.x += k; return true; }
     }
+    return false;
   }
 
   function clearLines(){
@@ -252,19 +276,29 @@
       y--;
     }
     if(cleared){
-      const pts = [0,100,300,500,800][cleared] || (800 + (cleared-4)*300);
-      score += pts * level; lines += cleared;
+      // очки за линии
+      const base = [0,100,300,500,800][cleared] || (800 + (cleared-4)*300);
+      score += base * level;
+      lines += cleared;
       if(lines >= level*10) levelUp();
       updatePanel();
     }
   }
 
+  // Доп. очки за дроп
+  function addDropScore(cells, hard=false){
+    score += (hard?2:1) * cells;
+    updatePanel();
+  }
+
   function hardDrop(){
-    while(!collides(0,1,piece.shape)) piece.y++;
+    let steps=0;
+    while(!collides(0,1,piece.shape)){ piece.y++; steps++; }
+    addDropScore(steps,true);
     tick(true);
   }
 
-  function softDrop(){ if(!collides(0,1,piece.shape)) piece.y++; else tick(true); }
+  function softDrop(){ if(!collides(0,1,piece.shape)){ piece.y++; addDropScore(1,false);} else tick(true); }
 
   function move(dir){ if(!collides(dir,0,piece.shape)) piece.x += dir; }
 
@@ -280,20 +314,24 @@
   }
 
   // Цикл
+  let raf;
   function loop(ts){
-    if(paused || over){ drawBoard(); return requestAnimationFrame(loop); }
-    const dt = ts - lastTime; lastTime = ts; dropAcc += dt;
-    if(dropAcc >= fallInterval){ dropAcc=0; tick(false); }
+    if(!lastTime) lastTime=ts;
+    const dt = ts - lastTime; lastTime = ts;
+    if(!paused && !over){
+      dropAcc += dt;
+      if(dropAcc >= fallInterval){ dropAcc=0; tick(false); }
+    }
     drawBoard();
-    requestAnimationFrame(loop);
+    raf = requestAnimationFrame(loop);
   }
 
-  // События ввода
+  // Клавиатура
   window.addEventListener('keydown',e=>{
     if(over) return;
     if(e.code==='ArrowLeft') move(-1);
     else if(e.code==='ArrowRight') move(1);
-    else if(e.code==='ArrowUp') tryRotate();
+    else if(e.code==='ArrowUp') { tryRotate(); tapCooldown=Date.now()+120; } // чтобы быстрый тап+drag не сработал дважды
     else if(e.code==='ArrowDown') softDrop();
     else if(e.code==='Space') hardDrop();
     else if(e.code==='KeyP') togglePause();
@@ -309,8 +347,54 @@
   document.getElementById('pause').onclick   = ()=>togglePause();
   document.getElementById('ovRestart').onclick = ()=>{ reset(); };
 
-  // Telegram: запрет скролла
-  ['touchmove','wheel'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+  // --- Touch: тап = поворот, перетаскивание = шаги ---
+  let touchStart=null, touchMoved=false, accX=0, accY=0, tapCooldown=0;
+
+  canvas.addEventListener('touchstart', (e)=>{
+    if(over) return;
+    const t = e.changedTouches[0];
+    touchStart = {x:t.clientX, y:t.clientY, time:Date.now()};
+    touchMoved=false; accX=0; accY=0;
+    e.preventDefault();
+  }, {passive:false});
+
+  canvas.addEventListener('touchmove', (e)=>{
+    if(!touchStart || over) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    touchMoved = true;
+
+    const stepX = Math.floor((dx - accX) / (TILE*0.6)); // немного «чувствительнее», чем клетка
+    if(stepX !== 0){
+      move(Math.sign(stepX));
+      accX += stepX * (TILE*0.6);
+    }
+
+    const stepY = Math.floor((dy - accY) / (TILE*0.6));
+    if(stepY > 0){
+      for(let i=0;i<stepY;i++) softDrop(); // «протащить» вниз
+      accY += stepY * (TILE*0.6);
+    }
+    e.preventDefault();
+  }, {passive:false});
+
+  canvas.addEventListener('touchend', (e)=>{
+    if(over) return;
+    const t = e.changedTouches[0];
+    const dt = Date.now() - (touchStart?.time||0);
+    const dist = Math.hypot(t.clientX - touchStart.x, t.clientY - touchStart.y);
+
+    // быстрый короткий тап => поворот
+    if(!touchMoved && dist < 10 && dt < 200 && Date.now()>tapCooldown){
+      tryRotate();
+    }
+    touchStart=null; accX=0; accY=0;
+    e.preventDefault();
+  }, {passive:false});
+
+  // Telegram: блокируем прокрутку страницы
+  ['touchmove','wheel'].forEach(ev=>document.addEventListener(ev,e=>e.target===canvas && e.preventDefault(),{passive:false}));
 
   function togglePause(){
     if(over) return;
@@ -328,7 +412,7 @@
 
   // Старт
   reset();
-  requestAnimationFrame(loop);
+  raf = requestAnimationFrame(loop);
 })();
 </script>
 </body>
