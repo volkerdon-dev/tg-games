@@ -6,8 +6,8 @@
   <title>Ball Run 3D</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root{--bg:#f7faff;--text:#0b1220;--hint:#6b7280;--accent:#2ea6ff}
-    html,body{margin:0;height:100%;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto;color:var(--text);overflow:hidden}
+    :root{--bg:#f7faff;--text:#0b1220;--accent:#2ea6ff}
+    html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto;color:var(--text)}
     #ui{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;align-items:center;z-index:10}
     a.back{text-decoration:none;background:#fff;border:1px solid #ccd3e0;border-radius:12px;padding:8px 12px;color:var(--text);font-size:14px}
     .score{background:rgba(255,255,255,.9);border-radius:12px;padding:8px 14px;font-size:16px;font-weight:600}
@@ -26,166 +26,154 @@
     <button onclick="location.reload()">Перезагрузить</button>
   </div>
 
-  <!-- ВАЖНО: модульный код с запасными CDN -->
+  <!-- Модульная загрузка Three.js с фолбэком -->
   <script type="module">
     const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
 
-    // ---------- Загрузка Three.js с резервом ----------
-    async function loadThree() {
-      const cdns = [
+    async function loadThree(){
+      const urls=[
         'https://unpkg.com/three@0.165.0/build/three.module.js',
-        'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js',
+        'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js'
       ];
-      let THREE = null, lastErr = null;
-      for (const url of cdns) {
-        try { THREE = await import(url); break; }
-        catch (e) { lastErr = e; }
+      for(const u of urls){
+        try{ return await import(u); }catch(e){}
       }
-      if (!THREE) throw lastErr || new Error('THREE not loaded');
-      return THREE;
+      throw new Error('THREE not loaded');
     }
-
-    function showError(text) {
-      const box = document.getElementById('msg');
-      document.getElementById('msgText').textContent = text;
-      box.style.display = 'flex';
+    function showError(text){
+      const b=document.getElementById('msg');
+      document.getElementById('msgText').textContent=text; b.style.display='flex';
     }
 
     let THREE;
-    try { THREE = await loadThree(); }
-    catch (e) { showError('Не удалось загрузить движок (Three.js). Открой в браузере или попробуй позже.'); throw e; }
+    try{ THREE=await loadThree(); }catch(e){ showError('Не удалось загрузить движок (Three.js).'); throw e; }
 
-    // ---------- Инициализация сцены ----------
-    let renderer, camera, scene;
-    try {
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setClearColor(0xf7faff, 1);
+    // Сцена/камера/рендер
+    const scene=new THREE.Scene();
+    let renderer;
+    try{
+      renderer=new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setClearColor(0xf7faff,1);
       document.body.appendChild(renderer.domElement);
-    } catch (e) {
-      showError('WebGL не поддерживается в этом веб-просмотрщике.');
-      throw e;
-    }
+    }catch(e){ showError('WebGL недоступен в этом окружении.'); throw e; }
 
-    // Градиентное «небо»
-    const bg = new THREE.Color(0xf7faff);
-    scene.background = bg;
+    const camera=new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
 
     // Свет
-    const dir = new THREE.DirectionalLight(0xffffff, 1.0);
-    dir.position.set(2,4,5);
-    scene.add(dir);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+    const dir=new THREE.DirectionalLight(0xffffff,1); dir.position.set(4,6,6); scene.add(dir);
+    scene.add(new THREE.AmbientLight(0xffffff,0.45));
 
-    // Дорога
-    const roadGeom = new THREE.BoxGeometry(10, 0.2, 400);
-    const roadMat  = new THREE.MeshPhongMaterial({ color: 0xe9edf8 });
-    const road = new THREE.Mesh(roadGeom, roadMat);
-    road.position.set(0, -1, -200);      // тянется от z=0 до z=-400
+    // «Дорога»: длинная полоса слева→направо, узкая по вертикали
+    const ROAD_LEN=800;
+    const roadGeom=new THREE.BoxGeometry(ROAD_LEN, 0.2, 10);
+    const roadMat =new THREE.MeshPhongMaterial({color:0xe9edf8});
+    const road=new THREE.Mesh(roadGeom, roadMat);
+    road.position.set(ROAD_LEN/2, -1, 0); // начинается с x=0, идёт вправо
     scene.add(road);
 
-    // Шар
-    const ballGeom = new THREE.SphereGeometry(0.5, 32, 32);
-    const ballMat  = new THREE.MeshPhongMaterial({ color: 0x2ea6ff, shininess: 80 });
-    const ball = new THREE.Mesh(ballGeom, ballMat);
-    ball.position.set(0, -0.5, 0);
+    // Шар — КРАСНЫЙ
+    const ball=new THREE.Mesh(
+      new THREE.SphereGeometry(0.6,32,32),
+      new THREE.MeshPhongMaterial({color:0xff3b30, shininess:90})
+    );
+    ball.position.set(0,-0.4,0);
     scene.add(ball);
 
-    // Препятствия
-    const obstacles = [];
-    function spawnObstacle(z) {
-      const w = 1 + Math.random()*1.5;
-      const h = 1 + Math.random();
-      const x = (Math.random() - 0.5) * 6.5;
-      const color = new THREE.Color().setHSL(Math.random(), 0.65, 0.55);
-      const mat = new THREE.MeshPhongMaterial({ color });
-      const g = new THREE.BoxGeometry(w, h, 1);
-      const m = new THREE.Mesh(g, mat);
-      m.position.set(x, h/2 - 1, -z);
-      scene.add(m);
-      obstacles.push(m);
-    }
-    for (let i = 10; i < 420; i += 15) spawnObstacle(i);
+    // Камера смотрит вдоль оси X (слева→направо), игрок управляет по Z (вверх/вниз на экране)
+    camera.position.set(ball.position.x - 5, 3.2, 9);
+    camera.lookAt(ball.position.x + 6, 0, 0);
 
-    // Камера
-    camera.position.set(0, 2.8, 6);
-    camera.lookAt(ball.position);
+    // Препятствия — кубы разных цветов, спавнятся впереди (справа) и движутся относительно шара
+    const obstacles=[];
+    function spawnObstacle(x){
+      const height = 1 + Math.random()*1.2;
+      const width  = 1 + Math.random()*1.5;
+      const z = (Math.random()-0.5)*8; // по вертикали (экрана)
+      const color = new THREE.Color().setHSL(Math.random(), 0.65, 0.55);
+      const m = new THREE.MeshPhongMaterial({color});
+      const g = new THREE.BoxGeometry(width, height, 1.2);
+      const o = new THREE.Mesh(g, m);
+      o.position.set(x, height/2 - 1, z);
+      scene.add(o); obstacles.push(o);
+    }
+    for(let x=12; x<ROAD_LEN; x+=12){ spawnObstacle(x); }
 
     // Управление
-    let targetX = 0, moveX = 0;
-    let zSpeed = 0.6;
-    let alive = true;
-    let score = 0;
-    const scoreEl = document.getElementById('score');
+    let targetZ=0, moveZ=0;
+    let xSpeed=0.10;           // стартовая горизонтальная скорость (слева→направо)
+    let alive=true, score=0;
+    const scoreEl=document.getElementById('score');
 
-    // свайпы
-    let touchStart = null;
-    window.addEventListener('touchstart', (e)=>{
-      const t = e.touches[0];
-      touchStart = {x:t.clientX, y:t.clientY};
-    }, {passive:true});
-    window.addEventListener('touchmove', (e)=>{
-      if (!touchStart) return;
-      const t = e.touches[0];
-      const dx = t.clientX - touchStart.x;
-      targetX = THREE.MathUtils.clamp(dx / 100, -4, 4);
-    }, {passive:true});
-    window.addEventListener('touchend', ()=>{ touchStart=null; }, {passive:true});
+    // свайпы ↑/↓ — двигаем по вертикали
+    let tStart=null;
+    addEventListener('touchstart',e=>{const t=e.touches[0]; tStart={x:t.clientX,y:t.clientY};},{passive:true});
+    addEventListener('touchmove', e=>{
+      if(!tStart) return;
+      const t=e.touches[0];
+      const dy=t.clientY - tStart.y;
+      targetZ = THREE.MathUtils.clamp(-dy/60, -4, 4); // вверх отрицательный dy
+    },{passive:true});
+    addEventListener('touchend', ()=>{ tStart=null; },{passive:true});
 
     // клавиатура
-    window.addEventListener('keydown', (e)=>{
-      if(e.code==='ArrowLeft')  targetX -= 1;
-      if(e.code==='ArrowRight') targetX += 1;
-      if(e.code==='ArrowUp')    zSpeed += 0.1;
-      if(e.code==='ArrowDown')  zSpeed = Math.max(0.3, zSpeed - 0.1);
+    addEventListener('keydown', e=>{
+      if(e.code==='ArrowUp')   targetZ -= 1;
+      if(e.code==='ArrowDown') targetZ += 1;
+      if(e.code==='ArrowRight') xSpeed += 0.02;      // ручное ускорение
+      if(e.code==='ArrowLeft')  xSpeed = Math.max(0.06, xSpeed - 0.02);
     });
 
     // ресайз
-    window.addEventListener('resize', ()=>{
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    addEventListener('resize', ()=>{
+      camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
     });
 
     // столкновения
-    function checkCollisions() {
-      for (const o of obstacles) {
-        const dz = Math.abs(ball.position.z - o.position.z);
-        const dx = Math.abs(ball.position.x - o.position.x);
-        if (dz < 1 && dx < 1 && Math.abs(o.position.y - ball.position.y) < 1) {
-          alive = false;
-          showGameOver();
-          return;
+    function checkCollisions(){
+      for(const o of obstacles){
+        const dx=Math.abs(ball.position.x - o.position.x);
+        const dz=Math.abs(ball.position.z - o.position.z);
+        if(dx<1 && dz<1 && Math.abs(o.position.y - ball.position.y) < 1){
+          alive=false; showGameOver(); return;
         }
       }
     }
-
     function showGameOver(){
-      const box = document.getElementById('msg');
-      document.getElementById('msgText').innerHTML = `Игра окончена<br>Очки: ${Math.floor(score)}`;
-      box.style.display = 'flex';
+      const box=document.getElementById('msg');
+      document.getElementById('msgText').innerHTML=`Игра окончена<br>Очки: ${Math.floor(score)}`;
+      box.style.display='flex';
     }
 
-    // цикл
+    // главный цикл
     function animate(){
       requestAnimationFrame(animate);
-      if (alive) {
-        ball.position.z -= zSpeed;
-        moveX += (targetX - moveX) * 0.1;
-        ball.position.x = moveX * 2;
+      if(alive){
+        // движение слева→направо
+        ball.position.x += xSpeed;
+        // сглаженное движение по вертикали (ось Z)
+        moveZ += (targetZ - moveZ) * 0.12;
+        ball.position.z = moveZ * 2.5;
 
-        camera.position.z = ball.position.z + 6;
-        camera.position.x = ball.position.x * 0.6;
-        camera.lookAt(ball.position.x, 0, ball.position.z - 6);
+        // камера следует
+        camera.position.x = ball.position.x - 5;
+        camera.position.z = 9 + ball.position.z*0.1;
+        camera.lookAt(ball.position.x + 6, 0, 0);
 
-        score += zSpeed * 0.5;
+        // очки по дистанции + постепенное ускорение
+        score += xSpeed * 50;
+        xSpeed = Math.min(0.6, xSpeed + 0.00015);
         scoreEl.textContent = Math.floor(score);
 
         checkCollisions();
+
+        // если вышли за пределы дороги — проигрыш
+        if(Math.abs(ball.position.z) > 4.9 || ball.position.x > ROAD_LEN-2){
+          alive=false; showGameOver();
+        }
       }
-      renderer.render(scene, camera);
+      renderer.render(scene,camera);
     }
     animate();
   </script>
