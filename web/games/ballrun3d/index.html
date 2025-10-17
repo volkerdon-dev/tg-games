@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Ball Run 3D</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #f7faff;
+      --text: #0b1220;
+      --hint: #6b7280;
+      --accent: #2ea6ff;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto;
+      color: var(--text);
+    }
+    #overlay {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    a.back {
+      text-decoration: none;
+      background: #fff;
+      border: 1px solid #ccd3e0;
+      border-radius: 12px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .score {
+      background: rgba(255,255,255,0.9);
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <a class="back" href="../../index.html">← В меню игр</a>
+    <div class="score">Очки: <span id="score">0</span></div>
+  </div>
+  <script>
+    // Ball Run 3D — ©2025 TG Games. Uses Three.js (MIT license).
+    const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
+
+    // Сцена, камера, рендер
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0xf7faff, 1);
+    document.body.appendChild(renderer.domElement);
+
+    // Свет
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(2, 4, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+    // Пол
+    const planeGeom = new THREE.BoxGeometry(10, 0.2, 400);
+    const planeMat = new THREE.MeshPhongMaterial({color: 0xe8ecf9});
+    const plane = new THREE.Mesh(planeGeom, planeMat);
+    plane.position.z = -200;
+    plane.position.y = -1;
+    scene.add(plane);
+
+    // Шар
+    const ballGeom = new THREE.SphereGeometry(0.5, 32, 32);
+    const ballMat = new THREE.MeshPhongMaterial({color: 0x2ea6ff});
+    const ball = new THREE.Mesh(ballGeom, ballMat);
+    ball.position.set(0, -0.5, 0);
+    scene.add(ball);
+
+    // Препятствия
+    const obstacles = [];
+    function spawnObstacle(z) {
+      const w = 1 + Math.random() * 1.5;
+      const h = 1 + Math.random();
+      const x = (Math.random() - 0.5) * 6;
+      const color = new THREE.Color().setHSL(Math.random(), 0.6, 0.5);
+      const m = new THREE.MeshPhongMaterial({color});
+      const g = new THREE.BoxGeometry(w, h, 1);
+      const box = new THREE.Mesh(g, m);
+      box.position.set(x, h / 2 - 1, -z);
+      scene.add(box);
+      obstacles.push(box);
+    }
+    for (let i = 10; i < 400; i += 15) spawnObstacle(i);
+
+    // Камера
+    camera.position.set(0, 2.5, 5);
+    camera.lookAt(ball.position);
+
+    // Управление
+    let moveX = 0, targetX = 0;
+    let startX = 0;
+    let speed = 0.2;
+    let zSpeed = 0.6;
+    let score = 0;
+    let alive = true;
+    const scoreEl = document.getElementById("score");
+
+    // свайпы
+    let touchStart = null;
+    window.addEventListener("touchstart", e => {
+      const t = e.touches[0];
+      touchStart = {x: t.clientX, y: t.clientY};
+    }, {passive: true});
+    window.addEventListener("touchmove", e => {
+      if (!touchStart) return;
+      const t = e.touches[0];
+      const dx = t.clientX - touchStart.x;
+      targetX = THREE.MathUtils.clamp(dx / 100, -4, 4);
+    }, {passive: true});
+    window.addEventListener("touchend", e => { touchStart = null; }, {passive: true});
+
+    // клавиши
+    window.addEventListener("keydown", e => {
+      if (e.code === "ArrowLeft") targetX -= 1;
+      if (e.code === "ArrowRight") targetX += 1;
+      if (e.code === "ArrowUp") zSpeed += 0.1;
+      if (e.code === "ArrowDown") zSpeed = Math.max(0.3, zSpeed - 0.1);
+    });
+
+    // Адаптация окна
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Проверка столкновений
+    function checkCollisions() {
+      for (const o of obstacles) {
+        const dz = Math.abs(ball.position.z - o.position.z);
+        const dx = Math.abs(ball.position.x - o.position.x);
+        if (dz < 1 && dx < 1 && Math.abs(o.position.y - ball.position.y) < 1) {
+          alive = false;
+          showGameOver();
+          return;
+        }
+      }
+    }
+
+    // Overlay
+    function showGameOver() {
+      const div = document.createElement("div");
+      Object.assign(div.style, {
+        position: "absolute",
+        inset: 0,
+        background: "rgba(0,0,0,0.5)",
+        color: "#fff",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        fontSize: "20px",
+        zIndex: 20,
+      });
+      div.innerHTML = `<p>Игра окончена</p><p>Очки: ${Math.floor(score)}</p><button style="margin-top:12px;padding:8px 16px;border-radius:12px;border:none;background:#2ea6ff;color:#000;font-weight:600;font-size:16px">Играть снова</button>`;
+      div.querySelector("button").onclick = () => location.reload();
+      document.body.appendChild(div);
+    }
+
+    // Цикл
+    function animate() {
+      requestAnimationFrame(animate);
+      if (alive) {
+        ball.position.z -= zSpeed;
+        moveX += (targetX - moveX) * 0.1;
+        ball.position.x = moveX * 2;
+        camera.position.z = ball.position.z + 5;
+        camera.position.x = ball.position.x * 0.6;
+        camera.lookAt(ball.position.x, 0, ball.position.z - 5);
+        score += zSpeed * 0.5;
+        scoreEl.textContent = Math.floor(score);
+        checkCollisions();
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
