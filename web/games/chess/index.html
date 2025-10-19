@@ -6,8 +6,8 @@
   <title>Chess</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Правила шахмат (MIT) -->
   <script src="https://cdn.jsdelivr.net/npm/chess.js@1/dist/chess.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/stockfish@16.1.0/stockfish.js"></script>
 
   <style>
     :root{
@@ -42,7 +42,7 @@
       user-select:none; cursor:pointer; position:relative;
       outline:1px solid rgba(0,0,0,.06); outline-offset:-1px;
     }
-    /* ключевой фикс: повышенная специфичность + !important */
+    /* повышенная специфичность + !important от конфликта с внешними стилями */
     .sq.light{ background:var(--board-light) !important; }
     .sq.dark { background:var(--board-dark)  !important; }
 
@@ -59,7 +59,7 @@
 <body>
 <header>
   <h1>♟️ Chess</h1>
-  <div class="muted" style="font-size:12px">Играй против ИИ Stockfish. Unicode-фигуры • Никаких сторонних ассетов.</div>
+  <div class="muted" style="font-size:12px">Игра против встроенного ИИ. Unicode-фигуры • chess.js (MIT).</div>
 </header>
 
 <main class="wrap">
@@ -69,14 +69,16 @@
     <div class="panel">
       <label>Цвет:</label>
       <select id="color"><option value="w">Белые</option><option value="b">Чёрные</option></select>
+
       <label>Сложность:</label>
-      <select id="difficulty">
+      <select id="difficulty" title="уровень ИИ">
         <option value="newbie">Новичок</option>
         <option value="casual" selected>Любитель</option>
         <option value="club">Клубный игрок</option>
         <option value="master">Мастер</option>
         <option value="supergm">Супер-гроссмейстер</option>
       </select>
+
       <button id="newgame" class="primary">Новая партия</button>
       <button id="flip">Повернуть доску</button>
     </div>
@@ -85,12 +87,12 @@
       <div class="row">
         <span class="tag" id="turn">Ход белых</span>
         <span class="tag" id="status">Игра идёт</span>
-        <span class="tag" id="engine">ИИ: —</span>
+        <span class="tag" id="engine">ИИ: встроенный</span>
       </div>
       <h3 style="margin:12px 0 6px;font-size:14px">Журнал ходов (PGN)</h3>
       <div id="log" class="log"></div>
       <p class="muted" style="margin-top:10px">
-        Stockfish © GPLv3 (веб-сборка). Правила — chess.js (MIT). Unicode-фигуры — стандарт Unicode.
+        Лицензии: chess.js — MIT. Фигуры — стандарт Unicode.
       </p>
     </div>
   </section>
@@ -103,11 +105,11 @@
   const boardEl = document.getElementById('board');
   const turnTag = document.getElementById('turn');
   const statusTag = document.getElementById('status');
-  const engineTag = document.getElementById('engine');
   const logEl = document.getElementById('log');
   const colorSel = document.getElementById('color');
   const diffSel  = document.getElementById('difficulty');
 
+  // 1) Рендер клеток (с повышенной специфичностью классов)
   function renderBoard(){
     boardEl.innerHTML='';
     for(let r=0;r<8;r++){
@@ -120,12 +122,18 @@
     }
   }
 
+  // 2) Игра и фигуры
   const GLYPH={'p':'♟','n':'♞','b':'♝','r':'♜','q':'♛','k':'♚','P':'♙','N':'♘','B':'♗','R':'♖','Q':'♕','K':'♔'};
-  let game=new Chess(), engine=null, flipped=false;
+  let game=new Chess(), flipped=false;
 
-  const LVL={ newbie:{skill:1,depth:6,movetime:300}, casual:{skill:5,depth:10,movetime:400},
-              club:{skill:10,depth:14,movetime:600}, master:{skill:15,depth:18,movetime:900},
-              supergm:{skill:20,depth:22,movetime:1200} };
+  const LVL={
+    newbie:{depth:1, noise:60, think:150},
+    casual:{depth:2, noise:35, think:200},
+    club:{depth:3, noise:15, think:300},
+    master:{depth:4, noise:5,  think:450},
+    supergm:{depth:5, noise:0,  think:600},
+  };
+
   const alg=(r,c)=>'abcdefgh'[c]+(8-r);
   const rc =(sq)=>({r:8-parseInt(sq[1],10), c:'abcdefgh'.indexOf(sq[0])});
 
@@ -135,7 +143,6 @@
     for(let r=0;r<8;r++)for(let c=0;c<8;c++){
       const cell=pos[r][c]; if(!cell) continue;
       const span=document.createElement('span');
-      // ФИГУРЫ: гарантируем шрифт с поддержкой символов
       span.style.fontFamily="'Segoe UI Symbol','Noto Sans Symbols2','Symbola','Arial Unicode MS',ui-sans-serif,sans-serif";
       span.textContent=GLYPH[cell.color==='w'?cell.type.toUpperCase():cell.type];
       span.style.color = cell.color==='w' ? '#fff' : '#111';
@@ -163,39 +170,72 @@
     logEl.textContent=game.pgn({max_width:50,newline_char:'\n'});
   }
 
-  function setupEngine(){
-    engine=null;
-    try{
-      const E=Stockfish(); engine=E; engineTag.textContent='ИИ: Stockfish';
-      const o=LVL[diffSel.value]||LVL.supergm;
-      engine.postMessage('uci');
-      engine.postMessage('setoption name Skill Level value '+o.skill);
-      engine.postMessage('setoption name Threads value 1');
-      engine.postMessage('setoption name Hash value 16');
-      engine.onmessage=(m)=>{
-        const t=(typeof m==='object'&&m?.data)?m.data:String(m);
-        if(t.startsWith('bestmove')){
-          const mv=t.split(' ')[1];
-          if(mv && !game.isGameOver()){
-            game.move({from:mv.slice(0,2),to:mv.slice(2,4),promotion:'q'});
-            paintPieces(); setStatus();
-          }
-        }
-      };
-    }catch(err){
-      console.warn('Stockfish blocked, fallback AI',err);
-      engine=null; engineTag.textContent='ИИ: offline (random)';
+  // 3) Встроенный ИИ (без воркеров): negamax + alpha-beta + материал
+  const VAL = {p:100,n:320,b:330,r:500,q:900,k:0};
+  function evaluate(ch){ // положительное — за белых
+    let s=0, b=ch.board();
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const cell=b[r][c]; if(!cell) continue;
+      const v = VAL[cell.type] || 0;
+      s += (cell.color==='w'? v : -v);
     }
-  }
-  function aiMove(){
-    if(game.isGameOver()) return;
-    const o=LVL[diffSel.value]||LVL.supergm;
-    if(engine){ engine.postMessage('position fen '+game.fen()); engine.postMessage(`go movetime ${o.movetime} depth ${o.depth}`); }
-    else { const ms=game.moves({verbose:true}); if(!ms.length) return;
-           const mv=ms[Math.floor(Math.random()*ms.length)];
-           setTimeout(()=>{ game.move({from:mv.from,to:mv.to,promotion:'q'}); paintPieces(); setStatus(); },250); }
+    // лёгкий бонус за мобильность
+    const wm = ch.moves({legal:true}).length;
+    ch.turn() === 'w' ? s += wm : s -= wm;
+    return s;
   }
 
+  function orderMoves(ch){ // захваты вперёд
+    const ms = ch.moves({verbose:true});
+    return ms.sort((a,b)=> (b.flags.includes('c')?1:0)-(a.flags.includes('c')?1:0));
+  }
+
+  function negamax(ch, depth, alpha, beta){
+    if (depth===0 || ch.isGameOver()){
+      const sc = evaluate(ch);
+      return ch.turn()==='w'? sc : -sc;
+    }
+    let best=-Infinity;
+    const moves = orderMoves(ch);
+    for(const m of moves){
+      ch.move(m);
+      const score = -negamax(ch, depth-1, -beta, -alpha);
+      ch.undo();
+      if(score>best) best=score;
+      if(best>alpha) alpha=best;
+      if(alpha>=beta) break;
+    }
+    return best;
+  }
+
+  function pickMove(level){
+    const opts = LVL[level]||LVL.casual;
+    const moves = orderMoves(game);
+    // оцениваем каждый ход
+    let scored = moves.map(m=>{
+      game.move(m);
+      const sc = -negamax(game, opts.depth-1, -1e9, 1e9);
+      game.undo();
+      return {m, sc};
+    });
+    // шум для низких уровней
+    if (opts.noise>0){
+      scored.forEach(x=> x.sc += (Math.random()*2-1)*opts.noise);
+    }
+    scored.sort((a,b)=> b.sc - a.sc);
+    return scored[0]?.m || moves[0];
+  }
+
+  function aiMove(){
+    if(game.isGameOver()) return;
+    const level = diffSel.value;
+    const move = pickMove(level);
+    setTimeout(()=>{
+      if(move){ game.move(move); paintPieces(); setStatus(); }
+    }, LVL[level]?.think || 250);
+  }
+
+  // 4) Интерактив
   let sel=null;
   function hi(from){
     const leg=game.moves({square:from,verbose:true}); const cells=boardEl.querySelectorAll('.sq');
@@ -205,8 +245,11 @@
   function onSquareClick(e){
     const el=e.currentTarget; const r=+el.dataset.r, c=+el.dataset.c;
     const rr=flipped?7-r:r, cc=flipped?7-c:c; const a=alg(rr,cc); const cells=boardEl.querySelectorAll('.sq');
-    if(!sel){ const p=game.get(a); if(!p || p.color!==game.turn()) return; sel=a; cells.forEach(x=>x.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel); }
-    else { const mv=game.move({from:sel,to:a,promotion:'q'});
+    if(!sel){
+      const p=game.get(a); if(!p || p.color!==game.turn()) return;
+      sel=a; cells.forEach(x=>x.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel);
+    }else{
+      const mv=game.move({from:sel,to:a,promotion:'q'});
       if(mv){ sel=null; paintPieces(); setStatus(); if(!game.isGameOver()) aiMove(); }
       else { const p=game.get(a);
         if(p && p.color===game.turn()){ sel=a; cells.forEach(x=>x.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel); }
@@ -224,8 +267,8 @@
   function start(){
     renderBoard(); attach();
     game=new Chess(); paintPieces(); setStatus();
-    setupEngine(); orient(colorSel.value);
-    if(colorSel.value==='b') aiMove();
+    orient(colorSel.value);
+    if(colorSel.value==='b') aiMove(); // ИИ за белых, если игрок выбрал чёрных
   }
 
   document.getElementById('newgame').addEventListener('click', start);
