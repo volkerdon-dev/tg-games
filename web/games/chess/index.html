@@ -17,7 +17,8 @@
     }
     @media (max-width:420px){ :root{ --square:56px; } }
     *{ box-sizing:border-box; }
-    body{ margin:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; }
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; }
     header{ padding:12px 14px; position:sticky; top:0; z-index:5; background:linear-gradient(180deg,#0f0f12 70%,transparent); }
     h1{ margin:0; font-size:18px; }
     .wrap{ max-width:980px; margin:0 auto; padding:12px; display:grid; gap:12px; grid-template-columns: 1fr; }
@@ -29,12 +30,9 @@
     .muted{ color:var(--muted); }
 
     .board{
-      width:calc(var(--square) * 8);
-      height:calc(var(--square) * 8);
-      display:grid;
-      grid-template-columns:repeat(8,1fr);
-      border-radius:12px; overflow:hidden;
-      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      width:calc(var(--square) * 8); height:calc(var(--square) * 8);
+      display:grid; grid-template-columns:repeat(8,1fr);
+      border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35);
       background:var(--board-light);
     }
     .sq{
@@ -44,9 +42,9 @@
       user-select:none; cursor:pointer; position:relative;
       outline:1px solid rgba(0,0,0,.06); outline-offset:-1px;
     }
-    /* ВАЖНО: повышаем специфичность — ни с чем не конфликтует */
-    .sq.light{ background:var(--board-light); }
-    .sq.dark { background:var(--board-dark); }
+    /* ключевой фикс: повышенная специфичность + !important */
+    .sq.light{ background:var(--board-light) !important; }
+    .sq.dark { background:var(--board-dark)  !important; }
 
     .sq.sel::after{ content:""; position:absolute; inset:4px; border:3px solid #2b8cff; border-radius:8px; }
     .sq.mv::before{ content:""; position:absolute; width:14px; height:14px; background:rgba(20,80,180,.55); border-radius:50%; }
@@ -65,18 +63,12 @@
 </header>
 
 <main class="wrap">
-  <section>
-    <div id="board" class="board"></div>
-  </section>
+  <section><div id="board" class="board"></div></section>
 
   <section>
     <div class="panel">
       <label>Цвет:</label>
-      <select id="color">
-        <option value="w">Белые</option>
-        <option value="b">Чёрные</option>
-      </select>
-
+      <select id="color"><option value="w">Белые</option><option value="b">Чёрные</option></select>
       <label>Сложность:</label>
       <select id="difficulty">
         <option value="newbie">Новичок</option>
@@ -85,7 +77,6 @@
         <option value="master">Мастер</option>
         <option value="supergm">Супер-гроссмейстер</option>
       </select>
-
       <button id="newgame" class="primary">Новая партия</button>
       <button id="flip">Повернуть доску</button>
     </div>
@@ -109,66 +100,54 @@
 (() => {
   try { Telegram?.WebApp?.ready(); Telegram?.WebApp?.expand(); } catch(e){}
 
-  const boardEl   = document.getElementById('board');
-  const turnTag   = document.getElementById('turn');
+  const boardEl = document.getElementById('board');
+  const turnTag = document.getElementById('turn');
   const statusTag = document.getElementById('status');
   const engineTag = document.getElementById('engine');
-  const logEl     = document.getElementById('log');
-  const colorSel  = document.getElementById('color');
-  const diffSel   = document.getElementById('difficulty');
+  const logEl = document.getElementById('log');
+  const colorSel = document.getElementById('color');
+  const diffSel  = document.getElementById('difficulty');
 
-  // 1) Отрисовка 8×8 с ИЗБЕЖАНИЕМ конфликтов классов
   function renderBoard(){
     boardEl.innerHTML='';
     for(let r=0;r<8;r++){
       for(let c=0;c<8;c++){
-        const isDark=(r+c)%2===1;
-        const cell=document.createElement('div');
-        cell.className='sq '+(isDark?'dark':'light'); // .sq.dark/.sq.light
-        cell.dataset.r=r; cell.dataset.c=c;
-        boardEl.appendChild(cell);
+        const d=document.createElement('div');
+        d.className='sq ' + ((r+c)%2? 'dark':'light');
+        d.dataset.r=r; d.dataset.c=c;
+        boardEl.appendChild(d);
       }
     }
   }
 
-  // 2) Набор символов и игра
-  const P={'p':'♟','n':'♞','b':'♝','r':'♜','q':'♛','k':'♚','P':'♙','N':'♘','B':'♗','R':'♖','Q':'♕','K':'♔'};
-  let game=new Chess();
-  let engine=null;
-  let flipped=false;
+  const GLYPH={'p':'♟','n':'♞','b':'♝','r':'♜','q':'♛','k':'♚','P':'♙','N':'♘','B':'♗','R':'♖','Q':'♕','K':'♔'};
+  let game=new Chess(), engine=null, flipped=false;
 
-  const LVL={
-    newbie:{skill:1,depth:6,movetime:300},
-    casual:{skill:5,depth:10,movetime:400},
-    club:{skill:10,depth:14,movetime:600},
-    master:{skill:15,depth:18,movetime:900},
-    supergm:{skill:20,depth:22,movetime:1200},
-  };
-
+  const LVL={ newbie:{skill:1,depth:6,movetime:300}, casual:{skill:5,depth:10,movetime:400},
+              club:{skill:10,depth:14,movetime:600}, master:{skill:15,depth:18,movetime:900},
+              supergm:{skill:20,depth:22,movetime:1200} };
   const alg=(r,c)=>'abcdefgh'[c]+(8-r);
-  const rc =(sq)=>({r:8-parseInt(sq[1],10),c:'abcdefgh'.indexOf(sq[0])});
+  const rc =(sq)=>({r:8-parseInt(sq[1],10), c:'abcdefgh'.indexOf(sq[0])});
 
   function paintPieces(){
-    const pos=game.board();
-    const sqs=boardEl.querySelectorAll('.sq');
-    sqs.forEach(s=>{ s.innerHTML=''; s.classList.remove('sel','mv','cap'); });
+    const pos=game.board(); const cells=boardEl.querySelectorAll('.sq');
+    cells.forEach(c=>{ c.innerHTML=''; c.classList.remove('sel','mv','cap'); });
     for(let r=0;r<8;r++)for(let c=0;c<8;c++){
       const cell=pos[r][c]; if(!cell) continue;
-      const el=sqs[r*8+c];
-      const glyph=P[cell.color==='w'?cell.type.toUpperCase():cell.type];
-      // создаём span, чтобы можно было красить белые фигуры белым
       const span=document.createElement('span');
-      span.textContent=glyph;
+      // ФИГУРЫ: гарантируем шрифт с поддержкой символов
+      span.style.fontFamily="'Segoe UI Symbol','Noto Sans Symbols2','Symbola','Arial Unicode MS',ui-sans-serif,sans-serif";
+      span.textContent=GLYPH[cell.color==='w'?cell.type.toUpperCase():cell.type];
       span.style.color = cell.color==='w' ? '#fff' : '#111';
       span.style.textShadow = cell.color==='w' ? '0 1px 0 rgba(0,0,0,.35)' : '0 1px 0 rgba(255,255,255,.15)';
-      el.appendChild(span);
+      cells[r*8+c].appendChild(span);
     }
   }
 
   function setStatus(){
     if(game.isGameOver()){
       if(game.isCheckmate()){
-        const winner = game.turn()==='w'?'Чёрные':'Белые';
+        const winner=game.turn()==='w'?'Чёрные':'Белые';
         statusTag.textContent='Мат — победили '+winner;
       }else if(game.isDraw()){
         statusTag.textContent='Ничья';
@@ -180,17 +159,14 @@
     }else{
       statusTag.textContent='Игра идёт';
     }
-    turnTag.textContent = game.turn()==='w'?'Ход белых':'Ход чёрных';
-    logEl.textContent = game.pgn({max_width:50,newline_char:'\n'});
+    turnTag.textContent=game.turn()==='w'?'Ход белых':'Ход чёрных';
+    logEl.textContent=game.pgn({max_width:50,newline_char:'\n'});
   }
 
-  // 3) Инициализация движка с фолбэком
   function setupEngine(){
     engine=null;
     try{
-      const E=Stockfish();
-      engine=E;
-      engineTag.textContent='ИИ: Stockfish';
+      const E=Stockfish(); engine=E; engineTag.textContent='ИИ: Stockfish';
       const o=LVL[diffSel.value]||LVL.supergm;
       engine.postMessage('uci');
       engine.postMessage('setoption name Skill Level value '+o.skill);
@@ -208,58 +184,36 @@
       };
     }catch(err){
       console.warn('Stockfish blocked, fallback AI',err);
-      engine=null;
-      engineTag.textContent='ИИ: offline (random)';
+      engine=null; engineTag.textContent='ИИ: offline (random)';
     }
   }
-
   function aiMove(){
     if(game.isGameOver()) return;
     const o=LVL[diffSel.value]||LVL.supergm;
-    if(engine){
-      engine.postMessage('position fen '+game.fen());
-      engine.postMessage(`go movetime ${o.movetime} depth ${o.depth}`);
-    }else{
-      const moves=game.moves({verbose:true}); if(!moves.length) return;
-      const mv=moves[Math.floor(Math.random()*moves.length)];
-      setTimeout(()=>{ game.move({from:mv.from,to:mv.to,promotion:'q'}); paintPieces(); setStatus(); }, 250);
-    }
+    if(engine){ engine.postMessage('position fen '+game.fen()); engine.postMessage(`go movetime ${o.movetime} depth ${o.depth}`); }
+    else { const ms=game.moves({verbose:true}); if(!ms.length) return;
+           const mv=ms[Math.floor(Math.random()*ms.length)];
+           setTimeout(()=>{ game.move({from:mv.from,to:mv.to,promotion:'q'}); paintPieces(); setStatus(); },250); }
   }
 
-  // 4) Интерактив
   let sel=null;
   function hi(from){
-    const legal=game.moves({square:from,verbose:true});
-    const sqs=boardEl.querySelectorAll('.sq');
-    sqs.forEach(s=>s.classList.remove('mv','cap'));
-    for(const m of legal){
-      const {r,c}=rc(m.to); sqs[r*8+c].classList.add(m.flags.includes('c')?'cap':'mv');
-    }
+    const leg=game.moves({square:from,verbose:true}); const cells=boardEl.querySelectorAll('.sq');
+    cells.forEach(c=>c.classList.remove('mv','cap'));
+    for(const m of leg){ const {r,c}=rc(m.to); cells[r*8+c].classList.add(m.flags.includes('c')?'cap':'mv'); }
   }
   function onSquareClick(e){
-    const el=e.currentTarget;
-    const r=parseInt(el.dataset.r,10), c=parseInt(el.dataset.c,10);
-    const rr=flipped?7-r:r, cc=flipped?7-c:c;
-    const a=alg(rr,cc);
-    const sqs=boardEl.querySelectorAll('.sq');
-
-    if(!sel){
-      const piece=game.get(a);
-      if(!piece || piece.color!==game.turn()) return;
-      sel=a; sqs.forEach(s=>s.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel);
-    }else{
-      const mv=game.move({from:sel,to:a,promotion:'q'});
+    const el=e.currentTarget; const r=+el.dataset.r, c=+el.dataset.c;
+    const rr=flipped?7-r:r, cc=flipped?7-c:c; const a=alg(rr,cc); const cells=boardEl.querySelectorAll('.sq');
+    if(!sel){ const p=game.get(a); if(!p || p.color!==game.turn()) return; sel=a; cells.forEach(x=>x.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel); }
+    else { const mv=game.move({from:sel,to:a,promotion:'q'});
       if(mv){ sel=null; paintPieces(); setStatus(); if(!game.isGameOver()) aiMove(); }
-      else{
-        const piece=game.get(a);
-        if(piece && piece.color===game.turn()){ sel=a; sqs.forEach(s=>s.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel); }
-        else{ sel=null; sqs.forEach(s=>s.classList.remove('sel','mv','cap')); }
-      }
+      else { const p=game.get(a);
+        if(p && p.color===game.turn()){ sel=a; cells.forEach(x=>x.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel); }
+        else { sel=null; cells.forEach(x=>x.classList.remove('sel','mv','cap')); } }
     }
   }
-  function attach(){
-    [...boardEl.querySelectorAll('.sq')].forEach(el=>el.addEventListener('click',onSquareClick));
-  }
+  function attach(){ [...boardEl.querySelectorAll('.sq')].forEach(el=>el.addEventListener('click',onSquareClick)); }
 
   function orient(color){
     flipped=(color==='b');
@@ -268,18 +222,14 @@
   }
 
   function start(){
-    renderBoard();                // 1) клетки
-    attach();                     // 2) клики
-    game=new Chess();             // 3) игра
-    paintPieces(); setStatus();   // 4) фигуры/статус
-    setupEngine();                // 5) ИИ
-    orient(colorSel.value);       // 6) ориентация
+    renderBoard(); attach();
+    game=new Chess(); paintPieces(); setStatus();
+    setupEngine(); orient(colorSel.value);
     if(colorSel.value==='b') aiMove();
   }
 
   document.getElementById('newgame').addEventListener('click', start);
   document.getElementById('flip').addEventListener('click', ()=> orient(flipped?'w':'b'));
-
   start();
 })();
 </script>
