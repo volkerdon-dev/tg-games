@@ -1,280 +1,562 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>Chess</title>
-
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Правила шахмат (MIT) -->
-  <script src="https://cdn.jsdelivr.net/npm/chess.js@1/dist/chess.min.js"></script>
-
-  <style>
-    :root{
-      --bg:#0f0f12; --text:#f3f6ff; --muted:#9aa3b2;
-      --board-light:#f0d9b5; --board-dark:#b58863;
-      --accent:#4e9eff; --panel:#171a22; --square:52px;
-    }
-    @media (max-width:420px){ :root{ --square:56px; } }
-    *{ box-sizing:border-box; }
-    body{ margin:0; background:var(--bg); color:var(--text);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif; }
-    header{ padding:12px 14px; position:sticky; top:0; z-index:5; background:linear-gradient(180deg,#0f0f12 70%,transparent); }
-    h1{ margin:0; font-size:18px; }
-    .wrap{ max-width:980px; margin:0 auto; padding:12px; display:grid; gap:12px; grid-template-columns: 1fr; }
-    @media (min-width:900px){ .wrap{ grid-template-columns: 480px 1fr; align-items:start; } }
-
-    .panel{ background:var(--panel); border-radius:14px; padding:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    select,button{ border:0; border-radius:12px; padding:10px 12px; font-weight:600; }
-    button.primary{ background:var(--accent); color:#fff; }
-    .muted{ color:var(--muted); }
-
-    .board{
-      width:calc(var(--square) * 8); height:calc(var(--square) * 8);
-      display:grid; grid-template-columns:repeat(8,1fr);
-      border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35);
-      background:var(--board-light);
-    }
-    .sq{
-      width:var(--square); height:var(--square);
-      display:flex; align-items:center; justify-content:center;
-      font-size:calc(var(--square) * .72); line-height:1;
-      user-select:none; cursor:pointer; position:relative;
-      outline:1px solid rgba(0,0,0,.06); outline-offset:-1px;
-    }
-    /* повышенная специфичность + !important от конфликта с внешними стилями */
-    .sq.light{ background:var(--board-light) !important; }
-    .sq.dark { background:var(--board-dark)  !important; }
-
-    .sq.sel::after{ content:""; position:absolute; inset:4px; border:3px solid #2b8cff; border-radius:8px; }
-    .sq.mv::before{ content:""; position:absolute; width:14px; height:14px; background:rgba(20,80,180,.55); border-radius:50%; }
-    .sq.cap::before{ content:""; position:absolute; width:calc(var(--square) - 8px); height:calc(var(--square) - 8px); border:3px solid rgba(220,40,40,.75); border-radius:8px; }
-
-    .info{ background:var(--panel); border-radius:14px; padding:12px; }
-    .row{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
-    .tag{ background:#23283a; color:#fff; padding:6px 10px; border-radius:10px; font-size:12px; }
-    .log{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#10131a; color:#e6ecff; border-radius:10px; padding:8px; max-height:220px; overflow:auto; font-size:12px; white-space:pre-wrap; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<title>Chess (Standalone)</title>
+<style>
+  /* Всё под префиксом .chx- чтобы исключить конфликты */
+  :root{ --chx-bg:#0f0f12; --chx-text:#f3f6ff; --chx-muted:#9aa3b2; --chx-panel:#171a22; --chx-accent:#4e9eff; }
+  body{margin:0;background:var(--chx-bg);color:var(--chx-text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .chx-wrap{max-width:980px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
+  @media(min-width:900px){ .chx-wrap{grid-template-columns:480px 1fr;align-items:start} }
+  .chx-header{padding:12px}
+  .chx-title{margin:0;font-size:18px}
+  .chx-sub{margin:2px 0 0;color:var(--chx-muted);font-size:12px}
+  .chx-panel{background:var(--chx-panel);border-radius:14px;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .chx-panel select,.chx-panel button{border:0;border-radius:12px;padding:10px 12px;font-weight:600}
+  .chx-btn{background:#2a2f3b;color:#fff;cursor:pointer}
+  .chx-btn.primary{background:var(--chx-accent);color:#fff}
+  .chx-info{background:var(--chx-panel);border-radius:14px;padding:12px}
+  .chx-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .chx-tag{background:#23283a;color:#fff;padding:6px 10px;border-radius:10px;font-size:12px}
+  .chx-log{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#10131a;color:#e6ecff;border-radius:10px;padding:8px;max-height:220px;overflow:auto;white-space:pre-wrap}
+  .chx-board-wrap{display:flex;justify-content:center}
+  canvas#chx{display:block;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);background:#f0d9b5}
+</style>
 </head>
 <body>
-<header>
-  <h1>♟️ Chess</h1>
-  <div class="muted" style="font-size:12px">Игра против встроенного ИИ. Unicode-фигуры • chess.js (MIT).</div>
+<header class="chx-header">
+  <h1 class="chx-title">♟️ Chess</h1>
+  <p class="chx-sub">Полностью автономные шахматы: Canvas + собственные фигуры. Без внешних библиотек.</p>
 </header>
 
-<main class="wrap">
-  <section><div id="board" class="board"></div></section>
+<main class="chx-wrap">
+  <section class="chx-board-wrap">
+    <canvas id="chx" width="480" height="480"></canvas>
+  </section>
 
   <section>
-    <div class="panel">
+    <div class="chx-panel">
       <label>Цвет:</label>
-      <select id="color"><option value="w">Белые</option><option value="b">Чёрные</option></select>
-
-      <label>Сложность:</label>
-      <select id="difficulty" title="уровень ИИ">
-        <option value="newbie">Новичок</option>
-        <option value="casual" selected>Любитель</option>
-        <option value="club">Клубный игрок</option>
-        <option value="master">Мастер</option>
-        <option value="supergm">Супер-гроссмейстер</option>
+      <select id="chxColor">
+        <option value="w">Белые</option>
+        <option value="b">Чёрные</option>
       </select>
 
-      <button id="newgame" class="primary">Новая партия</button>
-      <button id="flip">Повернуть доску</button>
+      <label>Режим:</label>
+      <select id="chxMode">
+        <option value="ai" selected>Против ИИ</option>
+        <option value="pvp">2 игрока</option>
+      </select>
+
+      <label>Сложность:</label>
+      <select id="chxLevel">
+        <option value="newbie">Новичок</option>
+        <option value="casual">Любитель</option>
+        <option value="club">Клубный</option>
+        <option value="master">Мастер</option>
+        <option value="supergm" selected>Супер-гроссмейстер</option>
+      </select>
+
+      <button id="chxNew" class="chx-btn primary">Новая партия</button>
+      <button id="chxFlip" class="chx-btn">Повернуть доску</button>
     </div>
 
-    <div class="info">
-      <div class="row">
-        <span class="tag" id="turn">Ход белых</span>
-        <span class="tag" id="status">Игра идёт</span>
-        <span class="tag" id="engine">ИИ: встроенный</span>
+    <div class="chx-info">
+      <div class="chx-tags">
+        <span class="chx-tag" id="chxTurn">Ход белых</span>
+        <span class="chx-tag" id="chxStatus">Игра идёт</span>
+        <span class="chx-tag" id="chxScore">—</span>
       </div>
-      <h3 style="margin:12px 0 6px;font-size:14px">Журнал ходов (PGN)</h3>
-      <div id="log" class="log"></div>
-      <p class="muted" style="margin-top:10px">
-        Лицензии: chess.js — MIT. Фигуры — стандарт Unicode.
-      </p>
+      <h3 style="margin:12px 0 6px;font-size:14px">Журнал ходов (SAN)</h3>
+      <div id="chxLog" class="chx-log"></div>
+      <p class="chx-sub" style="margin-top:10px">Фигурки нарисованы программно в стиле Staunton (наши собственные формы) — нарушения прав нет.</p>
     </div>
   </section>
 </main>
 
 <script>
-(() => {
-  try { Telegram?.WebApp?.ready(); Telegram?.WebApp?.expand(); } catch(e){}
+/* =====================  ВСПОМОГАТЕЛЬНОЕ  ===================== */
+const S=60; // размер клетки (480/8)
+const light='#f0d9b5', dark='#b58863';
+const WHITE='w', BLACK='b';
+const PIECES='prnbqkPRNBQK'; // p r n b q k (черные) / заглавные (белые)
 
-  const boardEl = document.getElementById('board');
-  const turnTag = document.getElementById('turn');
-  const statusTag = document.getElementById('status');
-  const logEl = document.getElementById('log');
-  const colorSel = document.getElementById('color');
-  const diffSel  = document.getElementById('difficulty');
+/* Начальная позиция в FEN-подобной матрице */
+function startBoard(){
+  const rows=[
+    'rnbqkbnr',
+    'pppppppp',
+    '........',
+    '........',
+    '........',
+    '........',
+    'PPPPPPPP',
+    'RNBQKBNR'
+  ];
+  return rows.map(r=>r.split(''));
+}
 
-  // 1) Рендер клеток (с повышенной специфичностью классов)
-  function renderBoard(){
-    boardEl.innerHTML='';
-    for(let r=0;r<8;r++){
-      for(let c=0;c<8;c++){
-        const d=document.createElement('div');
-        d.className='sq ' + ((r+c)%2? 'dark':'light');
-        d.dataset.r=r; d.dataset.c=c;
-        boardEl.appendChild(d);
+const val={p:100,n:320,b:330,r:500,q:900,k:0};
+function pieceColor(ch){ return (ch===ch.toUpperCase())?WHITE:BLACK; }
+function isWhite(ch){ return ch===ch.toUpperCase(); }
+function isBlack(ch){ return ch===ch.toLowerCase(); }
+
+/* =====================  СОСТОЯНИЕ ИГРЫ  ===================== */
+const st={
+  board:startBoard(),
+  turn:WHITE,
+  wk:{r:7,c:4}, bk:{r:0,c:4}, // короли для проверки шаха
+  castling:{K:true,Q:true,k:true,q:true},
+  ep:null, // en-passant square {r,c}
+  half:0, full:1,
+  flipped:false,
+  log:[]
+};
+
+/* =====================  РЕНДЕР CANVAS  ===================== */
+const cvs=document.getElementById('chx'), ctx=cvs.getContext('2d');
+function drawBoard(){
+  // клетчатый фон
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const x=c*S, y=r*S;
+      const darkSq=((r+c)&1)===1;
+      ctx.fillStyle=darkSq?dark:light;
+      ctx.fillRect(x,y,S,S);
+    }
+  }
+}
+function drawPiece(ch,r,c){
+  const x=c*S+S/2, y=r*S+S/2;
+  const clr=isWhite(ch)? '#fff' : '#111';
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle=clr; ctx.strokeStyle=isWhite(ch)?'rgba(0,0,0,.4)':'rgba(255,255,255,.3)'; ctx.lineWidth=2;
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  const t=ch.toLowerCase();
+  if(t==='p'){ // пешка — шарик + ножка
+    ctx.beginPath(); ctx.arc(0,-12,10,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-10,-3); ctx.quadraticCurveTo(0,-8,10,-3); ctx.lineTo(12,12); ctx.lineTo(-12,12); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-16,14,32,4);
+  } else if(t==='r'){ // ладья — башня
+    ctx.beginPath(); ctx.rect(-18,-20,36,28); ctx.fill(); ctx.stroke();
+    for(let i=-12;i<=12;i+=12){ ctx.fillRect(i-4,-24,8,6); }
+    ctx.fillRect(-22,12,44,6); ctx.fillRect(-26,18,52,4);
+  } else if(t==='n'){ // конь — голова
+    ctx.beginPath();
+    ctx.moveTo(-12,12); ctx.bezierCurveTo(-6,-8,12,-16,16,-4);
+    ctx.bezierCurveTo(8,0,10,8,4,12); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(8,-8,2,0,Math.PI*2); ctx.fillStyle=isWhite(ch)?'#222':'#eee'; ctx.fill(); // глаз
+  } else if(t==='b'){ // слон — митра
+    ctx.beginPath(); ctx.moveTo(0,-18); ctx.bezierCurveTo(12,-6,12,2,0,12); ctx.bezierCurveTo(-12,2,-12,-6,0,-18); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(0,6); ctx.stroke();
+    ctx.fillRect(-14,12,28,6);
+  } else if(t==='q'){ // ферзь — корона
+    ctx.beginPath(); ctx.arc(0,-14,6,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    for(let i=-16;i<=16;i+=8){ ctx.beginPath(); ctx.arc(i,-8,4,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(-18,-6); ctx.quadraticCurveTo(0,-12,18,-6); ctx.lineTo(16,12); ctx.lineTo(-16,12); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-18,12,36,6);
+  } else if(t==='k'){ // король — крест
+    ctx.fillRect(-5,-20,10,26);
+    ctx.fillRect(-16,-6,32,8);
+    ctx.fillRect(-2,-28,4,10);
+    ctx.beginPath(); ctx.arc(0,12,14,0,Math.PI,true); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-18,12,36,6);
+  }
+  ctx.restore();
+}
+function drawPieces(){
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const ch=st.board[r][c];
+    if(ch!=='.') drawPiece(ch,r,c);
+  }
+}
+function render(){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  drawBoard(); drawHighlights(); drawPieces();
+}
+
+/* =====================  ВЫДЕЛЕНИЕ/ПОДСВЕТКА  ===================== */
+let sel=null, movesCache=[];
+function drawHighlights(){
+  if(!sel) return;
+  ctx.save();
+  ctx.globalAlpha=0.28; ctx.fillStyle='#2b8cff';
+  movesCache.forEach(m=>{ ctx.fillRect(m.c*S, m.r*S, S, S); });
+  ctx.restore();
+}
+
+/* =====================  Правила: генерация ходов  ===================== */
+/* Утилиты */
+function inBoard(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+function cloneBoard(b){ return b.map(row=>row.slice()); }
+
+function kingSquare(color){
+  return color===WHITE ? st.wk : st.bk;
+}
+
+function isAttacked(b, r, c, byColor){
+  // проверка, бьётся ли клетка цветом byColor
+  const dir = (byColor===WHITE)? -1 : 1; // направление пешек, которые атакуют вперёд по цвету
+  // пешки
+  for(const dc of [-1,1]){
+    const rr=r+dir, cc=c+dc;
+    if(inBoard(rr,cc)){
+      const ch=b[rr][cc];
+      if(ch!=='.' && pieceColor(ch)===byColor && ch.toLowerCase()==='p') return true;
+    }
+  }
+  // кони
+  const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+  for(const [dr,dc] of K){
+    const rr=r+dr, cc=c+dc;
+    if(inBoard(rr,cc)){
+      const ch=b[rr][cc];
+      if(ch!=='.' && pieceColor(ch)===byColor && ch.toLowerCase()==='n') return true;
+    }
+  }
+  // слоны/ферзь (диагонали)
+  const D=[[1,1],[1,-1],[-1,1],[-1,-1]];
+  for(const [dr,dc] of D){
+    let rr=r+dr, cc=c+dc;
+    while(inBoard(rr,cc)){
+      const ch=b[rr][cc];
+      if(ch!=='.'){
+        if(pieceColor(ch)===byColor && (ch.toLowerCase()==='b' || ch.toLowerCase()==='q')) return true;
+        break;
+      }
+      rr+=dr; cc+=dc;
+    }
+  }
+  // ладьи/ферзь (прямые)
+  const R=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(const [dr,dc] of R){
+    let rr=r+dr, cc=c+dc;
+    while(inBoard(rr,cc)){
+      const ch=b[rr][cc];
+      if(ch!=='.'){
+        if(pieceColor(ch)===byColor && (ch.toLowerCase()==='r' || ch.toLowerCase()==='q')) return true;
+        break;
+      }
+      rr+=dr; cc+=dc;
+    }
+  }
+  // король (соседние)
+  for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++){
+    if(dr===0&&dc===0) continue;
+    const rr=r+dr, cc=c+dc;
+    if(inBoard(rr,cc)){
+      const ch=b[rr][cc];
+      if(ch!=='.' && pieceColor(ch)===byColor && ch.toLowerCase()==='k') return true;
+    }
+  }
+  return false;
+}
+
+function generateMoves(color){
+  const moves=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const ch=st.board[r][c]; if(ch==='.' || pieceColor(ch)!==color) continue;
+    const t=ch.toLowerCase();
+    if(t==='p'){
+      const dir = (color===WHITE)? -1 : 1;
+      const startRow = (color===WHITE)? 6 : 1;
+      // шаг вперёд
+      if(inBoard(r+dir,c) && st.board[r+dir][c]==='.') moves.push({r:r+dir,c,fromR:r,fromC:c});
+      // двойной с начальной
+      if(r===startRow && st.board[r+dir][c]==='.' && st.board[r+2*dir][c]==='.') moves.push({r:r+2*dir,c,fromR:r,fromC:c, epGive:{r:r+dir,c}});
+      // взятия
+      for(const dc of [-1,1]){
+        const rr=r+dir, cc=c+dc;
+        if(inBoard(rr,cc)){
+          const tg=st.board[rr][cc];
+          if(tg!=='.' && pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:true});
+        }
+      }
+      // взятие на проходе
+      if(st.ep){
+        if(st.ep.r===r+dir && Math.abs(st.ep.c-c)===1 && st.ep.c!==c){
+          moves.push({r:st.ep.r,c:st.ep.c,fromR:r,fromC:c,capture:true,ep:true,epVictim:{r:r,c:st.ep.c}});
+        }
+      }
+      // промоция
+      const promRow = (color===WHITE)? 0:7;
+      for(const m of moves.filter(m=>m.fromR===r&&m.fromC===c)){
+        if(m.r===promRow) m.promo='q';
+      }
+    }
+    else if(t==='n'){
+      const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+      for(const [dr,dc] of K){
+        const rr=r+dr, cc=c+dc;
+        if(!inBoard(rr,cc)) continue;
+        const tg=st.board[rr][cc];
+        if(tg==='.' || pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
+      }
+    }
+    else if(t==='b' || t==='r' || t==='q'){
+      const dirs = t==='b' ? [[1,1],[1,-1],[-1,1],[-1,-1]]
+                  : t==='r' ? [[1,0],[-1,0],[0,1],[0,-1]]
+                  : [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dr,dc] of dirs){
+        let rr=r+dr, cc=c+dc;
+        while(inBoard(rr,cc)){
+          const tg=st.board[rr][cc];
+          if(tg==='.') moves.push({r:rr,c:cc,fromR:r,fromC:c});
+          else { if(pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:true}); break; }
+          rr+=dr; cc+=dc;
+        }
+      }
+    }
+    else if(t==='k'){
+      for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+        if(dr===0&&dc===0) continue;
+        const rr=r+dr, cc=c+dc; if(!inBoard(rr,cc)) continue;
+        const tg=st.board[rr][cc];
+        if(tg==='.' || pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
+      }
+      // рокировка (упрощенно, без проверки невозможных межполей под шахом)
+      if(color===WHITE && r===7 && c===4){
+        if(st.castling.K && st.board[7][5]==='.' && st.board[7][6]==='.' &&
+           !isAttacked(st.board,7,4,BLACK) && !isAttacked(st.board,7,5,BLACK) && !isAttacked(st.board,7,6,BLACK))
+          moves.push({r:7,c:6,fromR:7,fromC:4,castle:'K'});
+        if(st.castling.Q && st.board[7][3]==='.' && st.board[7][2]==='.' && st.board[7][1]==='.' &&
+           !isAttacked(st.board,7,4,BLACK) && !isAttacked(st.board,7,3,BLACK) && !isAttacked(st.board,7,2,BLACK))
+          moves.push({r:7,c:2,fromR:7,fromC:4,castle:'Q'});
+      }
+      if(color===BLACK && r===0 && c===4){
+        if(st.castling.k && st.board[0][5]==='.' && st.board[0][6]==='.' &&
+           !isAttacked(st.board,0,4,WHITE) && !isAttacked(st.board,0,5,WHITE) && !isAttacked(st.board,0,6,WHITE))
+          moves.push({r:0,c:6,fromR:0,fromC:4,castle:'k'});
+        if(st.castling.q && st.board[0][3]==='.' && st.board[0][2]==='.' && st.board[0][1]==='.' &&
+           !isAttacked(st.board,0,4,WHITE) && !isAttacked(st.board,0,3,WHITE) && !isAttacked(st.board,0,2,WHITE))
+          moves.push({r:0,c:2,fromR:0,fromC:4,castle:'q'});
       }
     }
   }
 
-  // 2) Игра и фигуры
-  const GLYPH={'p':'♟','n':'♞','b':'♝','r':'♜','q':'♛','k':'♚','P':'♙','N':'♘','B':'♗','R':'♖','Q':'♕','K':'♔'};
-  let game=new Chess(), flipped=false;
-
-  const LVL={
-    newbie:{depth:1, noise:60, think:150},
-    casual:{depth:2, noise:35, think:200},
-    club:{depth:3, noise:15, think:300},
-    master:{depth:4, noise:5,  think:450},
-    supergm:{depth:5, noise:0,  think:600},
-  };
-
-  const alg=(r,c)=>'abcdefgh'[c]+(8-r);
-  const rc =(sq)=>({r:8-parseInt(sq[1],10), c:'abcdefgh'.indexOf(sq[0])});
-
-  function paintPieces(){
-    const pos=game.board(); const cells=boardEl.querySelectorAll('.sq');
-    cells.forEach(c=>{ c.innerHTML=''; c.classList.remove('sel','mv','cap'); });
-    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
-      const cell=pos[r][c]; if(!cell) continue;
-      const span=document.createElement('span');
-      span.style.fontFamily="'Segoe UI Symbol','Noto Sans Symbols2','Symbola','Arial Unicode MS',ui-sans-serif,sans-serif";
-      span.textContent=GLYPH[cell.color==='w'?cell.type.toUpperCase():cell.type];
-      span.style.color = cell.color==='w' ? '#fff' : '#111';
-      span.style.textShadow = cell.color==='w' ? '0 1px 0 rgba(0,0,0,.35)' : '0 1px 0 rgba(255,255,255,.15)';
-      cells[r*8+c].appendChild(span);
+  // отфильтруем ходы, оставив только те, после которых свой король не под шахом
+  const legal=[];
+  for(const m of moves){
+    const b=cloneBoard(st.board);
+    const piece=b[m.fromR][m.fromC];
+    b[m.fromR][m.fromC]='.';
+    if(m.ep){ b[m.epVictim.r][m.epVictim.c]='.'; }
+    b[m.r][m.c]= m.promo ? (pieceColor(piece)===WHITE?'Q':'q') : piece;
+    // рокировка — двигаем ладью
+    if(m.castle){
+      if(m.castle==='K') { b[7][7]='.'; b[7][5]='R'; }
+      if(m.castle==='Q') { b[7][0]='.'; b[7][3]='R'; }
+      if(m.castle==='k') { b[0][7]='.'; b[0][5]='r'; }
+      if(m.castle==='q') { b[0][0]='.'; b[0][3]='r'; }
+    }
+    // где король после хода
+    const kpos = (piece.toLowerCase()==='k') ? {r:m.r,c:m.c} : kingSquare(color);
+    if(!isAttacked(b, kpos.r, kpos.c, color===WHITE?BLACK:WHITE)){
+      legal.push(m);
     }
   }
+  return legal;
+}
 
-  function setStatus(){
-    if(game.isGameOver()){
-      if(game.isCheckmate()){
-        const winner=game.turn()==='w'?'Чёрные':'Белые';
-        statusTag.textContent='Мат — победили '+winner;
-      }else if(game.isDraw()){
-        statusTag.textContent='Ничья';
-      }else{
-        statusTag.textContent='Игра окончена';
+/* Выполнение хода */
+function makeMove(m){
+  const piece=st.board[m.fromR][m.fromC];
+  st.board[m.fromR][m.fromC]='.';
+  if(m.ep){ st.board[m.epVictim.r][m.epVictim.c]='.'; }
+  st.board[m.r][m.c]= m.promo ? (pieceColor(piece)===WHITE?'Q':'q') : piece;
+  // обновление королей
+  if(piece.toLowerCase()==='k'){
+    if(pieceColor(piece)===WHITE) st.wk={r:m.r,c:m.c}; else st.bk={r:m.r,c:m.c};
+  }
+  // рокировка — двигаем ладью
+  if(m.castle){
+    if(m.castle==='K'){ st.board[7][7]='.'; st.board[7][5]='R'; }
+    if(m.castle==='Q'){ st.board[7][0]='.'; st.board[7][3]='R'; }
+    if(m.castle==='k'){ st.board[0][7]='.'; st.board[0][5]='r'; }
+    if(m.castle==='q'){ st.board[0][0]='.'; st.board[0][3]='r'; }
+  }
+  // права рокировки теряются при движении короля/ладей
+  if(piece==='K'){ st.castling.K=false; st.castling.Q=false; }
+  if(piece==='k'){ st.castling.k=false; st.castling.q=false; }
+  if(piece==='R' && m.fromR===7 && m.fromC===7) st.castling.K=false;
+  if(piece==='R' && m.fromR===7 && m.fromC===0) st.castling.Q=false;
+  if(piece==='r' && m.fromR===0 && m.fromC===7) st.castling.k=false;
+  if(piece==='r' && m.fromR===0 && m.fromC===0) st.castling.q=false;
+
+  // право взятия на проходе
+  st.ep = m.epGive || null;
+
+  // ход/партия
+  st.turn = (st.turn===WHITE)? BLACK : WHITE;
+  st.full += (st.turn===WHITE?1:0);
+}
+
+/* =====================  ИИ: minimax + alpha-beta  ===================== */
+const LEVEL={
+  newbie:{depth:1,noise:80,think:120},
+  casual:{depth:2,noise:40,think:180},
+  club:{depth:3,noise:20,think:260},
+  master:{depth:4,noise:6, think:380},
+  supergm:{depth:5,noise:0, think:550},
+};
+function evaluateSide(b){
+  let s=0;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const ch=b[r][c]; if(ch==='.'){continue;}
+    const v=val[ch.toLowerCase()]||0;
+    s += isWhite(ch)? v : -v;
+  }
+  return s;
+}
+function orderFor(color){
+  const ms = generateMoves(color);
+  // захваты приоритетнее
+  ms.sort((a,b)=>(b.capture?1:0)-(a.capture?1:0));
+  return ms;
+}
+function search(depth, alpha, beta, color){
+  if(depth===0) return evaluateSide(st.board) * (color===WHITE?1:-1);
+  const ms = orderFor(color);
+  if(ms.length===0){
+    // мат/пат
+    const k = kingSquare(color);
+    const check = isAttacked(st.board,k.r,k.c,(color===WHITE)?BLACK:WHITE);
+    return (check ? -99999 : 0) * (color===WHITE?1:-1);
+  }
+  let best=-1e9;
+  const save = JSON.parse(JSON.stringify(st));
+  for(const m of ms){
+    makeMove(m);
+    const score = -search(depth-1, -beta, -alpha, (color===WHITE)?BLACK:WHITE);
+    Object.assign(st, save); // быстрый откат
+    st.board = save.board.map(r=>r.slice());
+    if(score>best) best=score;
+    if(best>alpha) alpha=best;
+    if(alpha>=beta) break;
+  }
+  return best;
+}
+function bestMove(level){
+  const cfg=LEVEL[level]||LEVEL.casual;
+  const color = st.turn;
+  const ms = orderFor(color);
+  if(!ms.length) return null;
+  let scored=[];
+  const snap = JSON.parse(JSON.stringify(st));
+  for(const m of ms){
+    makeMove(m);
+    const sc = -search(cfg.depth-1, -1e9, 1e9, (color===WHITE)?BLACK:WHITE);
+    Object.assign(st,snap); st.board=snap.board.map(r=>r.slice());
+    scored.push({m, sc});
+  }
+  if(cfg.noise){ scored.forEach(s=> s.sc += (Math.random()*2-1)*cfg.noise); }
+  scored.sort((a,b)=> b.sc-a.sc);
+  return scored[0].m;
+}
+
+/* =====================  ВЗАИМОДЕЙСТВИЕ  ===================== */
+const ui={
+  color:document.getElementById('chxColor'),
+  level:document.getElementById('chxLevel'),
+  mode: document.getElementById('chxMode'),
+  btnNew:document.getElementById('chxNew'),
+  btnFlip:document.getElementById('chxFlip'),
+  turn:document.getElementById('chxTurn'),
+  status:document.getElementById('chxStatus'),
+  score:document.getElementById('chxScore'),
+  log:document.getElementById('chxLog')
+};
+
+function uTurn(){ ui.turn.textContent = st.turn===WHITE?'Ход белых':'Ход чёрных'; }
+function uStatus(txt){ ui.status.textContent = txt; }
+function uLog(san){ if(!san) ui.log.textContent=''; else { ui.log.textContent+=san+(st.turn===WHITE?'\n':' ');} }
+
+function sanOf(m, capture){
+  const piece = st.board[m.fromR][m.fromC];
+  const name = {p:'',n:'N',b:'B',r:'R',q:'Q',k:'K'}[piece.toLowerCase()];
+  const file = String.fromCharCode(97+m.fromC);
+  const to = String.fromCharCode(97+m.c)+(8-m.r);
+  return (name|| (capture?file:'')) + (capture?'x':'') + to + (m.promo? '='+ (pieceColor(piece)===WHITE?'Q':'q').toUpperCase() : '');
+}
+
+function clickBoard(ev){
+  const rect=cvs.getBoundingClientRect();
+  const x=ev.clientX-rect.left, y=ev.clientY-rect.top;
+  let c=Math.floor(x/S), r=Math.floor(y/S);
+  if(st.flipped){ r=7-r; c=7-c; }
+  if(!sel){
+    const ch=st.board[r][c];
+    if(ch!=='.' && pieceColor(ch)===st.turn){
+      sel={r,c}; movesCache=generateMoves(st.turn).filter(m=>m.fromR===r && m.fromC===c);
+    }
+  }else{
+    const mv = movesCache.find(m=> m.r===r && m.c===c);
+    if(mv){
+      const capture = !!mv.capture || (mv.ep===true);
+      const san = sanOf(mv, capture);
+      makeMove(mv);
+      uLog(san);
+      checkGame();
+      render();
+      // ход ИИ
+      if(ui.mode.value==='ai' && !gameOver() && ((st.turn===WHITE && ui.color.value==='b') || (st.turn===BLACK && ui.color.value==='w'))){
+        uStatus('ИИ думает…');
+        const choice = bestMove(ui.level.value);
+        setTimeout(()=>{
+          if(choice){
+            const san2 = sanOf(choice, !!choice.capture || choice.ep);
+            makeMove(choice);
+            uLog(san2);
+          }
+          checkGame(); render();
+        }, LEVEL[ui.level.value].think);
       }
-    }else if(game.inCheck()){
-      statusTag.textContent='Шах';
-    }else{
-      statusTag.textContent='Игра идёт';
     }
-    turnTag.textContent=game.turn()==='w'?'Ход белых':'Ход чёрных';
-    logEl.textContent=game.pgn({max_width:50,newline_char:'\n'});
+    sel=null; movesCache=[];
   }
+  render();
+}
 
-  // 3) Встроенный ИИ (без воркеров): negamax + alpha-beta + материал
-  const VAL = {p:100,n:320,b:330,r:500,q:900,k:0};
-  function evaluate(ch){ // положительное — за белых
-    let s=0, b=ch.board();
-    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
-      const cell=b[r][c]; if(!cell) continue;
-      const v = VAL[cell.type] || 0;
-      s += (cell.color==='w'? v : -v);
-    }
-    // лёгкий бонус за мобильность
-    const wm = ch.moves({legal:true}).length;
-    ch.turn() === 'w' ? s += wm : s -= wm;
-    return s;
+function gameOver(){
+  const ms=generateMoves(st.turn);
+  if(ms.length===0){
+    const k = kingSquare(st.turn);
+    if(isAttacked(st.board,k.r,k.c, st.turn===WHITE?BLACK:WHITE)) { uStatus('Мат'); }
+    else { uStatus('Пат'); }
+    return true;
   }
+  return false;
+}
+function checkGame(){
+  if(!gameOver()) uStatus('Игра идёт');
+  uTurn();
+}
 
-  function orderMoves(ch){ // захваты вперёд
-    const ms = ch.moves({verbose:true});
-    return ms.sort((a,b)=> (b.flags.includes('c')?1:0)-(a.flags.includes('c')?1:0));
+function resetGame(){
+  st.board=startBoard();
+  st.turn=WHITE; st.wk={r:7,c:4}; st.bk={r:0,c:4};
+  st.castling={K:true,Q:true,k:true,q:true};
+  st.ep=null; st.half=0; st.full=1; sel=null; movesCache=[]; ui.log.textContent='';
+  if(ui.color.value==='b'){ // ИИ ходит первым (за белых)
+    const mv=bestMove(ui.level.value); if(mv) makeMove(mv);
   }
+  render(); checkGame();
+}
+function flipBoard(){ st.flipped=!st.flipped; // перерисовка «как будто» повернули
+  // Реальная отрисовка поворота просто инвертирует систему координат
+  ctx.setTransform(st.flipped?-1:1,0,0,st.flipped?-1:1, st.flipped?cvs.width:0, st.flipped?cvs.height:0);
+  render();
+}
 
-  function negamax(ch, depth, alpha, beta){
-    if (depth===0 || ch.isGameOver()){
-      const sc = evaluate(ch);
-      return ch.turn()==='w'? sc : -sc;
-    }
-    let best=-Infinity;
-    const moves = orderMoves(ch);
-    for(const m of moves){
-      ch.move(m);
-      const score = -negamax(ch, depth-1, -beta, -alpha);
-      ch.undo();
-      if(score>best) best=score;
-      if(best>alpha) alpha=best;
-      if(alpha>=beta) break;
-    }
-    return best;
-  }
+/* init */
+cvs.addEventListener('click', clickBoard);
+ui.btnNew.addEventListener('click', resetGame);
+ui.btnFlip.addEventListener('click', flipBoard);
 
-  function pickMove(level){
-    const opts = LVL[level]||LVL.casual;
-    const moves = orderMoves(game);
-    // оцениваем каждый ход
-    let scored = moves.map(m=>{
-      game.move(m);
-      const sc = -negamax(game, opts.depth-1, -1e9, 1e9);
-      game.undo();
-      return {m, sc};
-    });
-    // шум для низких уровней
-    if (opts.noise>0){
-      scored.forEach(x=> x.sc += (Math.random()*2-1)*opts.noise);
-    }
-    scored.sort((a,b)=> b.sc - a.sc);
-    return scored[0]?.m || moves[0];
-  }
-
-  function aiMove(){
-    if(game.isGameOver()) return;
-    const level = diffSel.value;
-    const move = pickMove(level);
-    setTimeout(()=>{
-      if(move){ game.move(move); paintPieces(); setStatus(); }
-    }, LVL[level]?.think || 250);
-  }
-
-  // 4) Интерактив
-  let sel=null;
-  function hi(from){
-    const leg=game.moves({square:from,verbose:true}); const cells=boardEl.querySelectorAll('.sq');
-    cells.forEach(c=>c.classList.remove('mv','cap'));
-    for(const m of leg){ const {r,c}=rc(m.to); cells[r*8+c].classList.add(m.flags.includes('c')?'cap':'mv'); }
-  }
-  function onSquareClick(e){
-    const el=e.currentTarget; const r=+el.dataset.r, c=+el.dataset.c;
-    const rr=flipped?7-r:r, cc=flipped?7-c:c; const a=alg(rr,cc); const cells=boardEl.querySelectorAll('.sq');
-    if(!sel){
-      const p=game.get(a); if(!p || p.color!==game.turn()) return;
-      sel=a; cells.forEach(x=>x.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel);
-    }else{
-      const mv=game.move({from:sel,to:a,promotion:'q'});
-      if(mv){ sel=null; paintPieces(); setStatus(); if(!game.isGameOver()) aiMove(); }
-      else { const p=game.get(a);
-        if(p && p.color===game.turn()){ sel=a; cells.forEach(x=>x.classList.remove('sel','mv','cap')); el.classList.add('sel'); hi(sel); }
-        else { sel=null; cells.forEach(x=>x.classList.remove('sel','mv','cap')); } }
-    }
-  }
-  function attach(){ [...boardEl.querySelectorAll('.sq')].forEach(el=>el.addEventListener('click',onSquareClick)); }
-
-  function orient(color){
-    flipped=(color==='b');
-    boardEl.style.transform=flipped?'rotate(180deg)':'none';
-    [...boardEl.querySelectorAll('.sq')].forEach(el=> el.style.transform=flipped?'rotate(180deg)':'none');
-  }
-
-  function start(){
-    renderBoard(); attach();
-    game=new Chess(); paintPieces(); setStatus();
-    orient(colorSel.value);
-    if(colorSel.value==='b') aiMove(); // ИИ за белых, если игрок выбрал чёрных
-  }
-
-  document.getElementById('newgame').addEventListener('click', start);
-  document.getElementById('flip').addEventListener('click', ()=> orient(flipped?'w':'b'));
-  start();
-})();
+render(); resetGame();
 </script>
 </body>
 </html>
