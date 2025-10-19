@@ -5,11 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
 <title>Chess (Standalone)</title>
 <style>
-  /* Всё под префиксом .chx- чтобы исключить конфликты */
   :root{ --chx-bg:#0f0f12; --chx-text:#f3f6ff; --chx-muted:#9aa3b2; --chx-panel:#171a22; --chx-accent:#4e9eff; }
   body{margin:0;background:var(--chx-bg);color:var(--chx-text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
   .chx-wrap{max-width:980px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
-  @media(min-width:900px){ .chx-wrap{grid-template-columns:480px 1fr;align-items:start} }
+  @media(min-width:900px){ .chx-wrap{grid-template-columns:minmax(320px,1fr) 1fr;align-items:start} }
   .chx-header{padding:12px}
   .chx-title{margin:0;font-size:18px}
   .chx-sub{margin:2px 0 0;color:var(--chx-muted);font-size:12px}
@@ -22,11 +21,11 @@
   .chx-tag{background:#23283a;color:#fff;padding:6px 10px;border-radius:10px;font-size:12px}
   .chx-log{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#10131a;color:#e6ecff;border-radius:10px;padding:8px;max-height:220px;overflow:auto;white-space:pre-wrap}
   .chx-board-wrap{display:flex;justify-content:center}
-  canvas#chx{display:block;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);background:#f0d9b5}
+  canvas#chx{display:block;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);background:#f0d9b5;max-width:100%;height:auto}
 </style>
 </head>
 <body>
-<header class="chx-header">
+<header class="chx-header" id="chxHeader">
   <h1 class="chx-title">♟️ Chess</h1>
   <p class="chx-sub">Полностью автономные шахматы: Canvas + собственные фигуры. Без внешних библиотек.</p>
 </header>
@@ -37,7 +36,7 @@
   </section>
 
   <section>
-    <div class="chx-panel">
+    <div class="chx-panel" id="chxPanel">
       <label>Цвет:</label>
       <select id="chxColor">
         <option value="w">Белые</option>
@@ -71,393 +70,305 @@
       </div>
       <h3 style="margin:12px 0 6px;font-size:14px">Журнал ходов (SAN)</h3>
       <div id="chxLog" class="chx-log"></div>
-      <p class="chx-sub" style="margin-top:10px">Фигурки нарисованы программно в стиле Staunton (наши собственные формы) — нарушения прав нет.</p>
+      <p class="chx-sub" style="margin-top:10px">Фигуры рисуются вектором на Canvas (наши формы) — лицензии не нарушаются.</p>
     </div>
   </section>
 </main>
 
 <script>
-/* =====================  ВСПОМОГАТЕЛЬНОЕ  ===================== */
-const S=60; // размер клетки (480/8)
-const light='#f0d9b5', dark='#b58863';
-const WHITE='w', BLACK='b';
-const PIECES='prnbqkPRNBQK'; // p r n b q k (черные) / заглавные (белые)
+/* =====================  АДАПТИВНЫЙ РАЗМЕР ДОСКИ  ===================== */
+const cvs=document.getElementById('chx'), ctx=cvs.getContext('2d');
+const elHeader=document.getElementById('chxHeader');
+const elPanel=document.getElementById('chxPanel');
 
-/* Начальная позиция в FEN-подобной матрице */
-function startBoard(){
-  const rows=[
-    'rnbqkbnr',
-    'pppppppp',
-    '........',
-    '........',
-    '........',
-    '........',
-    'PPPPPPPP',
-    'RNBQKBNR'
-  ];
-  return rows.map(r=>r.split(''));
+let BOARD=480;   // текущая длина стороны в px
+let S=60;        // размер клетки (BOARD/8)
+
+function resizeBoard(){
+  // отступы контейнера и скругления берём с запасом (24px)
+  const margin = 24;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const headerH = elHeader?.getBoundingClientRect().height || 0;
+  const panelH  = elPanel?.getBoundingClientRect().height || 0;
+
+  // доступная высота под доску
+  const availH = Math.max(240, vh - headerH - panelH - margin*2);
+  const availW = vw - margin*2;
+
+  const side = Math.max(240, Math.floor(Math.min(availW, availH)));
+  // кратность 8, чтобы клетки были целыми пикселями (чётче отрисовка)
+  BOARD = side - (side % 8);
+  S = BOARD/8;
+
+  cvs.width = BOARD;
+  cvs.height = BOARD;
+
+  // если доска была перевёрнута — восстановим трансформацию
+  if(st.flipped){
+    ctx.setTransform(-1,0,0,-1, BOARD, BOARD);
+  } else {
+    ctx.setTransform(1,0,0,1, 0,0);
+  }
+  render();
 }
 
-const val={p:100,n:320,b:330,r:500,q:900,k:0};
-function pieceColor(ch){ return (ch===ch.toUpperCase())?WHITE:BLACK; }
-function isWhite(ch){ return ch===ch.toUpperCase(); }
-function isBlack(ch){ return ch===ch.toLowerCase(); }
+window.addEventListener('resize', ()=> {
+  // Чтобы на iOS не дёргалось при появлении/скрытии браузерного бара — немного отложим
+  clearTimeout(resizeBoard._t);
+  resizeBoard._t=setTimeout(resizeBoard, 120);
+}, {passive:true});
 
-/* =====================  СОСТОЯНИЕ ИГРЫ  ===================== */
+/* =====================  ОСНОВА ИГРЫ  ===================== */
+const light='#f0d9b5', dark='#b58863';
+const WHITE='w', BLACK='b';
+
+function startBoard(){
+  const rows=['rnbqkbnr','pppppppp','........','........','........','........','PPPPPPPP','RNBQKBNR'];
+  return rows.map(r=>r.split(''));
+}
 const st={
-  board:startBoard(),
-  turn:WHITE,
-  wk:{r:7,c:4}, bk:{r:0,c:4}, // короли для проверки шаха
-  castling:{K:true,Q:true,k:true,q:true},
-  ep:null, // en-passant square {r,c}
-  half:0, full:1,
-  flipped:false,
-  log:[]
+  board:startBoard(), turn:WHITE,
+  wk:{r:7,c:4}, bk:{r:0,c:4},
+  castling:{K:true,Q:true,k:true,q:true}, ep:null, half:0, full:1,
+  flipped:false, log:[]
 };
 
 /* =====================  РЕНДЕР CANVAS  ===================== */
-const cvs=document.getElementById('chx'), ctx=cvs.getContext('2d');
 function drawBoard(){
-  // клетчатый фон
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
-      const x=c*S, y=r*S;
-      const darkSq=((r+c)&1)===1;
-      ctx.fillStyle=darkSq?dark:light;
-      ctx.fillRect(x,y,S,S);
+      ctx.fillStyle = ((r+c)&1)? dark : light;
+      ctx.fillRect(c*S, r*S, S, S);
     }
   }
 }
+
 function drawPiece(ch,r,c){
   const x=c*S+S/2, y=r*S+S/2;
-  const clr=isWhite(ch)? '#fff' : '#111';
+  const clr = (ch===ch.toUpperCase())? '#fff' : '#111';
+  const shadow = (ch===ch.toUpperCase())? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.25)';
+
   ctx.save();
   ctx.translate(x,y);
-  ctx.fillStyle=clr; ctx.strokeStyle=isWhite(ch)?'rgba(0,0,0,.4)':'rgba(255,255,255,.3)'; ctx.lineWidth=2;
+  ctx.fillStyle=clr; ctx.strokeStyle=shadow; ctx.lineWidth=Math.max(2, S*0.035);
   ctx.lineJoin='round'; ctx.lineCap='round';
   const t=ch.toLowerCase();
-  if(t==='p'){ // пешка — шарик + ножка
-    ctx.beginPath(); ctx.arc(0,-12,10,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-10,-3); ctx.quadraticCurveTo(0,-8,10,-3); ctx.lineTo(12,12); ctx.lineTo(-12,12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillRect(-16,14,32,4);
-  } else if(t==='r'){ // ладья — башня
-    ctx.beginPath(); ctx.rect(-18,-20,36,28); ctx.fill(); ctx.stroke();
-    for(let i=-12;i<=12;i+=12){ ctx.fillRect(i-4,-24,8,6); }
-    ctx.fillRect(-22,12,44,6); ctx.fillRect(-26,18,52,4);
-  } else if(t==='n'){ // конь — голова
+
+  if(t==='p'){ // пешка
+    const r1=S*0.18, w=S*0.26;
+    ctx.beginPath(); ctx.arc(0,-S*0.22,r1,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-w,-S*0.08); ctx.quadraticCurveTo(0,-S*0.15,w,-S*0.08); ctx.lineTo(w,S*0.18); ctx.lineTo(-w,S*0.18); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-S*0.32,S*0.22,S*0.64,S*0.06);
+  }
+  else if(t==='r'){ // ладья
+    const w=S*0.32,h=S*0.34;
+    ctx.beginPath(); ctx.rect(-w,-h,w*2,h*1.1); ctx.fill(); ctx.stroke();
+    for(let i=-1;i<=1;i++) ctx.fillRect(i*S*0.12 - S*0.05,-h-S*0.05,S*0.10,S*0.06);
+    ctx.fillRect(-S*0.36, h*0.8, S*0.72, S*0.06);
+    ctx.fillRect(-S*0.42, h*0.98, S*0.84, S*0.04);
+  }
+  else if(t==='n'){ // КОНЬ — новая форма (чёткий силуэт)
+    const s=S; // удобнее читать с koэфф-координатами
     ctx.beginPath();
-    ctx.moveTo(-12,12); ctx.bezierCurveTo(-6,-8,12,-16,16,-4);
-    ctx.bezierCurveTo(8,0,10,8,4,12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(8,-8,2,0,Math.PI*2); ctx.fillStyle=isWhite(ch)?'#222':'#eee'; ctx.fill(); // глаз
-  } else if(t==='b'){ // слон — митра
-    ctx.beginPath(); ctx.moveTo(0,-18); ctx.bezierCurveTo(12,-6,12,2,0,12); ctx.bezierCurveTo(-12,2,-12,-6,0,-18); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(0,6); ctx.stroke();
-    ctx.fillRect(-14,12,28,6);
-  } else if(t==='q'){ // ферзь — корона
-    ctx.beginPath(); ctx.arc(0,-14,6,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    for(let i=-16;i<=16;i+=8){ ctx.beginPath(); ctx.arc(i,-8,4,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
-    ctx.beginPath(); ctx.moveTo(-18,-6); ctx.quadraticCurveTo(0,-12,18,-6); ctx.lineTo(16,12); ctx.lineTo(-16,12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillRect(-18,12,36,6);
-  } else if(t==='k'){ // король — крест
-    ctx.fillRect(-5,-20,10,26);
-    ctx.fillRect(-16,-6,32,8);
-    ctx.fillRect(-2,-28,4,10);
-    ctx.beginPath(); ctx.arc(0,12,14,0,Math.PI,true); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillRect(-18,12,36,6);
+    // шея
+    ctx.moveTo(-0.20*s,  0.22*s);
+    ctx.bezierCurveTo(-0.10*s, -0.05*s,  0.05*s, -0.24*s,  0.14*s, -0.28*s);
+    // ухо
+    ctx.lineTo( 0.06*s, -0.44*s);
+    ctx.lineTo( 0.00*s, -0.30*s);
+    // голова/морда
+    ctx.bezierCurveTo(-0.18*s, -0.30*s, -0.10*s, -0.10*s, -0.02*s, -0.06*s);
+    ctx.bezierCurveTo( 0.08*s, -0.01*s,  0.06*s,  0.10*s, -0.12*s,  0.08*s);
+    // грудь
+    ctx.bezierCurveTo(-0.18*s,  0.06*s, -0.22*s,  0.15*s, -0.20*s,  0.22*s);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // глаз
+    ctx.beginPath(); ctx.arc(-0.02*s,-0.18*s, s*0.02, 0, Math.PI*2); ctx.fillStyle=(clr==='#fff')?'#222':'#eee'; ctx.fill();
+    // основание
+    ctx.fillStyle=clr; ctx.fillRect(-s*0.30, s*0.24, s*0.60, s*0.06);
+  }
+  else if(t==='b'){ // слон
+    ctx.beginPath(); ctx.moveTo(0,-S*0.30);
+    ctx.bezierCurveTo(S*0.18,-S*0.12, S*0.18,S*0.04, 0,S*0.18);
+    ctx.bezierCurveTo(-S*0.18,S*0.04, -S*0.18,-S*0.12, 0,-S*0.30);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,-S*0.24); ctx.lineTo(0,S*0.10); ctx.stroke();
+    ctx.fillRect(-S*0.26,S*0.18,S*0.52,S*0.06);
+  }
+  else if(t==='q'){ // ферзь
+    ctx.beginPath(); ctx.arc(0,-S*0.30,S*0.07,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath(); ctx.arc(i*S*0.07,-S*0.22,S*0.05,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(-S*0.30,-S*0.16); ctx.quadraticCurveTo(0,-S*0.28,S*0.30,-S*0.16);
+    ctx.lineTo(S*0.26,S*0.18); ctx.lineTo(-S*0.26,S*0.18); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-S*0.30,S*0.18,S*0.60,S*0.06);
+  }
+  else if(t==='k'){ // король
+    ctx.fillRect(-S*0.04,-S*0.46,S*0.08,S*0.16);
+    ctx.fillRect(-S*0.20,-S*0.36,S*0.40,S*0.10);
+    ctx.fillRect(-S*0.06,-S*0.58,S*0.12,S*0.12);
+    ctx.beginPath(); ctx.arc(0,S*0.10,S*0.22,Math.PI,0,true); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-S*0.32,S*0.18,S*0.64,S*0.06);
   }
   ctx.restore();
 }
+
 function drawPieces(){
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
     const ch=st.board[r][c];
     if(ch!=='.') drawPiece(ch,r,c);
   }
 }
-function render(){
-  ctx.clearRect(0,0,cvs.width,cvs.height);
-  drawBoard(); drawHighlights(); drawPieces();
-}
 
-/* =====================  ВЫДЕЛЕНИЕ/ПОДСВЕТКА  ===================== */
 let sel=null, movesCache=[];
 function drawHighlights(){
   if(!sel) return;
   ctx.save();
   ctx.globalAlpha=0.28; ctx.fillStyle='#2b8cff';
-  movesCache.forEach(m=>{ ctx.fillRect(m.c*S, m.r*S, S, S); });
+  movesCache.forEach(m=> ctx.fillRect(m.c*S, m.r*S, S, S));
   ctx.restore();
 }
+function render(){ ctx.clearRect(0,0,cvs.width,cvs.height); drawBoard(); drawHighlights(); drawPieces(); }
 
-/* =====================  Правила: генерация ходов  ===================== */
-/* Утилиты */
-function inBoard(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
-function cloneBoard(b){ return b.map(row=>row.slice()); }
+/* =====================  ПРАВИЛА И ХОДЫ  ===================== */
+const valMap={p:100,n:320,b:330,r:500,q:900,k:0};
+const WHITEc='w', BLACKc='b';
+function pieceColor(ch){ return (ch===ch.toUpperCase())?WHITEc:BLACKc; }
+function inBoard(r,c){ return r>=0&&r<8&&c>=0&&c<8; }
+function cloneBoard(b){ return b.map(r=>r.slice()); }
+function kingSquare(color){ return color===WHITEc ? st.wk : st.bk; }
 
-function kingSquare(color){
-  return color===WHITE ? st.wk : st.bk;
-}
-
-function isAttacked(b, r, c, byColor){
-  // проверка, бьётся ли клетка цветом byColor
-  const dir = (byColor===WHITE)? -1 : 1; // направление пешек, которые атакуют вперёд по цвету
-  // пешки
-  for(const dc of [-1,1]){
-    const rr=r+dir, cc=c+dc;
-    if(inBoard(rr,cc)){
-      const ch=b[rr][cc];
-      if(ch!=='.' && pieceColor(ch)===byColor && ch.toLowerCase()==='p') return true;
-    }
-  }
-  // кони
+function isAttacked(b,r,c,by){
+  const dir = (by===WHITEc)? -1:1;
+  for(const dc of [-1,1]){ const rr=r+dir, cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='p') return true; } }
   const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-  for(const [dr,dc] of K){
-    const rr=r+dr, cc=c+dc;
-    if(inBoard(rr,cc)){
-      const ch=b[rr][cc];
-      if(ch!=='.' && pieceColor(ch)===byColor && ch.toLowerCase()==='n') return true;
-    }
-  }
-  // слоны/ферзь (диагонали)
+  for(const [dr,dc] of K){ const rr=r+dr, cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='n') return true; } }
   const D=[[1,1],[1,-1],[-1,1],[-1,-1]];
-  for(const [dr,dc] of D){
-    let rr=r+dr, cc=c+dc;
-    while(inBoard(rr,cc)){
-      const ch=b[rr][cc];
-      if(ch!=='.'){
-        if(pieceColor(ch)===byColor && (ch.toLowerCase()==='b' || ch.toLowerCase()==='q')) return true;
-        break;
-      }
-      rr+=dr; cc+=dc;
-    }
-  }
-  // ладьи/ферзь (прямые)
+  for(const [dr,dc] of D){ let rr=r+dr,cc=c+dc; while(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'){ if(pieceColor(ch)===by&&(ch.toLowerCase()==='b'||ch.toLowerCase()==='q')) return true; break; } rr+=dr;cc+=dc; } }
   const R=[[1,0],[-1,0],[0,1],[0,-1]];
-  for(const [dr,dc] of R){
-    let rr=r+dr, cc=c+dc;
-    while(inBoard(rr,cc)){
-      const ch=b[rr][cc];
-      if(ch!=='.'){
-        if(pieceColor(ch)===byColor && (ch.toLowerCase()==='r' || ch.toLowerCase()==='q')) return true;
-        break;
-      }
-      rr+=dr; cc+=dc;
-    }
-  }
-  // король (соседние)
-  for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++){
-    if(dr===0&&dc===0) continue;
-    const rr=r+dr, cc=c+dc;
-    if(inBoard(rr,cc)){
-      const ch=b[rr][cc];
-      if(ch!=='.' && pieceColor(ch)===byColor && ch.toLowerCase()==='k') return true;
-    }
-  }
+  for(const [dr,dc] of R){ let rr=r+dr,cc=c+dc; while(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'){ if(pieceColor(ch)===by&&(ch.toLowerCase()==='r'||ch.toLowerCase()==='q')) return true; break; } rr+=dr;cc+=dc; } }
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr||dc){ const rr=r+dr,cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='k') return true; } } }
   return false;
 }
 
 function generateMoves(color){
-  const moves=[];
+  const res=[];
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const ch=st.board[r][c]; if(ch==='.' || pieceColor(ch)!==color) continue;
+    const ch=st.board[r][c]; if(ch==='.'||pieceColor(ch)!==color) continue;
     const t=ch.toLowerCase();
     if(t==='p'){
-      const dir = (color===WHITE)? -1 : 1;
-      const startRow = (color===WHITE)? 6 : 1;
-      // шаг вперёд
-      if(inBoard(r+dir,c) && st.board[r+dir][c]==='.') moves.push({r:r+dir,c,fromR:r,fromC:c});
-      // двойной с начальной
-      if(r===startRow && st.board[r+dir][c]==='.' && st.board[r+2*dir][c]==='.') moves.push({r:r+2*dir,c,fromR:r,fromC:c, epGive:{r:r+dir,c}});
-      // взятия
-      for(const dc of [-1,1]){
-        const rr=r+dir, cc=c+dc;
-        if(inBoard(rr,cc)){
-          const tg=st.board[rr][cc];
-          if(tg!=='.' && pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:true});
-        }
-      }
-      // взятие на проходе
-      if(st.ep){
-        if(st.ep.r===r+dir && Math.abs(st.ep.c-c)===1 && st.ep.c!==c){
-          moves.push({r:st.ep.r,c:st.ep.c,fromR:r,fromC:c,capture:true,ep:true,epVictim:{r:r,c:st.ep.c}});
-        }
-      }
-      // промоция
-      const promRow = (color===WHITE)? 0:7;
-      for(const m of moves.filter(m=>m.fromR===r&&m.fromC===c)){
-        if(m.r===promRow) m.promo='q';
-      }
+      const dir=(color===WHITEc)?-1:1, start=(color===WHITEc)?6:1, promoRow=(color===WHITEc)?0:7;
+      if(inBoard(r+dir,c)&&st.board[r+dir][c]==='.') res.push({r:r+dir,c,fromR:r,fromC:c});
+      if(r===start && st.board[r+dir][c]==='.' && st.board[r+2*dir][c]==='.') res.push({r:r+2*dir,c,fromR:r,fromC:c,epGive:{r:r+dir,c}});
+      for(const dc of [-1,1]){ const rr=r+dir,cc=c+dc; if(inBoard(rr,cc)){ const tg=st.board[rr][cc]; if(tg!=='.'&&pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:true}); } }
+      if(st.ep && st.ep.r===r+dir && Math.abs(st.ep.c-c)===1) res.push({r:st.ep.r,c:st.ep.c,fromR:r,fromC:c,capture:true,ep:true,epVictim:{r:r,c:st.ep.c}});
+      for(const m of res.filter(m=>m.fromR===r&&m.fromC===c)){ if(m.r===promoRow) m.promo='q'; }
     }
     else if(t==='n'){
       const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-      for(const [dr,dc] of K){
-        const rr=r+dr, cc=c+dc;
-        if(!inBoard(rr,cc)) continue;
-        const tg=st.board[rr][cc];
-        if(tg==='.' || pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
-      }
+      for(const [dr,dc] of K){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc]; if(tg==='.'||pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'}); }
     }
-    else if(t==='b' || t==='r' || t==='q'){
-      const dirs = t==='b' ? [[1,1],[1,-1],[-1,1],[-1,-1]]
-                  : t==='r' ? [[1,0],[-1,0],[0,1],[0,-1]]
-                  : [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
-      for(const [dr,dc] of dirs){
-        let rr=r+dr, cc=c+dc;
-        while(inBoard(rr,cc)){
-          const tg=st.board[rr][cc];
-          if(tg==='.') moves.push({r:rr,c:cc,fromR:r,fromC:c});
-          else { if(pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:true}); break; }
-          rr+=dr; cc+=dc;
-        }
-      }
+    else if(t==='b'||t==='r'||t==='q'){
+      const dirs=t==='b'?[[1,1],[1,-1],[-1,1],[-1,-1]]:t==='r'?[[1,0],[-1,0],[0,1],[0,-1]]:[[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dr,dc] of dirs){ let rr=r+dr,cc=c+dc; while(inBoard(rr,cc)){ const tg=st.board[rr][cc]; if(tg==='.') res.push({r:rr,c:cc,fromR:r,fromC:c}); else { if(pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:true}); break; } rr+=dr;cc+=dc; } }
     }
     else if(t==='k'){
-      for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
-        if(dr===0&&dc===0) continue;
-        const rr=r+dr, cc=c+dc; if(!inBoard(rr,cc)) continue;
-        const tg=st.board[rr][cc];
-        if(tg==='.' || pieceColor(tg)!==color) moves.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
+      for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr||dc){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc]; if(tg==='.'||pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'}); } }
+      if(color===WHITEc && r===7 && c===4){
+        if(st.castling.K && st.board[7][5]==='.' && st.board[7][6]==='.' && !isAttacked(st.board,7,4,BLACKc) && !isAttacked(st.board,7,5,BLACKc) && !isAttacked(st.board,7,6,BLACKc)) res.push({r:7,c:6,fromR:7,fromC:4,castle:'K'});
+        if(st.castling.Q && st.board[7][3]==='.' && st.board[7][2]==='.' && st.board[7][1]==='.' && !isAttacked(st.board,7,4,BLACKc) && !isAttacked(st.board,7,3,BLACKc) && !isAttacked(st.board,7,2,BLACKc)) res.push({r:7,c:2,fromR:7,fromC:4,castle:'Q'});
       }
-      // рокировка (упрощенно, без проверки невозможных межполей под шахом)
-      if(color===WHITE && r===7 && c===4){
-        if(st.castling.K && st.board[7][5]==='.' && st.board[7][6]==='.' &&
-           !isAttacked(st.board,7,4,BLACK) && !isAttacked(st.board,7,5,BLACK) && !isAttacked(st.board,7,6,BLACK))
-          moves.push({r:7,c:6,fromR:7,fromC:4,castle:'K'});
-        if(st.castling.Q && st.board[7][3]==='.' && st.board[7][2]==='.' && st.board[7][1]==='.' &&
-           !isAttacked(st.board,7,4,BLACK) && !isAttacked(st.board,7,3,BLACK) && !isAttacked(st.board,7,2,BLACK))
-          moves.push({r:7,c:2,fromR:7,fromC:4,castle:'Q'});
-      }
-      if(color===BLACK && r===0 && c===4){
-        if(st.castling.k && st.board[0][5]==='.' && st.board[0][6]==='.' &&
-           !isAttacked(st.board,0,4,WHITE) && !isAttacked(st.board,0,5,WHITE) && !isAttacked(st.board,0,6,WHITE))
-          moves.push({r:0,c:6,fromR:0,fromC:4,castle:'k'});
-        if(st.castling.q && st.board[0][3]==='.' && st.board[0][2]==='.' && st.board[0][1]==='.' &&
-           !isAttacked(st.board,0,4,WHITE) && !isAttacked(st.board,0,3,WHITE) && !isAttacked(st.board,0,2,WHITE))
-          moves.push({r:0,c:2,fromR:0,fromC:4,castle:'q'});
+      if(color===BLACKc && r===0 && c===4){
+        if(st.castling.k && st.board[0][5]==='.' && st.board[0][6]==='.' && !isAttacked(st.board,0,4,WHITEc) && !isAttacked(st.board,0,5,WHITEc) && !isAttacked(st.board,0,6,WHITEc)) res.push({r:0,c:6,fromR:0,fromC:4,castle:'k'});
+        if(st.castling.q && st.board[0][3]==='.' && st.board[0][2]==='.' && st.board[0][1]==='.' && !isAttacked(st.board,0,4,WHITEc) && !isAttacked(st.board,0,3,WHITEc) && !isAttacked(st.board,0,2,WHITEc)) res.push({r:0,c:2,fromR:0,fromC:4,castle:'q'});
       }
     }
   }
-
-  // отфильтруем ходы, оставив только те, после которых свой король не под шахом
+  // фильтр шаха
   const legal=[];
-  for(const m of moves){
+  for(const m of res){
     const b=cloneBoard(st.board);
-    const piece=b[m.fromR][m.fromC];
+    const pc=b[m.fromR][m.fromC];
     b[m.fromR][m.fromC]='.';
     if(m.ep){ b[m.epVictim.r][m.epVictim.c]='.'; }
-    b[m.r][m.c]= m.promo ? (pieceColor(piece)===WHITE?'Q':'q') : piece;
-    // рокировка — двигаем ладью
-    if(m.castle){
-      if(m.castle==='K') { b[7][7]='.'; b[7][5]='R'; }
-      if(m.castle==='Q') { b[7][0]='.'; b[7][3]='R'; }
-      if(m.castle==='k') { b[0][7]='.'; b[0][5]='r'; }
-      if(m.castle==='q') { b[0][0]='.'; b[0][3]='r'; }
-    }
-    // где король после хода
-    const kpos = (piece.toLowerCase()==='k') ? {r:m.r,c:m.c} : kingSquare(color);
-    if(!isAttacked(b, kpos.r, kpos.c, color===WHITE?BLACK:WHITE)){
-      legal.push(m);
-    }
+    b[m.r][m.c]= m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
+    if(m.castle){ if(m.castle==='K'){b[7][7]='.';b[7][5]='R';} if(m.castle==='Q'){b[7][0]='.';b[7][3]='R';}
+                  if(m.castle==='k'){b[0][7]='.';b[0][5]='r';} if(m.castle==='q'){b[0][0]='.';b[0][3]='r';} }
+    const kpos = (pc.toLowerCase()==='k')? {r:m.r,c:m.c} : kingSquare(color);
+    if(!isAttacked(b, kpos.r, kpos.c, color===WHITEc?BLACKc:WHITEc)) legal.push(m);
   }
   return legal;
 }
-
-/* Выполнение хода */
 function makeMove(m){
-  const piece=st.board[m.fromR][m.fromC];
+  const pc=st.board[m.fromR][m.fromC];
   st.board[m.fromR][m.fromC]='.';
   if(m.ep){ st.board[m.epVictim.r][m.epVictim.c]='.'; }
-  st.board[m.r][m.c]= m.promo ? (pieceColor(piece)===WHITE?'Q':'q') : piece;
-  // обновление королей
-  if(piece.toLowerCase()==='k'){
-    if(pieceColor(piece)===WHITE) st.wk={r:m.r,c:m.c}; else st.bk={r:m.r,c:m.c};
-  }
-  // рокировка — двигаем ладью
-  if(m.castle){
-    if(m.castle==='K'){ st.board[7][7]='.'; st.board[7][5]='R'; }
-    if(m.castle==='Q'){ st.board[7][0]='.'; st.board[7][3]='R'; }
-    if(m.castle==='k'){ st.board[0][7]='.'; st.board[0][5]='r'; }
-    if(m.castle==='q'){ st.board[0][0]='.'; st.board[0][3]='r'; }
-  }
-  // права рокировки теряются при движении короля/ладей
-  if(piece==='K'){ st.castling.K=false; st.castling.Q=false; }
-  if(piece==='k'){ st.castling.k=false; st.castling.q=false; }
-  if(piece==='R' && m.fromR===7 && m.fromC===7) st.castling.K=false;
-  if(piece==='R' && m.fromR===7 && m.fromC===0) st.castling.Q=false;
-  if(piece==='r' && m.fromR===0 && m.fromC===7) st.castling.k=false;
-  if(piece==='r' && m.fromR===0 && m.fromC===0) st.castling.q=false;
-
-  // право взятия на проходе
+  st.board[m.r][m.c]= m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
+  if(pc==='K') st.wk={r:m.r,c:m.c};
+  if(pc==='k') st.bk={r:m.r,c:m.c};
+  if(m.castle){ if(m.castle==='K'){st.board[7][7]='.';st.board[7][5]='R';}
+                if(m.castle==='Q'){st.board[7][0]='.';st.board[7][3]='R';}
+                if(m.castle==='k'){st.board[0][7]='.';st.board[0][5]='r';}
+                if(m.castle==='q'){st.board[0][0]='.';st.board[0][3]='r';} }
+  if(pc==='K'){st.castling.K=false; st.castling.Q=false;}
+  if(pc==='k'){st.castling.k=false; st.castling.q=false;}
+  if(pc==='R'&&m.fromR===7&&m.fromC===7) st.castling.K=false;
+  if(pc==='R'&&m.fromR===7&&m.fromC===0) st.castling.Q=false;
+  if(pc==='r'&&m.fromR===0&&m.fromC===7) st.castling.k=false;
+  if(pc==='r'&&m.fromR===0&&m.fromC===0) st.castling.q=false;
   st.ep = m.epGive || null;
-
-  // ход/партия
-  st.turn = (st.turn===WHITE)? BLACK : WHITE;
-  st.full += (st.turn===WHITE?1:0);
+  st.turn = (st.turn===WHITEc)? BLACKc:WHITEc;
+  st.full += (st.turn===WHITEc?1:0);
 }
 
-/* =====================  ИИ: minimax + alpha-beta  ===================== */
-const LEVEL={
-  newbie:{depth:1,noise:80,think:120},
-  casual:{depth:2,noise:40,think:180},
-  club:{depth:3,noise:20,think:260},
-  master:{depth:4,noise:6, think:380},
-  supergm:{depth:5,noise:0, think:550},
-};
-function evaluateSide(b){
+/* =====================  ИИ  ===================== */
+const LEVEL={newbie:{depth:1,noise:80,think:120},casual:{depth:2,noise:40,think:180},
+             club:{depth:3,noise:20,think:260},master:{depth:4,noise:6,think:380},supergm:{depth:5,noise:0,think:550}};
+function evaluate(){
   let s=0;
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const ch=b[r][c]; if(ch==='.'){continue;}
-    const v=val[ch.toLowerCase()]||0;
-    s += isWhite(ch)? v : -v;
+    const ch=st.board[r][c]; if(ch==='.'){continue;}
+    s += (ch===ch.toUpperCase()? 1:-1) * (valMap[ch.toLowerCase()]||0);
   }
   return s;
 }
-function orderFor(color){
-  const ms = generateMoves(color);
-  // захваты приоритетнее
-  ms.sort((a,b)=>(b.capture?1:0)-(a.capture?1:0));
-  return ms;
-}
-function search(depth, alpha, beta, color){
-  if(depth===0) return evaluateSide(st.board) * (color===WHITE?1:-1);
-  const ms = orderFor(color);
-  if(ms.length===0){
-    // мат/пат
-    const k = kingSquare(color);
-    const check = isAttacked(st.board,k.r,k.c,(color===WHITE)?BLACK:WHITE);
-    return (check ? -99999 : 0) * (color===WHITE?1:-1);
+function orderFor(color){ const ms=generateMoves(color); ms.sort((a,b)=>(b.capture?1:0)-(a.capture?1:0)); return ms; }
+function search(depth,alpha,beta,color){
+  if(depth===0) return evaluate()*(color===WHITEc?1:-1);
+  const ms=orderFor(color);
+  if(!ms.length){
+    const k=kingSquare(color); const check=isAttacked(st.board,k.r,k.c,color===WHITEc?BLACKc:WHITEc);
+    return (check?-99999:0)*(color===WHITEc?1:-1);
   }
   let best=-1e9;
-  const save = JSON.parse(JSON.stringify(st));
+  const snap=JSON.parse(JSON.stringify(st));
   for(const m of ms){
     makeMove(m);
-    const score = -search(depth-1, -beta, -alpha, (color===WHITE)?BLACK:WHITE);
-    Object.assign(st, save); // быстрый откат
-    st.board = save.board.map(r=>r.slice());
-    if(score>best) best=score;
-    if(best>alpha) alpha=best;
-    if(alpha>=beta) break;
+    const sc=-search(depth-1,-beta,-alpha,color===WHITEc?BLACKc:WHITEc);
+    Object.assign(st,snap); st.board=snap.board.map(r=>r.slice());
+    if(sc>best) best=sc; if(best>alpha) alpha=best; if(alpha>=beta) break;
   }
   return best;
 }
 function bestMove(level){
-  const cfg=LEVEL[level]||LEVEL.casual;
-  const color = st.turn;
-  const ms = orderFor(color);
+  const cfg=LEVEL[level]||LEVEL.casual; const color=st.turn; const ms=orderFor(color);
   if(!ms.length) return null;
-  let scored=[];
-  const snap = JSON.parse(JSON.stringify(st));
+  let scored=[]; const snap=JSON.parse(JSON.stringify(st));
   for(const m of ms){
     makeMove(m);
-    const sc = -search(cfg.depth-1, -1e9, 1e9, (color===WHITE)?BLACK:WHITE);
+    const sc=-search(cfg.depth-1,-1e9,1e9,color===WHITEc?BLACKc:WHITEc);
     Object.assign(st,snap); st.board=snap.board.map(r=>r.slice());
-    scored.push({m, sc});
+    scored.push({m,sc});
   }
-  if(cfg.noise){ scored.forEach(s=> s.sc += (Math.random()*2-1)*cfg.noise); }
+  if(cfg.noise) scored.forEach(s=> s.sc += (Math.random()*2-1)*cfg.noise);
   scored.sort((a,b)=> b.sc-a.sc);
   return scored[0].m;
 }
 
-/* =====================  ВЗАИМОДЕЙСТВИЕ  ===================== */
+/* =====================  UI ===================== */
 const ui={
   color:document.getElementById('chxColor'),
   level:document.getElementById('chxLevel'),
@@ -466,53 +377,49 @@ const ui={
   btnFlip:document.getElementById('chxFlip'),
   turn:document.getElementById('chxTurn'),
   status:document.getElementById('chxStatus'),
-  score:document.getElementById('chxScore'),
   log:document.getElementById('chxLog')
 };
-
-function uTurn(){ ui.turn.textContent = st.turn===WHITE?'Ход белых':'Ход чёрных'; }
-function uStatus(txt){ ui.status.textContent = txt; }
-function uLog(san){ if(!san) ui.log.textContent=''; else { ui.log.textContent+=san+(st.turn===WHITE?'\n':' ');} }
-
-function sanOf(m, capture){
-  const piece = st.board[m.fromR][m.fromC];
-  const name = {p:'',n:'N',b:'B',r:'R',q:'Q',k:'K'}[piece.toLowerCase()];
-  const file = String.fromCharCode(97+m.fromC);
-  const to = String.fromCharCode(97+m.c)+(8-m.r);
-  return (name|| (capture?file:'')) + (capture?'x':'') + to + (m.promo? '='+ (pieceColor(piece)===WHITE?'Q':'q').toUpperCase() : '');
+function uTurn(){ ui.turn.textContent = st.turn===WHITEc?'Ход белых':'Ход чёрных'; }
+function uStatus(t){ ui.status.textContent=t; }
+function uLog(san){ if(!san) ui.log.textContent=''; else { ui.log.textContent+=san+(st.turn===WHITEc?'\n':' ');} }
+function sanOf(m,cap){ const p=st.board[m.fromR][m.fromC]; const name={p:'',n:'N',b:'B',r:'R',q:'Q',k:'K'}[p.toLowerCase()];
+  const file=String.fromCharCode(97+m.fromC), to=String.fromCharCode(97+m.c)+(8-m.r);
+  return (name||(cap?file:'')) + (cap?'x':'') + to + (m.promo? '=Q' : '');
 }
+
+function gameOver(){
+  const ms=generateMoves(st.turn);
+  if(!ms.length){
+    const k=kingSquare(st.turn); const check=isAttacked(st.board,k.r,k.c, st.turn===WHITEc?BLACKc:WHITEc);
+    uStatus(check?'Мат':'Пат'); return true;
+  }
+  return false;
+}
+function checkGame(){ if(!gameOver()) uStatus('Игра идёт'); uTurn(); }
 
 function clickBoard(ev){
   const rect=cvs.getBoundingClientRect();
-  const x=ev.clientX-rect.left, y=ev.clientY-rect.top;
+  // учитывать переворот: мы уже применяем матрицу Canvas, но для логики нужны "неперевёрнутые" координаты
+  let x=ev.clientX-rect.left, y=ev.clientY-rect.top;
+  if(st.flipped){ x = rect.width - x; y = rect.height - y; }
   let c=Math.floor(x/S), r=Math.floor(y/S);
-  if(st.flipped){ r=7-r; c=7-c; }
+
   if(!sel){
     const ch=st.board[r][c];
     if(ch!=='.' && pieceColor(ch)===st.turn){
       sel={r,c}; movesCache=generateMoves(st.turn).filter(m=>m.fromR===r && m.fromC===c);
     }
   }else{
-    const mv = movesCache.find(m=> m.r===r && m.c===c);
+    const mv=movesCache.find(m=>m.r===r && m.c===c);
     if(mv){
-      const capture = !!mv.capture || (mv.ep===true);
-      const san = sanOf(mv, capture);
-      makeMove(mv);
-      uLog(san);
-      checkGame();
-      render();
-      // ход ИИ
-      if(ui.mode.value==='ai' && !gameOver() && ((st.turn===WHITE && ui.color.value==='b') || (st.turn===BLACK && ui.color.value==='w'))){
+      const cap=!!mv.capture || mv.ep;
+      const san=sanOf(mv,cap);
+      makeMove(mv); uLog(san); checkGame(); render();
+      if(ui.mode.value==='ai' && !gameOver() && ((st.turn===WHITEc && ui.color.value==='b') || (st.turn===BLACKc && ui.color.value==='w'))){
         uStatus('ИИ думает…');
         const choice = bestMove(ui.level.value);
-        setTimeout(()=>{
-          if(choice){
-            const san2 = sanOf(choice, !!choice.capture || choice.ep);
-            makeMove(choice);
-            uLog(san2);
-          }
-          checkGame(); render();
-        }, LEVEL[ui.level.value].think);
+        setTimeout(()=>{ if(choice){ const san2=sanOf(choice, !!choice.capture||choice.ep); makeMove(choice); uLog(san2); }
+                          checkGame(); render(); }, LEVEL[ui.level.value].think);
       }
     }
     sel=null; movesCache=[];
@@ -520,34 +427,16 @@ function clickBoard(ev){
   render();
 }
 
-function gameOver(){
-  const ms=generateMoves(st.turn);
-  if(ms.length===0){
-    const k = kingSquare(st.turn);
-    if(isAttacked(st.board,k.r,k.c, st.turn===WHITE?BLACK:WHITE)) { uStatus('Мат'); }
-    else { uStatus('Пат'); }
-    return true;
-  }
-  return false;
-}
-function checkGame(){
-  if(!gameOver()) uStatus('Игра идёт');
-  uTurn();
-}
-
 function resetGame(){
-  st.board=startBoard();
-  st.turn=WHITE; st.wk={r:7,c:4}; st.bk={r:0,c:4};
-  st.castling={K:true,Q:true,k:true,q:true};
-  st.ep=null; st.half=0; st.full=1; sel=null; movesCache=[]; ui.log.textContent='';
-  if(ui.color.value==='b'){ // ИИ ходит первым (за белых)
-    const mv=bestMove(ui.level.value); if(mv) makeMove(mv);
-  }
+  st.board=startBoard(); st.turn=WHITEc; st.wk={r:7,c:4}; st.bk={r:0,c:4};
+  st.castling={K:true,Q:true,k:true,q:true}; st.ep=null; st.half=0; st.full=1; sel=null; movesCache=[];
+  ui.log.textContent='';
+  if(ui.color.value==='b'){ const mv=bestMove(ui.level.value); if(mv) makeMove(mv); }
   render(); checkGame();
 }
-function flipBoard(){ st.flipped=!st.flipped; // перерисовка «как будто» повернули
-  // Реальная отрисовка поворота просто инвертирует систему координат
-  ctx.setTransform(st.flipped?-1:1,0,0,st.flipped?-1:1, st.flipped?cvs.width:0, st.flipped?cvs.height:0);
+function flipBoard(){
+  st.flipped=!st.flipped;
+  ctx.setTransform(st.flipped?-1:1,0,0,st.flipped?-1:1, st.flipped?BOARD:0, st.flipped?BOARD:0);
   render();
 }
 
@@ -556,7 +445,8 @@ cvs.addEventListener('click', clickBoard);
 ui.btnNew.addEventListener('click', resetGame);
 ui.btnFlip.addEventListener('click', flipBoard);
 
-render(); resetGame();
+resizeBoard();           // подогнать под экран
+render(); resetGame();   // старт
 </script>
 </body>
 </html>
