@@ -1,0 +1,178 @@
+<!-- в <head> -->
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script defer src="/web/shared/telegram.js"></script>
+<style>
+  html,body{margin:0;height:100%;background:#2b2433;color:#fff;font-family:Inter,system-ui}
+  #hud{position:fixed;top:8px;left:8px;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:10px;font-weight:700}
+  #controls{position:fixed;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:10px}
+  .btn{border:0;border-radius:14px;padding:12px 16px;background:#23283a;color:#fff;min-width:80px}
+</style>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">❤️ <span id="hp">3</span> • <span id="rings">0</span>/<span id="total">0</span> • Level 1</div>
+<div id="controls">
+  <button class="btn" id="left">⟵</button>
+  <button class="btn" id="jump">⤒</button>
+  <button class="btn" id="right">⟶</button>
+</div>
+<script>
+(function(){
+  const TILE=32, G=1800, JUMP=620, SPEED=150; // под мобилку подберёшь
+  const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
+  const W = canvas.width = window.innerWidth, H = canvas.height = window.innerHeight;
+  const keys = {left:false,right:false,jump:false};
+  const hpEl = document.getElementById('hp'), rEl = document.getElementById('rings'), tEl = document.getElementById('total');
+
+  // Простая карта уровня (можно вынести в JSON)
+  const level = [
+    "............................",
+    "............................",
+    "............3...............",
+    ".........1111111............",
+    "............................",
+    "....S...................4...",
+    "111111111..2..11111111111111",
+  ];
+  const H_TILES = level.length, W_TILES = level[0].length;
+  const solids = new Set(['1']); // твёрдые блоки
+
+  const state = {
+    lives:3, rings:0, total: level.join('').split('').filter(c=>c==='3').length,
+    px:0, py:0, vx:0, vy:0, onGround:false, spawn:{x:0,y:0}
+  };
+  tEl.textContent = state.total;
+
+  // Поиск старта
+  for(let y=0;y<H_TILES;y++) for(let x=0;x<W_TILES;x++){
+    if(level[y][x]==='S'){ state.spawn={x:x*TILE, y:(y-1)*TILE}; state.px=state.spawn.x; state.py=state.spawn.y; }
+  }
+
+  // Хелперы карты
+  const tileAt=(x,y)=> (x<0||y<0||x>=W_TILES||y>=H_TILES) ? '1' : level[y][x];
+  const isSolid=(c)=> solids.has(c);
+
+  // Управление
+  document.getElementById('left').onpointerdown=()=>keys.left=true;
+  document.getElementById('right').onpointerdown=()=>keys.right=true;
+  document.getElementById('jump').onpointerdown=()=>{ keys.jump=true; if(state.onGround){ state.vy=-JUMP; state.onGround=false; } };
+  window.onpointerup=()=>{ keys.left=keys.right=false; };
+
+  window.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=true;
+    if(e.key===' '||e.key==='ArrowUp'||e.key==='w'){ if(state.onGround){ state.vy=-JUMP; state.onGround=false; } }
+  });
+  window.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=false;
+  });
+
+  function resetToCheckpoint(){
+    state.px=state.spawn.x; state.py=state.spawn.y; state.vx=0; state.vy=0; state.onGround=false;
+  }
+
+  function hit(){
+    state.lives--; hpEl.textContent=state.lives;
+    if(state.lives<=0){ gameOver(); } else { resetToCheckpoint(); }
+  }
+
+  function gameOver(){
+    const best = TG.endGame('rocky-ball', state.rings).best;
+    alert(`Game Over. Rings: ${state.rings}. Best: ${best}`);
+    // мягкий рестарт
+    state.lives=3; state.rings=0; rEl.textContent=0; hpEl.textContent=3; resetToCheckpoint();
+  }
+
+  function win(){
+    const best = TG.endGame('rocky-ball', state.rings).best;
+    alert(`Level complete! Rings: ${state.rings}. Best: ${best}`);
+    resetToCheckpoint();
+  }
+
+  function aabbSolidResolve(px,py,w,h, vx,vy){
+    // Проверяем будущую позицию по осям отдельно
+    // X
+    let nx = px + vx, ny = py;
+    let left = Math.floor(nx/TILE), right = Math.floor((nx+w-1)/TILE);
+    let top = Math.floor(ny/TILE), bottom = Math.floor((ny+h-1)/TILE);
+    // горизонтальные стены
+    if(vx>0){
+      if(isSolid(tileAt(bottom, right)) || isSolid(tileAt(top,right))){
+        nx = right*TILE - w; vx = 0;
+      }
+    }else if(vx<0){
+      if(isSolid(tileAt(bottom, left)) || isSolid(tileAt(top,left))){
+        nx = (left+1)*TILE; vx = 0;
+      }
+    }
+    // Y
+    nx = Math.max(0, Math.min(nx, W_TILES*TILE - w));
+    let ny2 = ny + vy;
+    left = Math.floor(nx/TILE); right = Math.floor((nx+w-1)/TILE);
+    top = Math.floor(ny2/TILE); bottom = Math.floor((ny2+h-1)/TILE);
+    let onGround=false;
+    if(vy>0){
+      if(isSolid(tileAt(bottom,left)) || isSolid(tileAt(bottom,right))){
+        ny2 = bottom*TILE - h; vy=0; onGround=true;
+      }
+    }else if(vy<0){
+      if(isSolid(tileAt(top,left)) || isSolid(tileAt(top,right))){
+        ny2 = (top+1)*TILE; vy=0;
+      }
+    }
+    return {x:nx,y:ny2,vx,vy,onGround};
+  }
+
+  let last=performance.now();
+  function loop(ts){
+    const dt=Math.min(0.033, (ts-last)/1000); last=ts;
+
+    // ввод
+    state.vx = (keys.right - keys.left) * SPEED;
+    state.vy += G*dt;
+
+    // движение + коллизии
+    const r = aabbSolidResolve(state.px,state.py, 28,28, state.vx*dt, state.vy*dt);
+    state.px=r.x; state.py=r.y; state.vx=r.vx/dt; state.vy=r.vy/dt; state.onGround=r.onGround;
+
+    // взаимодействия с тайлами (шипы, кольца, портал, чекпойнт)
+    const cx = Math.floor((state.px+14)/TILE), cy = Math.floor((state.py+14)/TILE);
+    const here = tileAt(cx,cy);
+    if(here==='2'){ hit(); } // шипы
+    if(here==='3'){ // кольцо
+      state.rings++; rEl.textContent=state.rings;
+      level[cy] = level[cy].slice(0,cx)+'_'+level[cy].slice(cx+1);
+    }
+    if(here==='4' && state.rings===state.total){ win(); }
+    if(here==='C'){ state.spawn={x:cx*TILE,y:(cy-1)*TILE}; }
+
+    // камера (простая) — центрируем мировые координаты в окне
+    const ox = Math.floor(state.px - W/2 + 100);
+    const oy = Math.floor(state.py - H/2 + 80);
+
+    // рендер
+    ctx.clearRect(0,0,W,H);
+    // тайлы
+    for(let y=0;y<H_TILES;y++)for(let x=0;x<W_TILES;x++){
+      const t = level[y][x];
+      const sx = x*TILE - ox, sy = y*TILE - oy;
+      if(t==='1'){ ctx.fillStyle='#6a4f3b'; ctx.fillRect(sx,sy,TILE,TILE); }        // блок
+      if(t==='2'){ ctx.fillStyle='#44c0ff'; ctx.beginPath();                       // шип
+                   ctx.moveTo(sx+16,sy+2); ctx.lineTo(sx+28,sy+30); ctx.lineTo(sx+4,sy+30); ctx.closePath(); ctx.fill(); }
+      if(t==='3'){ ctx.strokeStyle='#ffd54a'; ctx.lineWidth=4; ctx.beginPath();    // кольцо
+                   ctx.arc(sx+16, sy+16, 10, 0, Math.PI*2); ctx.stroke(); }
+      if(t==='4'){ ctx.fillStyle='#70ff70'; ctx.fillRect(sx+8, sy+8, 16,16); }     // портал
+    }
+    // шар
+    ctx.fillStyle='#ff2a2a';
+    ctx.beginPath(); ctx.arc(Math.floor(state.px-ox+14), Math.floor(state.py-oy+14), 14, 0, Math.PI*2); ctx.fill();
+
+    requestAnimationFrame(loop);
+  }
+
+  TG.init();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
