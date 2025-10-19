@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Chess</title>
+
+  <!-- Telegram WebApp (опционально) -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Правила шахмат (MIT) -->
+  <script src="https://cdn.jsdelivr.net/npm/chess.js@1/dist/chess.min.js"></script>
+  <!-- Движок Stockfish (WASM, GPLv3) -->
+  <script src="https://cdn.jsdelivr.net/npm/stockfish@16.1.0/stockfish.js"></script>
+
+  <style>
+    :root{
+      --bg:#0f0f12; --text:#f3f6ff; --muted:#9aa3b2;
+      --board-light:#f0d9b5; --board-dark:#b58863;
+      --accent:#4e9eff; --panel:#171a22;
+      --square:48px; /* размер клетки, под мобилку увеличится ниже */
+    }
+    @media (max-width:420px){ :root{ --square:56px; } }
+    *{ box-sizing:border-box; }
+    body{ margin:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; }
+    header{ padding:12px 14px; position:sticky; top:0; z-index:5; background:linear-gradient(180deg,#0f0f12 70%,transparent); }
+    h1{ margin:0; font-size:18px; }
+    .wrap{ max-width:980px; margin:0 auto; padding:12px; display:grid; gap:12px; grid-template-columns: 1fr; }
+    @media (min-width:900px){ .wrap{ grid-template-columns: 480px 1fr; align-items:start; } }
+
+    /* Панель */
+    .panel{ background:var(--panel); border-radius:14px; padding:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    select,button{ border:0; border-radius:12px; padding:10px 12px; font-weight:600; }
+    button.primary{ background:var(--accent); color:#fff; }
+    .muted{ color:var(--muted); }
+
+    /* Доска */
+    .board{ width:calc(var(--square) * 8); height:calc(var(--square) * 8); display:grid; grid-template-columns:repeat(8,1fr); border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+    .sq{ width:var(--square); height:var(--square); display:flex; align-items:center; justify-content:center; font-size:calc(var(--square) * .72); line-height:1; user-select:none; cursor:pointer; position:relative; }
+    .l{ background:var(--board-light); }
+    .d{ background:var(--board-dark); }
+    .sq.sel::after{ content:""; position:absolute; inset:4px; border:3px solid #2b8cff; border-radius:8px; }
+    .sq.mv::before{ content:""; position:absolute; width:14px; height:14px; background:rgba(20,80,180,.55); border-radius:50%; }
+    .sq.cap::before{ content:""; position:absolute; width:calc(var(--square) - 8px); height:calc(var(--square) - 8px); border:3px solid rgba(220,40,40,.75); border-radius:8px; }
+
+    /* Инфо */
+    .info{ background:var(--panel); border-radius:14px; padding:12px; }
+    .row{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+    .tag{ background:#23283a; color:#fff; padding:6px 10px; border-radius:10px; font-size:12px; }
+    .log{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#10131a; color:#e6ecff; border-radius:10px; padding:8px; max-height:220px; overflow:auto; font-size:12px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>♟️ Chess</h1>
+  <div class="muted" style="font-size:12px">Играй против ИИ Stockfish. Unicode-фигуры • Никаких сторонних ассетов.</div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div id="board" class="board"></div>
+  </section>
+
+  <section>
+    <div class="panel">
+      <label>Цвет:</label>
+      <select id="color">
+        <option value="w">Белые</option>
+        <option value="b">Чёрные</option>
+      </select>
+
+      <label>Сложность:</label>
+      <select id="difficulty">
+        <option value="newbie">Новичок</option>
+        <option value="casual">Любитель</option>
+        <option value="club">Клубный игрок</option>
+        <option value="master">Мастер</option>
+        <option value="supergm" selected>Супер-гроссмейстер</option>
+      </select>
+
+      <button id="newgame" class="primary">Новая партия</button>
+      <button id="flip">Повернуть доску</button>
+    </div>
+
+    <div class="info">
+      <div class="row">
+        <span class="tag" id="turn">Ход белых</span>
+        <span class="tag" id="status">Игра идёт</span>
+        <span class="tag" id="score">0–0</span>
+      </div>
+      <h3 style="margin:12px 0 6px;font-size:14px">Журнал ходов (PGN)</h3>
+      <div id="log" class="log"></div>
+      <p class="muted" style="margin-top:10px">
+        Stockfish © GPLv3 (веб-сборка). <br />
+        Правила — chess.js (MIT). Unicode-фигуры — стандарт Unicode (свободно).
+      </p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  // Telegram init (без зависимостей)
+  try { Telegram?.WebApp?.ready(); Telegram?.WebApp?.expand(); } catch(e){}
+
+  // --- Шахматная логика ---
+  const boardEl = document.getElementById('board');
+  const turnTag = document.getElementById('turn');
+  const statusTag = document.getElementById('status');
+  const scoreTag = document.getElementById('score');
+  const logEl = document.getElementById('log');
+
+  // Цвет и сложность
+  const colorSel = document.getElementById('color');
+  const diffSel  = document.getElementById('difficulty');
+
+  const sqSize = 8; // 8x8
+  let flipped = false;
+
+  // Рендер доски (с 0..63)
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const isDark = (r + c) % 2 === 1;
+        const d = document.createElement('div');
+        d.className = 'sq ' + (isDark ? 'd' : 'l');
+        d.dataset.r = r; d.dataset.c = c;
+        boardEl.appendChild(d);
+      }
+    }
+  }
+
+  // Unicode фигуры
+  const PIECE = {
+    'p':'♟', 'n':'♞', 'b':'♝', 'r':'♜', 'q':'♛', 'k':'♚',
+    'P':'♙', 'N':'♘', 'B':'♗', 'R':'♖', 'Q':'♕', 'K':'♔'
+  };
+
+  // Игра
+  let game = new Chess();
+  let engine = null;
+  let awaitingEngine = false;
+
+  // Сложности → параметры движка
+  // Stockfish понимает: Skill Level (0..20), Depth, MoveTime (ms)
+  const LEVELS = {
+    'newbie':   { skill: 1,  depth: 6,  movetime: 300 },
+    'casual':   { skill: 5,  depth: 10, movetime: 400 },
+    'club':     { skill: 10, depth: 14, movetime: 600 },
+    'master':   { skill: 15, depth: 18, movetime: 900 },
+    'supergm':  { skill: 20, depth: 22, movetime: 1200 }
+  };
+
+  // Сервисные
+  function algebraicFromRC(r,c) {
+    const file = 'abcdefgh'[c];
+    const rank = 8 - r;
+    return file + rank;
+  }
+  function RCFromAlgebraic(sq) {
+    const c = 'abcdefgh'.indexOf(sq[0]);
+    const r = 8 - parseInt(sq[1],10);
+    return {r, c};
+  }
+
+  function setStatus() {
+    if (game.isGameOver()) {
+      if (game.isCheckmate()) {
+        const winner = game.turn() === 'w' ? 'Чёрные' : 'Белые';
+        statusTag.textContent = 'Мат — победили ' + winner;
+        endGamePayload(winner === 'Белые' ? 1 : 0); // 1 = win for white
+      } else if (game.isDraw()) {
+        statusTag.textContent = 'Ничья';
+        endGamePayload(0.5);
+      } else {
+        statusTag.textContent = 'Игра окончена';
+      }
+    } else if (game.inCheck()) {
+      statusTag.textContent = 'Шах';
+    } else {
+      statusTag.textContent = 'Идёт партия';
+    }
+    turnTag.textContent = game.turn() === 'w' ? 'Ход белых' : 'Ход чёрных';
+    logEl.textContent = game.pgn({ max_width: 50, newline_char: '\n' });
+  }
+
+  function endGamePayload(score) {
+    // Отправляем в Telegram и локальный best (если есть TG helper — используем, иначе просто sendData)
+    const payload = {
+      type: 'game_over',
+      game: 'chess',
+      score,
+      result: game.isDraw() ? 'draw' : (score === 1 ? 'white' : 'black'),
+      pgn: game.pgn()
+    };
+    try { Telegram?.WebApp?.sendData?.(JSON.stringify(payload)); } catch(e){}
+  }
+
+  // Рисуем фигуры на доске
+  function paintPieces() {
+    const pos = game.board(); // массив 8x8
+    const squares = boardEl.querySelectorAll('.sq');
+    squares.forEach(sq => { sq.textContent=''; sq.classList.remove('sel','mv','cap'); });
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const cell = pos[r][c]; // { type:'p', color:'b' } | null
+        if (!cell) continue;
+        const idx = r*8 + c;
+        const target = squares[idx];
+        const letter = (cell.color === 'w' ? cell.type.toUpperCase() : cell.type);
+        target.textContent = PIECE[letter];
+      }
+    }
+  }
+
+  // Выбор клетки/ход
+  let selected = null;
+  function highlightMoves(from) {
+    const legal = game.moves({ square: from, verbose:true });
+    const squares = boardEl.querySelectorAll('.sq');
+    squares.forEach(sq => { sq.classList.remove('mv','cap'); });
+    legal.forEach(m => {
+      const {r,c} = RCFromAlgebraic(m.to);
+      const idx = r*8 + c;
+      const el = squares[idx];
+      if (m.flags.includes('c')) el.classList.add('cap');
+      else el.classList.add('mv');
+    });
+  }
+
+  function onSquareClick(e) {
+    const sq = e.currentTarget;
+    const r = parseInt(sq.dataset.r,10);
+    const c = parseInt(sq.dataset.c,10);
+    const squares = boardEl.querySelectorAll('.sq');
+
+    // учёт поворота
+    const rr = flipped ? 7 - r : r;
+    const cc = flipped ? 7 - c : c;
+
+    const algebraic = algebraicFromRC(rr,cc);
+
+    if (!selected) {
+      // выбрать только если на клетке есть фигура текущей стороны
+      const piece = game.get(algebraic);
+      if (!piece || piece.color !== game.turn()) return;
+      selected = algebraic;
+      squares.forEach(s=>s.classList.remove('sel','mv','cap'));
+      sq.classList.add('sel');
+      highlightMoves(selected);
+    } else {
+      // попытаться сделать ход
+      const move = game.move({ from: selected, to: algebraic, promotion: 'q' });
+      if (move) {
+        selected = null;
+        paintPieces(); setStatus();
+        if (!game.isGameOver()) aiMove(); // ход движка
+      } else {
+        // если кликнули на свою фигуру — пере-выбор
+        const piece = game.get(algebraic);
+        if (piece && piece.color === game.turn()) {
+          selected = algebraic;
+          squares.forEach(s=>s.classList.remove('sel','mv','cap'));
+          sq.classList.add('sel');
+          highlightMoves(selected);
+        } else {
+          // невалид — снять выделение
+          selected = null; squares.forEach(s=>s.classList.remove('sel','mv','cap'));
+        }
+      }
+    }
+  }
+
+  function attachClicks() {
+    const squares = [...boardEl.querySelectorAll('.sq')];
+    squares.forEach(el => el.addEventListener('click', onSquareClick));
+  }
+
+  function uciForPosition() { return 'position fen ' + game.fen(); }
+
+  function setupEngine() {
+    if (engine) try { engine.terminate?.(); } catch(e){}
+    engine = Stockfish(); // веб-воркер
+    const opts = LEVELS[diffSel.value] || LEVELS.supergm;
+
+    engine.postMessage('uci');
+    engine.postMessage('setoption name Skill Level value ' + opts.skill);
+    engine.postMessage('setoption name Threads value 1');
+    engine.postMessage('setoption name Hash value 16');
+    // Можно ограничивать эллю, но Skill Level + глубина достаточно
+
+    engine.onmessage = (line) => {
+      const text = (typeof line === 'object' && line?.data) ? line.data : String(line);
+      if (text.startsWith('bestmove')) {
+        const move = text.split(' ')[1];
+        if (move && !game.isGameOver()) {
+          game.move({ from: move.slice(0,2), to: move.slice(2,4), promotion:'q' });
+          paintPieces(); setStatus();
+          awaitingEngine = false;
+        }
+      }
+    };
+  }
+
+  function aiMove() {
+    awaitingEngine = true;
+    const opts = LEVELS[diffSel.value] || LEVELS.supergm;
+    engine.postMessage(uciForPosition());
+    engine.postMessage(`go movetime ${opts.movetime} depth ${opts.depth}`);
+  }
+
+  function orient(color) {
+    // переворот визуальный
+    flipped = (color === 'b');
+    boardEl.style.transform = flipped ? 'rotate(180deg)' : 'none';
+    // поворачиваем глифы, чтобы они были ровно
+    [...boardEl.querySelectorAll('.sq')].forEach(el => {
+      el.style.transform = flipped ? 'rotate(180deg)' : 'none';
+    });
+  }
+
+  function freshBoard() {
+    renderBoard(); attachClicks();
+  }
+
+  function startNewGame() {
+    game = new Chess();
+    setupEngine();
+    freshBoard();
+    orient(colorSel.value);
+    paintPieces(); setStatus();
+
+    // Если игрок выбрал чёрных — ИИ делает первый ход
+    if (colorSel.value === 'b') {
+      aiMove();
+    }
+  }
+
+  // Кнопки
+  document.getElementById('newgame').addEventListener('click', startNewGame);
+  document.getElementById('flip').addEventListener('click', () => orient(flipped ? 'w' : 'b'));
+
+  // Первичная инициализация
+  startNewGame();
+})();
+</script>
+</body>
+</html>
