@@ -17,7 +17,7 @@
       --bg:#0f0f12; --text:#f3f6ff; --muted:#9aa3b2;
       --board-light:#f0d9b5; --board-dark:#b58863;
       --accent:#4e9eff; --panel:#171a22;
-      --square:48px; /* размер клетки, под мобилку увеличится ниже */
+      --square:48px; /* размер клетки, под мобилку можно увеличить */
     }
     @media (max-width:420px){ :root{ --square:56px; } }
     *{ box-sizing:border-box; }
@@ -34,10 +34,24 @@
     .muted{ color:var(--muted); }
 
     /* Доска */
-    .board{ width:calc(var(--square) * 8); height:calc(var(--square) * 8); display:grid; grid-template-columns:repeat(8,1fr); border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35); }
-    .sq{ width:var(--square); height:var(--square); display:flex; align-items:center; justify-content:center; font-size:calc(var(--square) * .72); line-height:1; user-select:none; cursor:pointer; position:relative; }
-    .l{ background:var(--board-light); }
-    .d{ background:var(--board-dark); }
+    .board{
+      width:calc(var(--square) * 8);
+      height:calc(var(--square) * 8);
+      display:grid;
+      grid-template-columns:repeat(8,1fr);
+      border-radius:12px; overflow:hidden;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      background:var(--board-light);
+    }
+    .sq{
+      width:var(--square); height:var(--square);
+      display:flex; align-items:center; justify-content:center;
+      font-size:calc(var(--square) * .72); line-height:1;
+      user-select:none; cursor:pointer; position:relative;
+      outline:1px solid rgba(0,0,0,.06); outline-offset:-1px; /* тонкая сетка */
+    }
+    .light{ background:var(--board-light); }
+    .dark { background:var(--board-dark); }
     .sq.sel::after{ content:""; position:absolute; inset:4px; border:3px solid #2b8cff; border-radius:8px; }
     .sq.mv::before{ content:""; position:absolute; width:14px; height:14px; background:rgba(20,80,180,.55); border-radius:50%; }
     .sq.cap::before{ content:""; position:absolute; width:calc(var(--square) - 8px); height:calc(var(--square) - 8px); border:3px solid rgba(220,40,40,.75); border-radius:8px; }
@@ -113,7 +127,6 @@
   const colorSel = document.getElementById('color');
   const diffSel  = document.getElementById('difficulty');
 
-  const sqSize = 8; // 8x8
   let flipped = false;
 
   // Рендер доски (с 0..63)
@@ -123,7 +136,7 @@
       for (let c = 0; c < 8; c++) {
         const isDark = (r + c) % 2 === 1;
         const d = document.createElement('div');
-        d.className = 'sq ' + (isDark ? 'd' : 'l');
+        d.className = 'sq ' + (isDark ? 'dark' : 'light'); // <— обновлено
         d.dataset.r = r; d.dataset.c = c;
         boardEl.appendChild(d);
       }
@@ -185,7 +198,6 @@
   }
 
   function endGamePayload(score) {
-    // Отправляем в Telegram и локальный best (если есть TG helper — используем, иначе просто sendData)
     const payload = {
       type: 'game_over',
       game: 'chess',
@@ -288,7 +300,6 @@
     engine.postMessage('setoption name Skill Level value ' + opts.skill);
     engine.postMessage('setoption name Threads value 1');
     engine.postMessage('setoption name Hash value 16');
-    // Можно ограничивать эллю, но Skill Level + глубина достаточно
 
     engine.onmessage = (line) => {
       const text = (typeof line === 'object' && line?.data) ? line.data : String(line);
