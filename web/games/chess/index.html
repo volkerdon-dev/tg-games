@@ -76,83 +76,41 @@
 </main>
 
 <script>
-/* =====================  АДАПТИВНЫЙ РАЗМЕР ДОСКИ  ===================== */
+/* ---------- адаптивный размер доски ---------- */
 const cvs=document.getElementById('chx'), ctx=cvs.getContext('2d');
 const elHeader=document.getElementById('chxHeader');
 const elPanel=document.getElementById('chxPanel');
-
-let BOARD=480;   // текущая длина стороны в px
-let S=60;        // размер клетки (BOARD/8)
-
+let BOARD=480, S=60;
 function resizeBoard(){
-  // отступы контейнера и скругления берём с запасом (24px)
-  const margin = 24;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  const headerH = elHeader?.getBoundingClientRect().height || 0;
-  const panelH  = elPanel?.getBoundingClientRect().height || 0;
-
-  // доступная высота под доску
-  const availH = Math.max(240, vh - headerH - panelH - margin*2);
-  const availW = vw - margin*2;
-
-  const side = Math.max(240, Math.floor(Math.min(availW, availH)));
-  // кратность 8, чтобы клетки были целыми пикселями (чётче отрисовка)
-  BOARD = side - (side % 8);
-  S = BOARD/8;
-
-  cvs.width = BOARD;
-  cvs.height = BOARD;
-
-  // если доска была перевёрнута — восстановим трансформацию
-  if(st.flipped){
-    ctx.setTransform(-1,0,0,-1, BOARD, BOARD);
-  } else {
-    ctx.setTransform(1,0,0,1, 0,0);
-  }
+  const m=24, vw=innerWidth, vh=innerHeight;
+  const headerH=elHeader?.getBoundingClientRect().height||0;
+  const panelH=elPanel?.getBoundingClientRect().height||0;
+  const availH=Math.max(240, vh-headerH-panelH-m*2);
+  const availW=vw-m*2;
+  const side=Math.max(240, Math.floor(Math.min(availW, availH)));
+  BOARD=side-(side%8); S=BOARD/8; cvs.width=BOARD; cvs.height=BOARD;
+  if(st.flipped) ctx.setTransform(-1,0,0,-1, BOARD, BOARD); else ctx.setTransform(1,0,0,1, 0,0);
   render();
 }
+addEventListener('resize', ()=>{ clearTimeout(resizeBoard._t); resizeBoard._t=setTimeout(resizeBoard,120); }, {passive:true});
 
-window.addEventListener('resize', ()=> {
-  // Чтобы на iOS не дёргалось при появлении/скрытии браузерного бара — немного отложим
-  clearTimeout(resizeBoard._t);
-  resizeBoard._t=setTimeout(resizeBoard, 120);
-}, {passive:true});
-
-/* =====================  ОСНОВА ИГРЫ  ===================== */
+/* ---------- состояние ---------- */
 const light='#f0d9b5', dark='#b58863';
 const WHITE='w', BLACK='b';
+function startBoard(){ return ['rnbqkbnr','pppppppp','........','........','........','........','PPPPPPPP','RNBQKBNR'].map(r=>r.split('')); }
+const st={ board:startBoard(), turn:WHITE, wk:{r:7,c:4}, bk:{r:0,c:4}, castling:{K:true,Q:true,k:true,q:true}, ep:null, half:0, full:1, flipped:false, log:[] };
 
-function startBoard(){
-  const rows=['rnbqkbnr','pppppppp','........','........','........','........','PPPPPPPP','RNBQKBNR'];
-  return rows.map(r=>r.split(''));
-}
-const st={
-  board:startBoard(), turn:WHITE,
-  wk:{r:7,c:4}, bk:{r:0,c:4},
-  castling:{K:true,Q:true,k:true,q:true}, ep:null, half:0, full:1,
-  flipped:false, log:[]
-};
+/* ---------- рендер ---------- */
+function drawBoard(){ for(let r=0;r<8;r++) for(let c=0;c<8;c++){ ctx.fillStyle=((r+c)&1)?dark:light; ctx.fillRect(c*S,r*S,S,S); } }
 
-/* =====================  РЕНДЕР CANVAS  ===================== */
-function drawBoard(){
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      ctx.fillStyle = ((r+c)&1)? dark : light;
-      ctx.fillRect(c*S, r*S, S, S);
-    }
-  }
-}
-
+/* НОВЫЕ ФОРМЫ ФИГУР */
 function drawPiece(ch,r,c){
   const x=c*S+S/2, y=r*S+S/2;
-  const clr = (ch===ch.toUpperCase())? '#fff' : '#111';
-  const shadow = (ch===ch.toUpperCase())? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.25)';
-
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.fillStyle=clr; ctx.strokeStyle=shadow; ctx.lineWidth=Math.max(2, S*0.035);
+  const white = ch===ch.toUpperCase();
+  const fill = white? '#fff' : '#111';
+  const stroke = white? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.25)';
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=Math.max(2,S*0.035);
   ctx.lineJoin='round'; ctx.lineCap='round';
   const t=ch.toLowerCase();
 
@@ -169,25 +127,24 @@ function drawPiece(ch,r,c){
     ctx.fillRect(-S*0.36, h*0.8, S*0.72, S*0.06);
     ctx.fillRect(-S*0.42, h*0.98, S*0.84, S*0.04);
   }
-  else if(t==='n'){ // КОНЬ — новая форма (чёткий силуэт)
-    const s=S; // удобнее читать с koэфф-координатами
+  else if(t==='n'){ // КОНЬ — новый чёткий профиль
+    const s=S;
     ctx.beginPath();
-    // шея
-    ctx.moveTo(-0.20*s,  0.22*s);
-    ctx.bezierCurveTo(-0.10*s, -0.05*s,  0.05*s, -0.24*s,  0.14*s, -0.28*s);
-    // ухо
-    ctx.lineTo( 0.06*s, -0.44*s);
-    ctx.lineTo( 0.00*s, -0.30*s);
-    // голова/морда
-    ctx.bezierCurveTo(-0.18*s, -0.30*s, -0.10*s, -0.10*s, -0.02*s, -0.06*s);
-    ctx.bezierCurveTo( 0.08*s, -0.01*s,  0.06*s,  0.10*s, -0.12*s,  0.08*s);
-    // грудь
-    ctx.bezierCurveTo(-0.18*s,  0.06*s, -0.22*s,  0.15*s, -0.20*s,  0.22*s);
+    ctx.moveTo(-0.25*s, 0.22*s);               // грудь
+    ctx.bezierCurveTo(-0.12*s,-0.02*s, 0.00*s,-0.22*s, 0.16*s,-0.28*s); // шея
+    ctx.lineTo(0.12*s,-0.45*s);                // ухо
+    ctx.lineTo(0.02*s,-0.30*s);                // спуск
+    ctx.bezierCurveTo(-0.10*s,-0.28*s, -0.02*s,-0.15*s, 0.10*s,-0.14*s); // скулы
+    ctx.bezierCurveTo(0.03*s,-0.06*s, -0.03*s, 0.02*s, -0.14*s, 0.06*s); // морда
+    ctx.bezierCurveTo(-0.22*s,0.10*s, -0.26*s,0.16*s, -0.25*s,0.22*s);   // подбородок/грудь
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    // грива (несколько штрихов)
+    ctx.beginPath(); ctx.moveTo(0.08*s,-0.28*s); ctx.lineTo(-0.06*s,-0.18*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0.05*s,-0.24*s); ctx.lineTo(-0.08*s,-0.12*s); ctx.stroke();
     // глаз
-    ctx.beginPath(); ctx.arc(-0.02*s,-0.18*s, s*0.02, 0, Math.PI*2); ctx.fillStyle=(clr==='#fff')?'#222':'#eee'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0.02*s,-0.20*s, s*0.02, 0, Math.PI*2); ctx.fillStyle=white?'#222':'#eee'; ctx.fill();
     // основание
-    ctx.fillStyle=clr; ctx.fillRect(-s*0.30, s*0.24, s*0.60, s*0.06);
+    ctx.fillStyle=fill; ctx.fillRect(-s*0.30, s*0.24, s*0.60, s*0.06);
   }
   else if(t==='b'){ // слон
     ctx.beginPath(); ctx.moveTo(0,-S*0.30);
@@ -197,44 +154,38 @@ function drawPiece(ch,r,c){
     ctx.beginPath(); ctx.moveTo(0,-S*0.24); ctx.lineTo(0,S*0.10); ctx.stroke();
     ctx.fillRect(-S*0.26,S*0.18,S*0.52,S*0.06);
   }
-  else if(t==='q'){ // ферзь
-    ctx.beginPath(); ctx.arc(0,-S*0.30,S*0.07,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  else if(t==='q'){ // ФЕРЗЬ — корона с шипами, НЕТ креста
+    // «жемчужины» на ободе
     for(let i=-2;i<=2;i++){
-      ctx.beginPath(); ctx.arc(i*S*0.07,-S*0.22,S*0.05,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(i*S*0.08,-S*0.30,S*0.045,0,Math.PI*2); ctx.fill(); ctx.stroke();
     }
-    ctx.beginPath(); ctx.moveTo(-S*0.30,-S*0.16); ctx.quadraticCurveTo(0,-S*0.28,S*0.30,-S*0.16);
-    ctx.lineTo(S*0.26,S*0.18); ctx.lineTo(-S*0.26,S*0.18); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // обод/юбка
+    ctx.beginPath();
+    ctx.moveTo(-S*0.30,-S*0.18); ctx.quadraticCurveTo(0,-S*0.32,S*0.30,-S*0.18);
+    ctx.lineTo(S*0.26,S*0.18); ctx.lineTo(-S*0.26,S*0.18); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // основание
     ctx.fillRect(-S*0.30,S*0.18,S*0.60,S*0.06);
   }
-  else if(t==='k'){ // король
-    ctx.fillRect(-S*0.04,-S*0.46,S*0.08,S*0.16);
-    ctx.fillRect(-S*0.20,-S*0.36,S*0.40,S*0.10);
-    ctx.fillRect(-S*0.06,-S*0.58,S*0.12,S*0.12);
-    ctx.beginPath(); ctx.arc(0,S*0.10,S*0.22,Math.PI,0,true); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillRect(-S*0.32,S*0.18,S*0.64,S*0.06);
+  else if(t==='k'){ // КОРОЛЬ — выразительный крест
+    ctx.fillRect(-S*0.05,-S*0.52,S*0.10,S*0.18);     // вертикаль креста
+    ctx.fillRect(-S*0.22,-S*0.44,S*0.44,S*0.10);     // горизонталь креста
+    // «королевский купол»
+    ctx.beginPath(); ctx.moveTo(-S*0.24,-S*0.20);
+    ctx.quadraticCurveTo(0,-S*0.36, S*0.24,-S*0.20);
+    ctx.lineTo(S*0.22,S*0.16); ctx.lineTo(-S*0.22,S*0.16); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillRect(-S*0.32,S*0.18,S*0.64,S*0.06);      // основание
   }
   ctx.restore();
 }
 
-function drawPieces(){
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const ch=st.board[r][c];
-    if(ch!=='.') drawPiece(ch,r,c);
-  }
-}
+function drawPieces(){ for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const ch=st.board[r][c]; if(ch!=='.') drawPiece(ch,r,c); } }
 
 let sel=null, movesCache=[];
-function drawHighlights(){
-  if(!sel) return;
-  ctx.save();
-  ctx.globalAlpha=0.28; ctx.fillStyle='#2b8cff';
-  movesCache.forEach(m=> ctx.fillRect(m.c*S, m.r*S, S, S));
-  ctx.restore();
-}
+function drawHighlights(){ if(!sel) return; ctx.save(); ctx.globalAlpha=0.28; ctx.fillStyle='#2b8cff'; movesCache.forEach(m=> ctx.fillRect(m.c*S, m.r*S, S, S)); ctx.restore(); }
 function render(){ ctx.clearRect(0,0,cvs.width,cvs.height); drawBoard(); drawHighlights(); drawPieces(); }
 
-/* =====================  ПРАВИЛА И ХОДЫ  ===================== */
-const valMap={p:100,n:320,b:330,r:500,q:900,k:0};
+/* ---------- правила и ходы ---------- */
 const WHITEc='w', BLACKc='b';
 function pieceColor(ch){ return (ch===ch.toUpperCase())?WHITEc:BLACKc; }
 function inBoard(r,c){ return r>=0&&r<8&&c>=0&&c<8; }
@@ -242,16 +193,23 @@ function cloneBoard(b){ return b.map(r=>r.slice()); }
 function kingSquare(color){ return color===WHITEc ? st.wk : st.bk; }
 
 function isAttacked(b,r,c,by){
-  const dir = (by===WHITEc)? -1:1;
-  for(const dc of [-1,1]){ const rr=r+dir, cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='p') return true; } }
+  const dir=(by===WHITEc)?-1:1;
+  for(const dc of [-1,1]){ const rr=r+dir,cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='p') return true; } }
   const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-  for(const [dr,dc] of K){ const rr=r+dr, cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='n') return true; } }
+  for(const [dr,dc] of K){ const rr=r+dr,cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='n') return true; } }
   const D=[[1,1],[1,-1],[-1,1],[-1,-1]];
   for(const [dr,dc] of D){ let rr=r+dr,cc=c+dc; while(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'){ if(pieceColor(ch)===by&&(ch.toLowerCase()==='b'||ch.toLowerCase()==='q')) return true; break; } rr+=dr;cc+=dc; } }
   const R=[[1,0],[-1,0],[0,1],[0,-1]];
   for(const [dr,dc] of R){ let rr=r+dr,cc=c+dc; while(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'){ if(pieceColor(ch)===by&&(ch.toLowerCase()==='r'||ch.toLowerCase()==='q')) return true; break; } rr+=dr;cc+=dc; } }
   for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr||dc){ const rr=r+dr,cc=c+dc; if(inBoard(rr,cc)){ const ch=b[rr][cc]; if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='k') return true; } } }
   return false;
+}
+
+/* ВАЖНО: короля захватывать нельзя — такие «ходы» не генерируем */
+function addIfNotKingCapture(list, m){
+  const tgt = st.board[m.r]?.[m.c];
+  if(tgt && tgt!=='.' && tgt.toLowerCase()==='k') return; // запрет «съесть короля»
+  list.push(m);
 }
 
 function generateMoves(color){
@@ -261,22 +219,30 @@ function generateMoves(color){
     const t=ch.toLowerCase();
     if(t==='p'){
       const dir=(color===WHITEc)?-1:1, start=(color===WHITEc)?6:1, promoRow=(color===WHITEc)?0:7;
-      if(inBoard(r+dir,c)&&st.board[r+dir][c]==='.') res.push({r:r+dir,c,fromR:r,fromC:c});
-      if(r===start && st.board[r+dir][c]==='.' && st.board[r+2*dir][c]==='.') res.push({r:r+2*dir,c,fromR:r,fromC:c,epGive:{r:r+dir,c}});
-      for(const dc of [-1,1]){ const rr=r+dir,cc=c+dc; if(inBoard(rr,cc)){ const tg=st.board[rr][cc]; if(tg!=='.'&&pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:true}); } }
-      if(st.ep && st.ep.r===r+dir && Math.abs(st.ep.c-c)===1) res.push({r:st.ep.r,c:st.ep.c,fromR:r,fromC:c,capture:true,ep:true,epVictim:{r:r,c:st.ep.c}});
+      if(inBoard(r+dir,c)&&st.board[r+dir][c]==='.') addIfNotKingCapture(res,{r:r+dir,c,fromR:r,fromC:c});
+      if(r===start && st.board[r+dir][c]==='.' && st.board[r+2*dir][c]==='.') addIfNotKingCapture(res,{r:r+2*dir,c,fromR:r,fromC:c,epGive:{r:r+dir,c}});
+      for(const dc of [-1,1]){ const rr=r+dir,cc=c+dc; if(inBoard(rr,cc)){ const tg=st.board[rr][cc]; if(tg!=='.'&&pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:true}); } }
+      if(st.ep && st.ep.r===r+dir && Math.abs(st.ep.c-c)===1) addIfNotKingCapture(res,{r:st.ep.r,c:st.ep.c,fromR:r,fromC:c,capture:true,ep:true,epVictim:{r:r,c:st.ep.c}});
       for(const m of res.filter(m=>m.fromR===r&&m.fromC===c)){ if(m.r===promoRow) m.promo='q'; }
     }
     else if(t==='n'){
       const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-      for(const [dr,dc] of K){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc]; if(tg==='.'||pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'}); }
+      for(const [dr,dc] of K){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc];
+        if(tg==='.'||pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'}); }
     }
     else if(t==='b'||t==='r'||t==='q'){
       const dirs=t==='b'?[[1,1],[1,-1],[-1,1],[-1,-1]]:t==='r'?[[1,0],[-1,0],[0,1],[0,-1]]:[[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
-      for(const [dr,dc] of dirs){ let rr=r+dr,cc=c+dc; while(inBoard(rr,cc)){ const tg=st.board[rr][cc]; if(tg==='.') res.push({r:rr,c:cc,fromR:r,fromC:c}); else { if(pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:true}); break; } rr+=dr;cc+=dc; } }
+      for(const [dr,dc] of dirs){ let rr=r+dr,cc=c+dc; while(inBoard(rr,cc)){ const tg=st.board[rr][cc];
+        if(tg==='.') addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c});
+        else { if(pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:true}); break; }
+        rr+=dr;cc+=dc;
+      } }
     }
     else if(t==='k'){
-      for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr||dc){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc]; if(tg==='.'||pieceColor(tg)!==color) res.push({r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'}); } }
+      for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+        if(dr||dc){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc];
+          if(tg==='.'||pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'}); }
+      }
       if(color===WHITEc && r===7 && c===4){
         if(st.castling.K && st.board[7][5]==='.' && st.board[7][6]==='.' && !isAttacked(st.board,7,4,BLACKc) && !isAttacked(st.board,7,5,BLACKc) && !isAttacked(st.board,7,6,BLACKc)) res.push({r:7,c:6,fromR:7,fromC:4,castle:'K'});
         if(st.castling.Q && st.board[7][3]==='.' && st.board[7][2]==='.' && st.board[7][1]==='.' && !isAttacked(st.board,7,4,BLACKc) && !isAttacked(st.board,7,3,BLACKc) && !isAttacked(st.board,7,2,BLACKc)) res.push({r:7,c:2,fromR:7,fromC:4,castle:'Q'});
@@ -287,25 +253,23 @@ function generateMoves(color){
       }
     }
   }
-  // фильтр шаха
+  // фильтр от «своего короля под шахом»
   const legal=[];
   for(const m of res){
-    const b=cloneBoard(st.board);
-    const pc=b[m.fromR][m.fromC];
-    b[m.fromR][m.fromC]='.';
-    if(m.ep){ b[m.epVictim.r][m.epVictim.c]='.'; }
-    b[m.r][m.c]= m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
+    const b=cloneBoard(st.board); const pc=b[m.fromR][m.fromC];
+    b[m.fromR][m.fromC]='.'; if(m.ep) b[m.epVictim.r][m.epVictim.c]='.'; b[m.r][m.c]= m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
     if(m.castle){ if(m.castle==='K'){b[7][7]='.';b[7][5]='R';} if(m.castle==='Q'){b[7][0]='.';b[7][3]='R';}
                   if(m.castle==='k'){b[0][7]='.';b[0][5]='r';} if(m.castle==='q'){b[0][0]='.';b[0][3]='r';} }
-    const kpos = (pc.toLowerCase()==='k')? {r:m.r,c:m.c} : kingSquare(color);
-    if(!isAttacked(b, kpos.r, kpos.c, color===WHITEc?BLACKc:WHITEc)) legal.push(m);
+    const kpos=(pc.toLowerCase()==='k')?{r:m.r,c:m.c}:kingSquare(color);
+    if(!isAttacked(b,kpos.r,kpos.c,color===WHITEc?BLACKc:WHITEc)) legal.push(m);
   }
   return legal;
 }
+
 function makeMove(m){
   const pc=st.board[m.fromR][m.fromC];
   st.board[m.fromR][m.fromC]='.';
-  if(m.ep){ st.board[m.epVictim.r][m.epVictim.c]='.'; }
+  if(m.ep) st.board[m.epVictim.r][m.epVictim.c]='.';
   st.board[m.r][m.c]= m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
   if(pc==='K') st.wk={r:m.r,c:m.c};
   if(pc==='k') st.bk={r:m.r,c:m.c};
@@ -324,73 +288,48 @@ function makeMove(m){
   st.full += (st.turn===WHITEc?1:0);
 }
 
-/* =====================  ИИ  ===================== */
-const LEVEL={newbie:{depth:1,noise:80,think:120},casual:{depth:2,noise:40,think:180},
-             club:{depth:3,noise:20,think:260},master:{depth:4,noise:6,think:380},supergm:{depth:5,noise:0,think:550}};
-function evaluate(){
-  let s=0;
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    const ch=st.board[r][c]; if(ch==='.'){continue;}
-    s += (ch===ch.toUpperCase()? 1:-1) * (valMap[ch.toLowerCase()]||0);
-  }
-  return s;
-}
+/* ---------- ИИ ---------- */
+const LEVEL={newbie:{depth:1,noise:80,think:120},casual:{depth:2,noise:40,think:180},club:{depth:3,noise:20,think:260},master:{depth:4,noise:6,think:380},supergm:{depth:5,noise:0,think:550}};
+const pieceVal={p:100,n:320,b:330,r:500,q:900,k:0};
+function evaluate(){ let s=0; for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const ch=st.board[r][c]; if(ch!=='.') s+=(ch===ch.toUpperCase()?1:-1)*(pieceVal[ch.toLowerCase()]||0); } return s; }
 function orderFor(color){ const ms=generateMoves(color); ms.sort((a,b)=>(b.capture?1:0)-(a.capture?1:0)); return ms; }
 function search(depth,alpha,beta,color){
-  if(depth===0) return evaluate()*(color===WHITEc?1:-1);
+  if(depth===0) return evaluate()*(color===WHITE?1:-1);
   const ms=orderFor(color);
-  if(!ms.length){
-    const k=kingSquare(color); const check=isAttacked(st.board,k.r,k.c,color===WHITEc?BLACKc:WHITEc);
-    return (check?-99999:0)*(color===WHITEc?1:-1);
-  }
-  let best=-1e9;
-  const snap=JSON.parse(JSON.stringify(st));
+  if(!ms.length){ const k=kingSquare(color); const check=isAttacked(st.board,k.r,k.c,color===WHITE?BLACK:WHITE); return (check?-99999:0)*(color===WHITE?1:-1); }
+  let best=-1e9; const snap=JSON.parse(JSON.stringify(st));
   for(const m of ms){
     makeMove(m);
-    const sc=-search(depth-1,-beta,-alpha,color===WHITEc?BLACKc:WHITEc);
+    const sc=-search(depth-1,-beta,-alpha,color===WHITE?BLACK:WHITE);
     Object.assign(st,snap); st.board=snap.board.map(r=>r.slice());
     if(sc>best) best=sc; if(best>alpha) alpha=best; if(alpha>=beta) break;
   }
   return best;
 }
 function bestMove(level){
-  const cfg=LEVEL[level]||LEVEL.casual; const color=st.turn; const ms=orderFor(color);
+  const cfg=LEVEL[level]||LEVEL.casual, color=st.turn, ms=orderFor(color);
   if(!ms.length) return null;
   let scored=[]; const snap=JSON.parse(JSON.stringify(st));
   for(const m of ms){
-    makeMove(m);
-    const sc=-search(cfg.depth-1,-1e9,1e9,color===WHITEc?BLACKc:WHITEc);
-    Object.assign(st,snap); st.board=snap.board.map(r=>r.slice());
-    scored.push({m,sc});
+    makeMove(m); const sc=-search(cfg.depth-1,-1e9,1e9,color===WHITE?BLACK:WHITE);
+    Object.assign(st,snap); st.board=snap.board.map(r=>r.slice()); scored.push({m,sc});
   }
-  if(cfg.noise) scored.forEach(s=> s.sc += (Math.random()*2-1)*cfg.noise);
-  scored.sort((a,b)=> b.sc-a.sc);
-  return scored[0].m;
+  if(cfg.noise) scored.forEach(s=> s.sc+=(Math.random()*2-1)*cfg.noise);
+  scored.sort((a,b)=> b.sc-a.sc); return scored[0].m;
 }
 
-/* =====================  UI ===================== */
-const ui={
-  color:document.getElementById('chxColor'),
-  level:document.getElementById('chxLevel'),
-  mode: document.getElementById('chxMode'),
-  btnNew:document.getElementById('chxNew'),
-  btnFlip:document.getElementById('chxFlip'),
-  turn:document.getElementById('chxTurn'),
-  status:document.getElementById('chxStatus'),
-  log:document.getElementById('chxLog')
-};
-function uTurn(){ ui.turn.textContent = st.turn===WHITEc?'Ход белых':'Ход чёрных'; }
+/* ---------- UI ---------- */
+const ui={ color:chxColor, level:chxLevel, mode:chxMode, btnNew:chxNew, btnFlip:chxFlip, turn:chxTurn, status:chxStatus, log:chxLog };
+function uTurn(){ ui.turn.textContent = st.turn===WHITE?'Ход белых':'Ход чёрных'; }
 function uStatus(t){ ui.status.textContent=t; }
-function uLog(san){ if(!san) ui.log.textContent=''; else { ui.log.textContent+=san+(st.turn===WHITEc?'\n':' ');} }
+function uLog(san){ if(!san) ui.log.textContent=''; else ui.log.textContent+=san+(st.turn===WHITE?'\n':' '); }
 function sanOf(m,cap){ const p=st.board[m.fromR][m.fromC]; const name={p:'',n:'N',b:'B',r:'R',q:'Q',k:'K'}[p.toLowerCase()];
-  const file=String.fromCharCode(97+m.fromC), to=String.fromCharCode(97+m.c)+(8-m.r);
-  return (name||(cap?file:'')) + (cap?'x':'') + to + (m.promo? '=Q' : '');
-}
+  const file=String.fromCharCode(97+m.fromC), to=String.fromCharCode(97+m.c)+(8-m.r); return (name||(cap?file:''))+(cap?'x':'')+to+(m.promo?'=Q':''); }
 
 function gameOver(){
   const ms=generateMoves(st.turn);
   if(!ms.length){
-    const k=kingSquare(st.turn); const check=isAttacked(st.board,k.r,k.c, st.turn===WHITEc?BLACKc:WHITEc);
+    const k=kingSquare(st.turn); const check=isAttacked(st.board,k.r,k.c, st.turn===WHITE?BLACK:WHITE);
     uStatus(check?'Мат':'Пат'); return true;
   }
   return false;
@@ -398,28 +337,19 @@ function gameOver(){
 function checkGame(){ if(!gameOver()) uStatus('Игра идёт'); uTurn(); }
 
 function clickBoard(ev){
-  const rect=cvs.getBoundingClientRect();
-  // учитывать переворот: мы уже применяем матрицу Canvas, но для логики нужны "неперевёрнутые" координаты
-  let x=ev.clientX-rect.left, y=ev.clientY-rect.top;
-  if(st.flipped){ x = rect.width - x; y = rect.height - y; }
+  const rect=cvs.getBoundingClientRect(); let x=ev.clientX-rect.left, y=ev.clientY-rect.top;
+  if(st.flipped){ x=rect.width-x; y=rect.height-y; }
   let c=Math.floor(x/S), r=Math.floor(y/S);
-
   if(!sel){
-    const ch=st.board[r][c];
-    if(ch!=='.' && pieceColor(ch)===st.turn){
-      sel={r,c}; movesCache=generateMoves(st.turn).filter(m=>m.fromR===r && m.fromC===c);
-    }
+    const ch=st.board[r][c]; if(ch!=='.' && pieceColor(ch)===st.turn){ sel={r,c}; movesCache=generateMoves(st.turn).filter(m=>m.fromR===r && m.fromC===c); }
   }else{
     const mv=movesCache.find(m=>m.r===r && m.c===c);
     if(mv){
-      const cap=!!mv.capture || mv.ep;
-      const san=sanOf(mv,cap);
+      const cap=!!mv.capture || mv.ep; const san=sanOf(mv,cap);
       makeMove(mv); uLog(san); checkGame(); render();
-      if(ui.mode.value==='ai' && !gameOver() && ((st.turn===WHITEc && ui.color.value==='b') || (st.turn===BLACKc && ui.color.value==='w'))){
-        uStatus('ИИ думает…');
-        const choice = bestMove(ui.level.value);
-        setTimeout(()=>{ if(choice){ const san2=sanOf(choice, !!choice.capture||choice.ep); makeMove(choice); uLog(san2); }
-                          checkGame(); render(); }, LEVEL[ui.level.value].think);
+      if(ui.mode.value==='ai' && !gameOver() && ((st.turn===WHITE && ui.color.value==='b') || (st.turn===BLACK && ui.color.value==='w'))){
+        uStatus('ИИ думает…'); const choice=bestMove(ui.level.value);
+        setTimeout(()=>{ if(choice){ const san2=sanOf(choice, !!choice.capture||choice.ep); makeMove(choice); uLog(san2); } checkGame(); render(); }, (LEVEL[ui.level.value]||{}).think||200);
       }
     }
     sel=null; movesCache=[];
@@ -428,25 +358,19 @@ function clickBoard(ev){
 }
 
 function resetGame(){
-  st.board=startBoard(); st.turn=WHITEc; st.wk={r:7,c:4}; st.bk={r:0,c:4};
-  st.castling={K:true,Q:true,k:true,q:true}; st.ep=null; st.half=0; st.full=1; sel=null; movesCache=[];
-  ui.log.textContent='';
+  st.board=startBoard(); st.turn=WHITE; st.wk={r:7,c:4}; st.bk={r:0,c:4};
+  st.castling={K:true,Q:true,k:true,q:true}; st.ep=null; st.half=0; st.full=1; sel=null; movesCache=[]; ui.log.textContent='';
   if(ui.color.value==='b'){ const mv=bestMove(ui.level.value); if(mv) makeMove(mv); }
   render(); checkGame();
 }
-function flipBoard(){
-  st.flipped=!st.flipped;
-  ctx.setTransform(st.flipped?-1:1,0,0,st.flipped?-1:1, st.flipped?BOARD:0, st.flipped?BOARD:0);
-  render();
-}
+function flipBoard(){ st.flipped=!st.flipped; ctx.setTransform(st.flipped?-1:1,0,0,st.flipped?-1:1, st.flipped?BOARD:0, st.flipped?BOARD:0); render(); }
 
 /* init */
 cvs.addEventListener('click', clickBoard);
 ui.btnNew.addEventListener('click', resetGame);
 ui.btnFlip.addEventListener('click', flipBoard);
 
-resizeBoard();           // подогнать под экран
-render(); resetGame();   // старт
+resizeBoard(); render(); resetGame();
 </script>
 </body>
 </html>
