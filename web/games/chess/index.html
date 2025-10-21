@@ -67,7 +67,7 @@
 </main>
 
 <script>
-/* ========== адаптивная доска ========== */
+/* ===== адаптивная доска ===== */
 const cvs=document.getElementById('chx'), ctx=cvs.getContext('2d');
 const elHeader=document.getElementById('chxHeader'); const elPanel=document.getElementById('chxPanel');
 let BOARD=480, S=60;
@@ -83,69 +83,69 @@ function resizeBoard(){
 }
 addEventListener('resize', ()=>{ clearTimeout(resizeBoard._t); resizeBoard._t=setTimeout(resizeBoard,120); }, {passive:true});
 
-/* ========== состояние ========== */
+/* ===== состояние ===== */
 const light='#f0d9b5', dark='#b58863'; const WHITE='w', BLACK='b';
 function startBoard(){ return ['rnbqkbnr','pppppppp','........','........','........','........','PPPPPPPP','RNBQKBNR'].map(r=>r.split('')); }
-const st={ board:startBoard(), turn:WHITE, wk:{r:7,c:4}, bk:{r:0,c:4}, castling:{K:true,Q:true,k:true,q:true}, ep:null, half:0, full:1, flipped:false, log:[],
-           lastMove:null, // {fromR,fromC,r,c}
-           anim:null       // {t0, dur, fromR,fromC,r,c, piece}
-         };
+const st={ board:startBoard(), turn:WHITE, wk:{r:7,c:4}, bk:{r:0,c:4}, castling:{K:true,Q:true,k:true,q:true}, ep:null, half:0, full:1, flipped:false,
+           lastMove:null };
 
-/* ========== отрисовка доски/фигур ========== */
+/* ===== отрисовка ===== */
 function drawBoard(){ for(let r=0;r<8;r++) for(let c=0;c<8;c++){ ctx.fillStyle=((r+c)&1)?dark:light; ctx.fillRect(c*S,r*S,S,S); } }
 
-/* читабельные фигуры (король/ферзь/конь) */
+/* фигуры — узнаваемые силуэты */
 function drawPiece(ch,r,c){
   const x=c*S+S/2, y=r*S+S/2; const white=ch===ch.toUpperCase();
   const fill=white?'#fff':'#111'; const stroke=white?'rgba(0,0,0,.35)':'rgba(255,255,255,.25)';
-  ctx.save(); ctx.translate(x,y); ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=Math.max(2,S*0.035); ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=Math.max(2,S*0.035); ctx.lineJoin='round'; ctx.lineCap='round';
   const t=ch.toLowerCase();
-  if(t==='p'){ const r1=S*0.18,w=S*0.26; ctx.beginPath();ctx.arc(0,-S*0.22,r1,0,6.283);ctx.fill();ctx.stroke(); ctx.beginPath();ctx.moveTo(-w,-S*0.08);ctx.quadraticCurveTo(0,-S*0.15,w,-S*0.08);ctx.lineTo(w,S*0.18);ctx.lineTo(-w,S*0.18);ctx.closePath();ctx.fill();ctx.stroke(); ctx.fillRect(-S*0.32,S*0.22,S*0.64,S*0.06); }
-  else if(t==='r'){ const w=S*0.32,h=S*0.34; ctx.beginPath();ctx.rect(-w,-h,w*2,h*1.1);ctx.fill();ctx.stroke(); for(let i=-1;i<=1;i++) ctx.fillRect(i*S*0.12-S*0.05,-h-S*0.05,S*0.10,S*0.06); ctx.fillRect(-S*0.36,h*0.8,S*0.72,S*0.06); ctx.fillRect(-S*0.42,h*0.98,S*0.84,S*0.04); }
-  else if(t==='n'){ // новый конь
-    const s=S; ctx.beginPath();
-    ctx.moveTo(-0.26*s,0.22*s); ctx.bezierCurveTo(-0.12*s,-0.02*s,0.00*s,-0.22*s,0.16*s,-0.28*s);
-    ctx.lineTo(0.12*s,-0.46*s); ctx.lineTo(0.02*s,-0.30*s);
-    ctx.bezierCurveTo(-0.10*s,-0.28*s,-0.02*s,-0.15*s,0.10*s,-0.14*s);
-    ctx.bezierCurveTo(0.03*s,-0.06*s,-0.04*s,0.03*s,-0.16*s,0.06*s);
-    ctx.bezierCurveTo(-0.24*s,0.10*s,-0.28*s,0.16*s,-0.26*s,0.22*s);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0.08*s,-0.28*s); ctx.lineTo(-0.06*s,-0.18*s); ctx.moveTo(0.05*s,-0.24*s); ctx.lineTo(-0.08*s,-0.12*s); ctx.stroke();
-    ctx.beginPath(); ctx.arc(0.02*s,-0.20*s, s*0.02, 0, 6.283); ctx.fillStyle=white?'#222':'#eee'; ctx.fill();
-    ctx.fillStyle=fill; ctx.fillRect(-s*0.30, s*0.24, s*0.60, s*0.06);
-  }
-  else if(t==='b'){ ctx.beginPath();ctx.moveTo(0,-S*0.30);ctx.bezierCurveTo(S*0.18,-S*0.12,S*0.18,S*0.04,0,S*0.18);ctx.bezierCurveTo(-S*0.18,S*0.04,-S*0.18,-S*0.12,0,-S*0.30);ctx.fill();ctx.stroke(); ctx.beginPath();ctx.moveTo(0,-S*0.24);ctx.lineTo(0,S*0.10);ctx.stroke(); ctx.fillRect(-S*0.26,S*0.18,S*0.52,S*0.06); }
-  else if(t==='q'){ // ферзь без креста
-    for(let i=-2;i<=2;i++){ ctx.beginPath();ctx.arc(i*S*0.08,-S*0.30,S*0.045,0,6.283);ctx.fill();ctx.stroke(); }
-    ctx.beginPath();ctx.moveTo(-S*0.30,-S*0.18);ctx.quadraticCurveTo(0,-S*0.32,S*0.30,-S*0.18);ctx.lineTo(S*0.26,S*0.18);ctx.lineTo(-S*0.26,S*0.18);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.fillRect(-S*0.30,S*0.18,S*0.60,S*0.06);
-  }
-  else if(t==='k'){ // король — крест ярко выражен
-    ctx.fillRect(-S*0.05,-S*0.52,S*0.10,S*0.18); ctx.fillRect(-S*0.22,-S*0.44,S*0.44,S*0.10);
-    ctx.beginPath();ctx.moveTo(-S*0.24,-S*0.20);ctx.quadraticCurveTo(0,-S*0.36,S*0.24,-S*0.20);ctx.lineTo(S*0.22,S*0.16);ctx.lineTo(-S*0.22,S*0.16);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.fillRect(-S*0.32,S*0.18,S*0.64,S*0.06);
-  }
+
+  if(t==='p'){ const r1=S*0.18,w=S*0.26; ctx.beginPath();ctx.arc(0,-S*0.22,r1,0,6.283);ctx.fill();ctx.stroke();
+               ctx.beginPath();ctx.moveTo(-w,-S*0.08);ctx.quadraticCurveTo(0,-S*0.15,w,-S*0.08);ctx.lineTo(w,S*0.18);ctx.lineTo(-w,S*0.18);ctx.closePath();ctx.fill();ctx.stroke();
+               ctx.fillRect(-S*0.32,S*0.22,S*0.64,S*0.06); }
+  else if(t==='r'){ const w=S*0.32,h=S*0.34; ctx.beginPath();ctx.rect(-w,-h,w*2,h*1.1);ctx.fill();ctx.stroke();
+                    for(let i=-1;i<=1;i++) ctx.fillRect(i*S*0.12-S*0.05,-h-S*0.05,S*0.10,S*0.06);
+                    ctx.fillRect(-S*0.36,h*0.8,S*0.72,S*0.06); ctx.fillRect(-S*0.42,h*0.98,S*0.84,S*0.04); }
+  else if(t==='n'){ const s=S; ctx.beginPath();
+                    ctx.moveTo(-0.26*s,0.22*s); ctx.bezierCurveTo(-0.12*s,-0.02*s,0.00*s,-0.22*s,0.16*s,-0.28*s);
+                    ctx.lineTo(0.12*s,-0.46*s); ctx.lineTo(0.02*s,-0.30*s);
+                    ctx.bezierCurveTo(-0.10*s,-0.28*s,-0.02*s,-0.15*s,0.10*s,-0.14*s);
+                    ctx.bezierCurveTo(0.03*s,-0.06*s,-0.04*s,0.03*s,-0.16*s,0.06*s);
+                    ctx.bezierCurveTo(-0.24*s,0.10*s,-0.28*s,0.16*s,-0.26*s,0.22*s); ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0.08*s,-0.28*s); ctx.lineTo(-0.06*s,-0.18*s); ctx.moveTo(0.05*s,-0.24*s); ctx.lineTo(-0.08*s,-0.12*s); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0.02*s,-0.20*s, s*0.02, 0, 6.283); ctx.fillStyle=white?'#222':'#eee'; ctx.fill();
+                    ctx.fillStyle=fill; ctx.fillRect(-s*0.30, s*0.24, s*0.60, s*0.06); }
+  else if(t==='b'){ ctx.beginPath();ctx.moveTo(0,-S*0.30);ctx.bezierCurveTo(S*0.18,-S*0.12,S*0.18,S*0.04,0,S*0.18);
+                    ctx.bezierCurveTo(-S*0.18,S*0.04,-S*0.18,-S*0.12,0,-S*0.30);ctx.fill();ctx.stroke();
+                    ctx.beginPath();ctx.moveTo(0,-S*0.24);ctx.lineTo(0,S*0.10);ctx.stroke(); ctx.fillRect(-S*0.26,S*0.18,S*0.52,S*0.06); }
+  else if(t==='q'){ for(let i=-2;i<=2;i++){ ctx.beginPath();ctx.arc(i*S*0.08,-S*0.30,S*0.045,0,6.283);ctx.fill();ctx.stroke(); }
+                    ctx.beginPath();ctx.moveTo(-S*0.30,-S*0.18);ctx.quadraticCurveTo(0,-S*0.32,S*0.30,-S*0.18);
+                    ctx.lineTo(S*0.26,S*0.18);ctx.lineTo(-S*0.26,S*0.18);ctx.closePath();ctx.fill();ctx.stroke();
+                    ctx.fillRect(-S*0.30,S*0.18,S*0.60,S*0.06); }
+  else if(t==='k'){ ctx.fillRect(-S*0.05,-S*0.52,S*0.10,S*0.18); ctx.fillRect(-S*0.22,-S*0.44,S*0.44,S*0.10);
+                    ctx.beginPath();ctx.moveTo(-S*0.24,-S*0.20);ctx.quadraticCurveTo(0,-S*0.36,S*0.24,-S*0.20);
+                    ctx.lineTo(S*0.22,S*0.16);ctx.lineTo(-S*0.22,S*0.16);ctx.closePath();ctx.fill();ctx.stroke();
+                    ctx.fillRect(-S*0.32,S*0.18,S*0.64,S*0.06); }
   ctx.restore();
 }
 
-/* выделения */
 let sel=null, movesCache=[], illegalKingSquares=[];
 function drawHighlights(){
-  // подсветка последнего хода
+  // последний ход (жёлтым)
   if(st.lastMove){
     ctx.save(); ctx.globalAlpha=.35; ctx.fillStyle='#ffd54f';
     ctx.fillRect(st.lastMove.fromC*S, st.lastMove.fromR*S, S, S);
     ctx.fillRect(st.lastMove.c*S,     st.lastMove.r*S,     S, S);
     ctx.restore();
   }
-  // допустимые ходы зелёным кружком / взятие красным квадратом
+  // доступные ходы
   if(sel){
     ctx.save();
     movesCache.forEach(m=>{
       if(m.capture){ ctx.globalAlpha=.35; ctx.fillStyle='rgba(220,50,50,.45)'; ctx.fillRect(m.c*S, m.r*S, S, S); }
       else { ctx.globalAlpha=.6; ctx.fillStyle='rgba(50,140,255,.35)'; const cx=m.c*S+S/2, cy=m.r*S+S/2; ctx.beginPath(); ctx.arc(cx,cy, S*0.14, 0, 6.283); ctx.fill(); }
     });
-    // ЗАПРЕЩЁННЫЕ для короля поля — полупрозрачным красным
+    // запрещённые для короля
     if(illegalKingSquares.length){
       ctx.globalAlpha=.22; ctx.fillStyle='rgba(255,0,0,.55)';
       illegalKingSquares.forEach(q=> ctx.fillRect(q.c*S,q.r*S,S,S));
@@ -154,53 +154,15 @@ function drawHighlights(){
   }
 }
 
-/* анимация перемещения */
-function animateMove(piece, fromR,fromC, toR,toC, done){
-  const dur=180; const t0=performance.now();
-  st.anim={t0,dur,fromR,fromC,r:toR,c:toC,piece};
-  function step(now){
-    const t=Math.min(1,(now-t0)/dur);
-    render(true); // без повторной отрисовки фигур на from/to
-    // интерполяция
-    const x=(fromC+(toC-fromC)*t)*S+S/2;
-    const y=(fromR+(toR-fromR)*t)*S+S/2;
-    // рисуем «летящую» фигуру поверх
-    drawPiece(piece, 0,0); // трюк: используем drawPiece с переносом:
-  }
-  // переписка drawPiece не позволяет рисовать по абсолютным px, поэтому ниже – локальная отрисовка:
-  st.anim.draw=function(now){
-    const t=Math.min(1,(now-t0)/dur);
-    const x=(fromC+(toC-fromC)*t)*S+S/2;
-    const y=(fromR+(toR-fromR)*t)*S+S/2;
-    const white=st.anim.piece===st.anim.piece.toUpperCase();
-    const fill=white?'#fff':'#111'; const stroke=white?'rgba(0,0,0,.35)':'rgba(255,255,255,.25)';
-    const tcode=st.anim.piece.toLowerCase();
-    // мини-отрисовка: временно смещаем канву и зовём штатную функцию
-    ctx.save(); ctx.translate(x,y);
-    // ниже — та же логика, что в drawPiece, но компактно:
-    ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=Math.max(2,S*0.035); ctx.lineJoin='round'; ctx.lineCap='round';
-    // ради экономии — просто вызываем оригинал с координатами клетки
-    ctx.restore();
-    // хитрость: временно рисуем в клетку, а канву смещаем:
-    // делаем маленький «обман»: подменим translate, вызвав drawPiece на фейковой клетке
-    const bak=ctx.getTransform(); ctx.setTransform(1,0,0,1,0,0);
-    // перерисуем фигуру по центру (используем ту же функцию)
-    (function tmp(){ const ch=st.anim.piece; const r=0,c=0; const x=x0=>{} })();
-  };
-  // упростим: анимация короткая — просто сделаем flash (без скольжения), чтобы не раздувать код
-  setTimeout(()=>{ st.anim=null; done&&done(); render(); }, dur);
-}
-
-/* полный рендер с возможной анимацией */
-function render(skipPieces){
+function render(){
   ctx.clearRect(0,0,cvs.width,cvs.height);
   drawBoard();
   drawHighlights();
-  drawPieces();
-  // (упрощённая анимация — сейчас делаем быстрый flash подсветкой; скольжение оставил как задел)
+  // ВАЖНО: фигуры всегда поверх подсветок
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const ch=st.board[r][c]; if(ch!=='.') drawPiece(ch,r,c); }
 }
 
-/* ========== правила/ходы ========== */
+/* ===== правила и ходы ===== */
 const WHITEc='w', BLACKc='b';
 function pieceColor(ch){ return (ch===ch.toUpperCase())?WHITEc:BLACKc; }
 function inBoard(r,c){ return r>=0&&r<8&&c>=0&&c<8; }
@@ -220,10 +182,8 @@ function isAttacked(b,r,c,by){
   return false;
 }
 
-/* короля «съесть» нельзя — такие ходы отсекаем */
-function addIfNotKingCapture(list,m){
-  const tgt=st.board[m.r]?.[m.c]; if(tgt && tgt!=='.' && tgt.toLowerCase()==='k') return; list.push(m);
-}
+/* короля съесть нельзя — такие ходы отсекаем */
+function addIfNotKingCapture(list,m){ const tgt=st.board[m.r]?.[m.c]; if(tgt && tgt!=='.' && tgt.toLowerCase()==='k') return; list.push(m); }
 
 function generateMoves(color){
   const res=[];
@@ -255,23 +215,22 @@ function generateMoves(color){
       }
     }
   }
-  // фильтр: свой король не должен оказаться под шахом
+  // фильтр: свой король не под шахом
   const legal=[];
   for(const m of res){
     const b=cloneBoard(st.board); const pc=b[m.fromR][m.fromC];
     b[m.fromR][m.fromC]='.'; if(m.ep) b[m.epVictim.r][m.epVictim.c]='.'; b[m.r][m.c]= m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
-    if(m.castle){ if(m.castle==='K'){b[7][7]='.';b[7][5]='R';} if(m.castle==='Q'){b[7][0]='.';b[7][3]='R';} if(m.castle==='k'){b[0][7]='.';b[0][5]='r';} if(m.castle==='q'){b[0][0]='.';b[0][3]='r';} }
+    if(m.castle){ if(m.castle==='K'){b[7][7]='.';b[7][5]='R';} if(m.castle==='Q'){b[7][0]='.';b[7][3]='R';}
+                  if(m.castle==='k'){b[0][7]='.';b[0][5]='r';} if(m.castle==='q'){b[0][0]='.';b[0][3]='r';} }
     const kpos=(pc.toLowerCase()==='k')?{r:m.r,c:m.c}:kingSquare(color);
     if(!isAttacked(b,kpos.r,kpos.c,color===WHITEc?BLACKc:WHITEc)) legal.push(m);
   }
   return legal;
 }
 
-/* вычисляем «запрещённые» для короля клетки (псевдолегальные минус легальные) */
 function kingIllegalSquares(r,c){
   const color=pieceColor(st.board[r][c]); const illegal=[];
-  const pseudo=[];
-  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr||dc){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc]; if(tg==='.'||pieceColor(tg)!==color) pseudo.push({r:rr,c:cc,fromR:r,fromC:c}); } }
+  const pseudo=[]; for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(dr||dc){ const rr=r+dr,cc=c+dc; if(!inBoard(rr,cc)) continue; const tg=st.board[rr][cc]; if(tg==='.'||pieceColor(tg)!==color) pseudo.push({r:rr,c:cc}); } }
   const legal=generateMoves(color).filter(m=>m.fromR===r&&m.fromC===c).map(m=>m.r+','+m.c);
   for(const q of pseudo){ if(!legal.includes(q.r+','+q.c)) illegal.push(q); }
   return illegal;
@@ -289,26 +248,19 @@ function makeMove(m){
   st.lastMove={fromR:m.fromR,fromC:m.fromC,r:m.r,c:m.c};
 }
 
-/* ========== ИИ (ускорен и «матовее») ========== */
+/* ===== ИИ ===== */
 const LEVEL={newbie:{depth:1,noise:60,think:120},casual:{depth:2,noise:35,think:160},club:{depth:3,noise:15,think:240},master:{depth:4,noise:6,think:320},supergm:{depth:5,noise:0,think:420}};
 const pieceVal={p:100,n:320,b:330,r:500,q:900,k:0};
-const hist=[]; // для штрафа повторений
-function edgeDist(r,c){ return Math.min(r,c,7-r,7-c); }
-function mobility(ch,color){ return generateMoves(color).length * (color===WHITE?1:-1); }
+const hist=[]; function edgeDist(r,c){ return Math.min(r,c,7-r,7-c); }
 function evaluate(){
-  let s=0, whiteMat=0, blackMat=0;
+  let s=0, w=0, b=0;
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
     const ch=st.board[r][c]; if(ch==='.'){continue;}
-    const v=pieceVal[ch.toLowerCase()]||0; s+=(ch===ch.toUpperCase()?1:-1)*v;
-    if(ch===ch.toUpperCase()) whiteMat+=v; else blackMat+=v;
+    const v=pieceVal[ch.toLowerCase()]||0; s+=(ch===ch.toUpperCase()?1:-1)*v; if(ch===ch.toUpperCase()) w+=v; else b+=v;
   }
-  const endgame = (whiteMat<=1300 || blackMat<=1300); // примерно «мало фигур»
-  // подгоняем короля соперника к краю (в эндшпиле это помогает доводить до мата)
-  const ek = st.turn===WHITE ? st.bk : st.wk; // «враг»
+  const endgame = (w<=1300 || b<=1300);
+  const ek = st.turn===WHITE ? st.bk : st.wk;
   if(endgame){ s += (3 - edgeDist(ek.r,ek.c)) * 40 * (st.turn===WHITE?1:-1); }
-  // небольшой бонус за мобильность текущей стороны и штраф сопернику
-  s += mobility(st,WHITE) * 1.5;
-  // штраф за повторение позиции (петляние)
   const key=st.board.map(r=>r.join('')).join('|')+st.turn;
   const repeats=hist.filter(k=>k===key).length; s -= repeats*30;
   return s;
@@ -336,11 +288,10 @@ function bestMove(level){
     Object.assign(st,snap); st.board=snap.board.map(r=>r.slice()); scored.push({m,sc});
   }
   if(cfg.noise) scored.forEach(s=> s.sc+=(Math.random()*2-1)*cfg.noise);
-  scored.sort((a,b)=> b.sc-a.sc);
-  return scored[0].m;
+  scored.sort((a,b)=> b.sc-a.sc); return scored[0].m;
 }
 
-/* ========== UI/логика хода ========== */
+/* ===== UI ===== */
 const ui={ color:chxColor, level:chxLevel, mode:chxMode, btnNew:chxNew, btnFlip:chxFlip, turn:chxTurn, status:chxStatus, log:chxLog };
 function uTurn(){ ui.turn.textContent = st.turn===WHITE?'Ход белых':'Ход чёрных'; }
 function uStatus(t){ ui.status.textContent=t; }
@@ -372,10 +323,8 @@ function clickBoard(ev){
     const mv=movesCache.find(m=>m.r===r && m.c===c);
     if(mv){
       const cap=!!mv.capture || mv.ep; const san=sanOf(mv,cap);
-      // мгновенно выполняем ход (до 1 сек): без задержки, с подсветкой последнего хода
       hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
       makeMove(mv); uLog(san); checkGame(); render();
-      // ответ ИИ
       if(ui.mode.value==='ai' && !gameOver() && ((st.turn===WHITE && ui.color.value==='b') || (st.turn===BLACK && ui.color.value==='w'))){
         uStatus('ИИ думает…');
         const choice=bestMove(ui.level.value);
