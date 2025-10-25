@@ -501,7 +501,7 @@ function inCheckNow(color){
   return isAttacked(st.board, k.r, k.c, color===WHITEc?BLACKc:WHITEc);
 }
 
-/* не допускаем "взять короля" как валидную цель */
+/* не допускаем "съесть короля" как валидную цель */
 function addIfNotKingCapture(list,m){
   const tgt=st.board[m.r]?.[m.c];
   if(tgt && tgt!=='.' && tgt.toLowerCase()==='k') return;
@@ -787,11 +787,11 @@ function makeMove(m){
 }
 
 /* ===== ИИ ===== */
-
 /*
-  think — только задержка ПЕРЕД ходом ИИ.
-  Игрок ходит без задержки вообще.
-  supergm думает дольше (3000 мс), новичок — быстро (300 мс).
+  think — визуальная задержка перед тем как ИИ двинет фигуру.
+  Игрок ходит мгновенно.
+  supergm думает глубоко, но расчёт больше не блокирует клик игрока:
+  мы считаем bestMove в setTimeout(...,0).
 */
 const LEVEL = {
   newbie:    { depth: 1, noise: 60, think: 300  },
@@ -809,7 +809,7 @@ function edgeDist(r,c){
 }
 
 function evaluate(){
-  // очень простая оценка + мизерный эндшпильный мотив
+  // очень простая оценка + лёгкий эндшпильный мотив
   let s=0, w=0, b=0;
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
@@ -1003,8 +1003,9 @@ function clickBoard(ev){
   } else {
     // пытаемся сделать ход
     const mv = movesCache.find(m=>m.r===r && m.c===c);
+
     if(mv){
-      // ход игрока выполняется МГНОВЕННО
+      // 1. Ход игрока — МГНОВЕННО
       const cap = !!mv.capture || mv.ep;
       const san = sanOf(mv,cap);
 
@@ -1015,7 +1016,7 @@ function clickBoard(ev){
       checkGame();
       render();
 
-      // Ход ИИ (если мы в режиме ИИ и теперь очередь ИИ)
+      // 2. Если нужен ход ИИ — откладываем ВСЁ вычисление в setTimeout
       if(
         ui.mode.value==='ai' &&
         !gameOver() &&
@@ -1024,26 +1025,32 @@ function clickBoard(ev){
           (st.turn===BLACKc && ui.color.value==='w')
         )
       ){
-        const cfg   = LEVEL[ui.level.value] || LEVEL.casual;
-        const delay = cfg.think; // ИИ может "думать"
         uStatus('ИИ думает…');
 
-        const choice = bestMove(ui.level.value);
+        const cfg = LEVEL[ui.level.value] || LEVEL.casual;
 
-        setTimeout(()=>{
-          if(choice){
-            const san2 = sanOf(choice, !!choice.capture||choice.ep);
-            hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
-            makeMove(choice);
-            uLog(san2);
-          }
-          checkGame();
-          render();
-        }, delay);
+        // Сначала отпускаем главный поток, чтобы UI не завис
+        setTimeout(() => {
+          // heavy расчёт уже «асинхронно»
+          const choice = bestMove(ui.level.value);
+
+          // теперь небольшая визуальная пауза для правдоподобия
+          setTimeout(() => {
+            if(choice){
+              const san2 = sanOf(choice, !!choice.capture||choice.ep);
+              hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
+              makeMove(choice);
+              uLog(san2);
+            }
+            checkGame();
+            render();
+          }, cfg.think);
+
+        }, 0);
       }
 
     } else {
-      // пользователь кликнул не в легальную цель
+      // нелегальный клик
       if(inCheckNow(st.turn)){
         uStatus('Шах! Нужно защитить короля.');
       }
@@ -1075,27 +1082,31 @@ function resetGame(){
   ui.log.textContent='';
   hist.length=0;
 
-  // если игрок выбрал "я чёрными", то первым ходит ИИ
-  if(ui.color.value==='b'){
-    const cfg   = LEVEL[ui.level.value] || LEVEL.casual;
-    const delay = cfg.think;
-    const mv    = bestMove(ui.level.value);
-    if(mv){
-      // ИИ делает ход после своей задержки
-      uStatus('ИИ думает…');
-      setTimeout(()=>{
-        const san2=sanOf(mv, !!mv.capture||mv.ep);
-        hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
-        makeMove(mv);
-        uLog(san2);
-        checkGame();
-        render();
-      }, delay);
-    }
-  }
-
   render();
   checkGame();
+
+  // Если игрок выбрал чёрных — ИИ делает первый ход.
+  if(ui.color.value==='b'){
+    uStatus('ИИ думает…');
+    const cfg = LEVEL[ui.level.value] || LEVEL.casual;
+
+    // отпускаем поток, потом считаем ход ИИ
+    setTimeout(() => {
+      const mv = bestMove(ui.level.value);
+
+      setTimeout(() => {
+        if(mv){
+          const san2=sanOf(mv, !!mv.capture||mv.ep);
+          hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
+          makeMove(mv);
+          uLog(san2);
+        }
+        checkGame();
+        render();
+      }, cfg.think);
+
+    }, 0);
+  }
 }
 
 /* переворот доски */
@@ -1111,15 +1122,22 @@ function flipBoard(){
 }
 
 /* init */
-const chxColor = ui.color;
-const chxLevel = ui.level;
-const chxMode  = ui.mode;
-const chxNew   = ui.btnNew;
-const chxFlip  = ui.btnFlip;
+const uiColor = document.getElementById('chxColor');
+const uiLevel = document.getElementById('chxLevel');
+const uiMode  = document.getElementById('chxMode');
+const uiNew   = document.getElementById('chxNew');
+const uiFlip  = document.getElementById('chxFlip');
+
+// ui.* refs were already defined above (ui.color etc.), sync them:
+ui.color = uiColor;
+ui.level = uiLevel;
+ui.mode  = uiMode;
+ui.btnNew= uiNew;
+ui.btnFlip=uiFlip;
 
 cvs.addEventListener('click', clickBoard);
-chxNew.addEventListener('click', resetGame);
-chxFlip.addEventListener('click', flipBoard);
+ui.btnNew.addEventListener('click', resetGame);
+ui.btnFlip.addEventListener('click', flipBoard);
 
 resizeBoard();
 render();
