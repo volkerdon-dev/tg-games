@@ -12,84 +12,22 @@
     --chx-panel:#171a22;
     --chx-accent:#4e9eff;
   }
-  body{
-    margin:0;
-    background:var(--chx-bg);
-    color:var(--chx-text);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif
-  }
-  .chx-wrap{
-    max-width:980px;
-    margin:0 auto;
-    padding:12px;
-    display:grid;
-    gap:12px;
-    grid-template-columns:1fr
-  }
-  @media(min-width:900px){
-    .chx-wrap{
-      grid-template-columns:minmax(320px,1fr) 1fr;
-      align-items:start
-    }
-  }
+  body{margin:0;background:var(--chx-bg);color:var(--chx-text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .chx-wrap{max-width:980px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
+  @media(min-width:900px){ .chx-wrap{grid-template-columns:minmax(320px,1fr) 1fr;align-items:start} }
   .chx-header{padding:12px}
   .chx-title{margin:0;font-size:18px}
   .chx-sub{margin:2px 0 0;color:var(--chx-muted);font-size:12px}
-  .chx-panel{
-    background:var(--chx-panel);
-    border-radius:14px;
-    padding:12px;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center
-  }
-  .chx-panel select,
-  .chx-panel button{
-    border:0;
-    border-radius:12px;
-    padding:10px 12px;
-    font-weight:600
-  }
+  .chx-panel{background:var(--chx-panel);border-radius:14px;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .chx-panel select,.chx-panel button{border:0;border-radius:12px;padding:10px 12px;font-weight:600}
   .chx-btn{background:#2a2f3b;color:#fff;cursor:pointer}
   .chx-btn.primary{background:var(--chx-accent);color:#fff}
-  .chx-info{
-    background:var(--chx-panel);
-    border-radius:14px;
-    padding:12px
-  }
-  .chx-tags{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    margin-top:8px
-  }
-  .chx-tag{
-    background:#23283a;
-    color:#fff;
-    padding:6px 10px;
-    border-radius:10px;
-    font-size:12px
-  }
-  .chx-log{
-    font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    background:#10131a;
-    color:#e6ecff;
-    border-radius:10px;
-    padding:8px;
-    max-height:220px;
-    overflow:auto;
-    white-space:pre-wrap
-  }
+  .chx-info{background:var(--chx-panel);border-radius:14px;padding:12px}
+  .chx-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .chx-tag{background:#23283a;color:#fff;padding:6px 10px;border-radius:10px;font-size:12px}
+  .chx-log{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#10131a;color:#e6ecff;border-radius:10px;padding:8px;max-height:220px;overflow:auto;white-space:pre-wrap}
   .chx-board-wrap{display:flex;justify-content:center}
-  canvas#chx{
-    display:block;
-    border-radius:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,.35);
-    background:#f0d9b5;
-    max-width:100%;
-    height:auto
-  }
+  canvas#chx{display:block;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);background:#f0d9b5;max-width:100%;height:auto}
 </style>
 </head>
 <body>
@@ -147,54 +85,34 @@
 
 <script>
 /* ===== адаптивная доска ===== */
-const cvs = document.getElementById('chx'),
-      ctx = cvs.getContext('2d');
-
+const cvs = document.getElementById('chx'), ctx = cvs.getContext('2d');
 const elHeader = document.getElementById('chxHeader');
 const elPanel  = document.getElementById('chxPanel');
-
 let BOARD = 480, S = 60;
 
 function resizeBoard(){
-  const m=24,
-        vw=innerWidth,
-        vh=innerHeight;
-
+  const m=24, vw=innerWidth, vh=innerHeight;
   const headerH = elHeader?.getBoundingClientRect().height || 0;
   const panelH  = elPanel?.getBoundingClientRect().height  || 0;
-
   const availH  = Math.max(240, vh - headerH - panelH - m*2);
   const availW  = vw - m*2;
-
   const side = Math.max(240, Math.floor(Math.min(availW, availH)));
-
   BOARD = side - (side % 8);
   S     = BOARD/8;
-
   cvs.width  = BOARD;
   cvs.height = BOARD;
-
-  if (st.flipped) {
-    ctx.setTransform(-1,0,0,-1, BOARD, BOARD);
-  } else {
-    ctx.setTransform(1,0,0,1, 0,0);
-  }
-
+  if (st.flipped) ctx.setTransform(-1,0,0,-1, BOARD, BOARD);
+  else            ctx.setTransform(1,0,0,1, 0,0);
   render();
 }
-
 addEventListener('resize', () => {
   clearTimeout(resizeBoard._t);
   resizeBoard._t = setTimeout(resizeBoard,120);
 }, {passive:true});
 
 /* ===== состояние ===== */
-const light = '#f0d9b5',
-      dark  = '#b58863';
-
-const WHITE = 'w',
-      BLACK = 'b';
-
+const light='#f0d9b5', dark='#b58863';
+const WHITE='w', BLACK='b';
 function startBoard(){
   return [
     'rnbqkbnr',
@@ -207,7 +125,6 @@ function startBoard(){
     'RNBQKBNR'
   ].map(r=>r.split(''));
 }
-
 const st = {
   board:    startBoard(),
   turn:     WHITE,
@@ -230,254 +147,144 @@ function drawBoard(){
     }
   }
 }
-
-/* фигуры — упрощённые силуэты, вектором на Canvas */
 function drawPiece(ch,r,c){
-  const x=c*S+S/2,
-        y=r*S+S/2;
-
+  const x=c*S+S/2, y=r*S+S/2;
   const white = ch===ch.toUpperCase();
   const fill  = white ? '#fff' : '#111';
   const stroke= white ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.25)';
-
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.fillStyle   = fill;
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth   = Math.max(2,S*0.035);
-  ctx.lineJoin    = 'round';
-  ctx.lineCap     = 'round';
-
-  const t = ch.toLowerCase();
-
-  if(t==='p'){ // pawn
-    const r1=S*0.18,w=S*0.26;
-    ctx.beginPath();
-    ctx.arc(0,-S*0.22,r1,0,6.283); ctx.fill(); ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(-w,-S*0.08);
-    ctx.quadraticCurveTo(0,-S*0.15,w,-S*0.08);
-    ctx.lineTo(w,S*0.18);
-    ctx.lineTo(-w,S*0.18);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=Math.max(2,S*0.035);
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  const t=ch.toLowerCase();
+  if(t==='p'){ const r1=S*0.18,w=S*0.26;
+    ctx.beginPath();ctx.arc(0,-S*0.22,r1,0,6.283);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-w,-S*0.08);ctx.quadraticCurveTo(0,-S*0.15,w,-S*0.08);ctx.lineTo(w,S*0.18);ctx.lineTo(-w,S*0.18);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillRect(-S*0.32,S*0.22,S*0.64,S*0.06);
-  }
-  else if(t==='r'){ // rook
-    const w=S*0.32,h=S*0.34;
+  } else if(t==='r'){ const w=S*0.32,h=S*0.34;
+    ctx.beginPath();ctx.rect(-w,-h,w*2,h*1.1);ctx.fill();ctx.stroke();
+    for(let i=-1;i<=1;i++) ctx.fillRect(i*S*0.12-S*0.05,-h-S*0.05,S*0.10,S*0.06);
+    ctx.fillRect(-S*0.36,h*0.8,S*0.72,S*0.06); ctx.fillRect(-S*0.42,h*0.98,S*0.84,S*0.04);
+  } else if(t==='n'){ const s=S;
     ctx.beginPath();
-    ctx.rect(-w,-h,w*2,h*1.1);
-    ctx.fill(); ctx.stroke();
-
-    for(let i=-1;i<=1;i++){
-      ctx.fillRect(i*S*0.12-S*0.05,-h-S*0.05,S*0.10,S*0.06);
-    }
-
-    ctx.fillRect(-S*0.36,h*0.8,S*0.72,S*0.06);
-    ctx.fillRect(-S*0.42,h*0.98,S*0.84,S*0.04);
-  }
-  else if(t==='n'){ // knight
-    const s=S;
-    ctx.beginPath();
-    ctx.moveTo(-0.26*s,0.22*s);
-    ctx.bezierCurveTo(-0.12*s,-0.02*s,0.00*s,-0.22*s,0.16*s,-0.28*s);
-    ctx.lineTo(0.12*s,-0.46*s);
-    ctx.lineTo(0.02*s,-0.30*s);
+    ctx.moveTo(-0.26*s,0.22*s); ctx.bezierCurveTo(-0.12*s,-0.02*s,0.00*s,-0.22*s,0.16*s,-0.28*s);
+    ctx.lineTo(0.12*s,-0.46*s); ctx.lineTo(0.02*s,-0.30*s);
     ctx.bezierCurveTo(-0.10*s,-0.28*s,-0.02*s,-0.15*s,0.10*s,-0.14*s);
     ctx.bezierCurveTo(0.03*s,-0.06*s,-0.04*s,0.03*s,-0.16*s,0.06*s);
     ctx.bezierCurveTo(-0.24*s,0.10*s,-0.28*s,0.16*s,-0.26*s,0.22*s);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0.08*s,-0.28*s);
-    ctx.lineTo(-0.06*s,-0.18*s);
-    ctx.moveTo(0.05*s,-0.24*s);
-    ctx.lineTo(-0.08*s,-0.12*s);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(0.02*s,-0.20*s, s*0.02, 0, 6.283);
-    ctx.fillStyle=white?'#222':'#eee';
-    ctx.fill();
-
-    ctx.fillStyle=fill;
-    ctx.fillRect(-s*0.30,s*0.24,s*0.60,s*0.06);
-  }
-  else if(t==='b'){ // bishop
-    ctx.beginPath();
-    ctx.moveTo(0,-S*0.30);
-    ctx.bezierCurveTo(S*0.18,-S*0.12,S*0.18,S*0.04,0,S*0.18);
-    ctx.bezierCurveTo(-S*0.18,S*0.04,-S*0.18,-S*0.12,0,-S*0.30);
-    ctx.fill(); ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0,-S*0.24);
-    ctx.lineTo(0,S*0.10);
-    ctx.stroke();
-
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0.08*s,-0.28*s); ctx.lineTo(-0.06*s,-0.18*s);
+    ctx.moveTo(0.05*s,-0.24*s); ctx.lineTo(-0.08*s,-0.12*s); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0.02*s,-0.20*s, s*0.02, 0, 6.283); ctx.fillStyle=white?'#222':'#eee'; ctx.fill();
+    ctx.fillStyle=fill; ctx.fillRect(-s*0.30,s*0.24,s*0.60,s*0.06);
+  } else if(t==='b'){
+    ctx.beginPath();ctx.moveTo(0,-S*0.30);ctx.bezierCurveTo(S*0.18,-S*0.12,S*0.18,S*0.04,0,S*0.18);
+    ctx.bezierCurveTo(-S*0.18,S*0.04,-S*0.18,-S*0.12,0,-S*0.30);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,-S*0.24);ctx.lineTo(0,S*0.10);ctx.stroke();
     ctx.fillRect(-S*0.26,S*0.18,S*0.52,S*0.06);
-  }
-  else if(t==='q'){ // queen
-    for(let i=-2;i<=2;i++){
-      ctx.beginPath();
-      ctx.arc(i*S*0.08,-S*0.30,S*0.045,0,6.283);
-      ctx.fill(); ctx.stroke();
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(-S*0.30,-S*0.18);
-    ctx.quadraticCurveTo(0,-S*0.32,S*0.30,-S*0.18);
-    ctx.lineTo(S*0.26,S*0.18);
-    ctx.lineTo(-S*0.26,S*0.18);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
+  } else if(t==='q'){
+    for(let i=-2;i<=2;i++){ ctx.beginPath();ctx.arc(i*S*0.08,-S*0.30,S*0.045,0,6.283);ctx.fill();ctx.stroke(); }
+    ctx.beginPath();ctx.moveTo(-S*0.30,-S*0.18);ctx.quadraticCurveTo(0,-S*0.32,S*0.30,-S*0.18);
+    ctx.lineTo(S*0.26,S*0.18);ctx.lineTo(-S*0.26,S*0.18);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillRect(-S*0.30,S*0.18,S*0.60,S*0.06);
-  }
-  else if(t==='k'){ // king
+  } else if(t==='k'){
     ctx.fillRect(-S*0.05,-S*0.52,S*0.10,S*0.18);
     ctx.fillRect(-S*0.22,-S*0.44,S*0.44,S*0.10);
-
-    ctx.beginPath();
-    ctx.moveTo(-S*0.24,-S*0.20);
-    ctx.quadraticCurveTo(0,-S*0.36,S*0.24,-S*0.20);
-    ctx.lineTo(S*0.22,S*0.16);
-    ctx.lineTo(-S*0.22,S*0.16);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
+    ctx.beginPath();ctx.moveTo(-S*0.24,-S*0.20);ctx.quadraticCurveTo(0,-S*0.36,S*0.24,-S*0.20);
+    ctx.lineTo(S*0.22,S*0.16);ctx.lineTo(-S*0.22,S*0.16);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillRect(-S*0.32,S*0.18,S*0.64,S*0.06);
   }
-
   ctx.restore();
 }
 
-let sel                 = null,
-    movesCache          = [],
-    illegalKingSquares  = [];
-
+let sel=null, movesCache=[], illegalKingSquares=[];
 function drawHighlights(){
-  // последний ход (жёлтым)
   if(st.lastMove){
-    ctx.save();
-    ctx.globalAlpha=.35;
-    ctx.fillStyle='#ffd54f';
+    ctx.save(); ctx.globalAlpha=.35; ctx.fillStyle='#ffd54f';
     ctx.fillRect(st.lastMove.fromC*S, st.lastMove.fromR*S, S, S);
     ctx.fillRect(st.lastMove.c*S,     st.lastMove.r*S,     S, S);
     ctx.restore();
   }
-
-  // доступные ходы + запрещённые клетки короля
   if(sel){
     ctx.save();
-
-    // подсветка доступных ходов
     movesCache.forEach(m=>{
       if(m.capture){
-        ctx.globalAlpha=.35;
-        ctx.fillStyle='rgba(220,50,50,.45)';
+        ctx.globalAlpha=.35; ctx.fillStyle='rgba(220,50,50,.45)';
         ctx.fillRect(m.c*S, m.r*S, S, S);
       } else {
-        ctx.globalAlpha=.6;
-        ctx.fillStyle='rgba(50,140,255,.35)';
-        const cx=m.c*S+S/2, cy=m.r*S+S/2;
-        ctx.beginPath();
-        ctx.arc(cx,cy, S*0.14, 0, 6.283);
-        ctx.fill();
+        ctx.globalAlpha=.6; ctx.fillStyle='rgba(50,140,255,.35)';
+        const cx=m.c*S+S/2, cy=m.r*S+S/2; ctx.beginPath(); ctx.arc(cx,cy, S*0.14, 0, 6.283); ctx.fill();
       }
     });
-
-    // поля, куда король НЕ может уйти (под боем)
     if(illegalKingSquares.length){
-      ctx.globalAlpha=.22;
-      ctx.fillStyle='rgba(255,0,0,.55)';
-      illegalKingSquares.forEach(q=>{
-        ctx.fillRect(q.c*S,q.r*S,S,S);
-      });
+      ctx.globalAlpha=.22; ctx.fillStyle='rgba(255,0,0,.55)';
+      illegalKingSquares.forEach(q=> ctx.fillRect(q.c*S,q.r*S,S,S));
     }
-
     ctx.restore();
   }
 }
-
 function render(){
   ctx.clearRect(0,0,cvs.width,cvs.height);
-  drawBoard();
-  drawHighlights();
-  // фигуры — всегда поверх подсветок
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const ch=st.board[r][c];
-      if(ch!=='.') drawPiece(ch,r,c);
-    }
+  drawBoard(); drawHighlights();
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const ch=st.board[r][c]; if(ch!=='.') drawPiece(ch,r,c);
   }
 }
 
 /* ===== правила и ходы ===== */
 const WHITEc='w', BLACKc='b';
-
 function pieceColor(ch){ return (ch===ch.toUpperCase())?WHITEc:BLACKc; }
 function inBoard(r,c){ return r>=0&&r<8&&c>=0&&c<8; }
 function cloneBoard(b){ return b.map(r=>r.slice()); }
 function kingSquare(color){ return color===WHITEc?st.wk:st.bk; }
 
+/* ВАЖНО: корректное направление атак пешек в isAttacked.
+   Проверяем «клетка r,c под атакой стороны by?»:
+   - белые пешки бьют ВНИЗ (r+1, c±1)
+   - чёрные пешки бьют ВВЕРХ (r-1, c±1) */
 function isAttacked(b,r,c,by){
-  // пешки
-  const dir=(by===WHITEc)?-1:1;
+  const dir = (by===WHITEc) ? 1 : -1;           // <-- фикс
   for(const dc of [-1,1]){
-    const rr=r+dir,cc=c+dc;
+    const rr=r+dir, cc=c+dc;
     if(inBoard(rr,cc)){
       const ch=b[rr][cc];
-      if(ch!=='.' && pieceColor(ch)===by && ch.toLowerCase()==='p')
-        return true;
+      if(ch!=='.' && pieceColor(ch)===by && ch.toLowerCase()==='p') return true;
     }
   }
-
   // кони
   const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
   for(const [dr,dc] of K){
     const rr=r+dr,cc=c+dc;
     if(inBoard(rr,cc)){
       const ch=b[rr][cc];
-      if(ch!=='.' && pieceColor(ch)===by && ch.toLowerCase()==='n')
-        return true;
+      if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='n') return true;
     }
   }
-
-  // слоны / ферзи по диагонали
+  // слоны/ферзь по диагонали
   const D=[[1,1],[1,-1],[-1,1],[-1,-1]];
   for(const [dr,dc] of D){
     let rr=r+dr,cc=c+dc;
     while(inBoard(rr,cc)){
       const ch=b[rr][cc];
       if(ch!=='.'){
-        if(pieceColor(ch)===by && (ch.toLowerCase()==='b'||ch.toLowerCase()==='q'))
-          return true;
+        if(pieceColor(ch)===by&&(ch.toLowerCase()==='b'||ch.toLowerCase()==='q')) return true;
         break;
       }
-      rr+=dr;cc+=dc;
+      rr+=dr; cc+=dc;
     }
   }
-
-  // ладьи / ферзи по прямой
+  // ладьи/ферзь по прямой
   const R=[[1,0],[-1,0],[0,1],[0,-1]];
   for(const [dr,dc] of R){
     let rr=r+dr,cc=c+dc;
     while(inBoard(rr,cc)){
       const ch=b[rr][cc];
       if(ch!=='.'){
-        if(pieceColor(ch)===by && (ch.toLowerCase()==='r'||ch.toLowerCase()==='q'))
-          return true;
+        if(pieceColor(ch)===by&&(ch.toLowerCase()==='r'||ch.toLowerCase()==='q')) return true;
         break;
       }
-      rr+=dr;cc+=dc;
+      rr+=dr; cc+=dc;
     }
   }
-
   // король
   for(let dr=-1;dr<=1;dr++){
     for(let dc=-1;dc<=1;dc++){
@@ -485,29 +292,23 @@ function isAttacked(b,r,c,by){
         const rr=r+dr,cc=c+dc;
         if(inBoard(rr,cc)){
           const ch=b[rr][cc];
-          if(ch!=='.' && pieceColor(ch)===by && ch.toLowerCase()==='k')
-            return true;
+          if(ch!=='.'&&pieceColor(ch)===by&&ch.toLowerCase()==='k') return true;
         }
       }
     }
   }
-
   return false;
 }
-
-/* проверка шаха активной стороне */
 function inCheckNow(color){
   const k=kingSquare(color);
   return isAttacked(st.board, k.r, k.c, color===WHITEc?BLACKc:WHITEc);
 }
-
-/* не допускаем "съесть короля" как валидную цель */
+/* защитный фильтр: не добавлять ходы, которые «едят» короля как цель */
 function addIfNotKingCapture(list,m){
   const tgt=st.board[m.r]?.[m.c];
   if(tgt && tgt!=='.' && tgt.toLowerCase()==='k') return;
   list.push(m);
 }
-
 /* псевдолегальные ходы */
 function generatePseudo(color){
   const res=[];
@@ -515,398 +316,211 @@ function generatePseudo(color){
     for(let c=0;c<8;c++){
       const ch=st.board[r][c];
       if(ch==='.'||pieceColor(ch)!==color) continue;
-
       const t=ch.toLowerCase();
 
       if(t==='p'){
-        const dir=(color===WHITEc)?-1:1,
-              start=(color===WHITEc)?6:1,
-              promoRow=(color===WHITEc)?0:7;
-
-        // вперёд 1
-        if(inBoard(r+dir,c)&&st.board[r+dir][c]==='.')
-          addIfNotKingCapture(res,{r:r+dir,c,fromR:r,fromC:c});
-
-        // вперёд 2
-        if(r===start && st.board[r+dir][c]==='.' && st.board[r+2*dir][c]==='.')
-          addIfNotKingCapture(res,{r:r+2*dir,c,fromR:r,fromC:c,epGive:{r:r+dir,c}});
-
-        // взятия
+        const dir=(color===WHITEc)?-1:1, start=(color===WHITEc)?6:1, promoRow=(color===WHITEc)?0:7;
+        if(inBoard(r+dir,c)&&st.board[r+dir][c]==='.') addIfNotKingCapture(res,{r:r+dir,c,fromR:r,fromC:c});
+        if(r===start && st.board[r+dir][c]==='.' && st.board[r+2*dir][c]==='.') addIfNotKingCapture(res,{r:r+2*dir,c,fromR:r,fromC:c,epGive:{r:r+dir,c}});
         for(const dc of [-1,1]){
           const rr=r+dir,cc=c+dc;
           if(inBoard(rr,cc)){
             const tg=st.board[rr][cc];
-            if(tg!=='.' && pieceColor(tg)!==color)
-              addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:true});
+            if(tg!=='.' && pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:true});
           }
         }
-
-        // en passant
         if(st.ep && st.ep.r===r+dir && Math.abs(st.ep.c-c)===1){
-          addIfNotKingCapture(res,{
-            r:st.ep.r,c:st.ep.c,
-            fromR:r,fromC:c,
-            capture:true,
-            ep:true,
-            epVictim:{r:r,c:st.ep.c}
-          });
+          addIfNotKingCapture(res,{r:st.ep.r,c:st.ep.c,fromR:r,fromC:c,capture:true,ep:true,epVictim:{r:r,c:st.ep.c}});
         }
-
-        // промо
-        for(const m of res.filter(m=>m.fromR===r&&m.fromC===c)){
-          if(m.r===promoRow) m.promo='q';
-        }
+        for(const m of res.filter(m=>m.fromR===r&&m.fromC===c)){ if(m.r===promoRow) m.promo='q'; }
       }
-
       else if(t==='n'){
         const K=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
         for(const [dr,dc] of K){
           const rr=r+dr,cc=c+dc;
           if(!inBoard(rr,cc)) continue;
           const tg=st.board[rr][cc];
-          if(tg==='.'||pieceColor(tg)!==color)
-            addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
+          if(tg==='.'||pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
         }
       }
-
       else if(t==='b'||t==='r'||t==='q'){
-        const dirs = t==='b'
-          ? [[1,1],[1,-1],[-1,1],[-1,-1]]
-          : t==='r'
-            ? [[1,0],[-1,0],[0,1],[0,-1]]
-            : [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+        const dirs = t==='b' ? [[1,1],[1,-1],[-1,1],[-1,-1]]
+                    : t==='r' ? [[1,0],[-1,0],[0,1],[0,-1]]
+                              : [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
         for(const [dr,dc] of dirs){
           let rr=r+dr,cc=c+dc;
           while(inBoard(rr,cc)){
             const tg=st.board[rr][cc];
-            if(tg==='.')
-              addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c});
-            else {
-              if(pieceColor(tg)!==color)
-                addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:true});
-              break;
-            }
-            rr+=dr;cc+=dc;
+            if(tg==='.') addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c});
+            else { if(pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:true}); break; }
+            rr+=dr; cc+=dc;
           }
         }
       }
-
       else if(t==='k'){
-        // обычные ходы королём
         for(let dr=-1;dr<=1;dr++){
           for(let dc=-1;dc<=1;dc++){
             if(dr||dc){
               const rr=r+dr,cc=c+dc;
               if(!inBoard(rr,cc)) continue;
               const tg=st.board[rr][cc];
-              if(tg==='.'||pieceColor(tg)!==color)
-                addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
+              if(tg==='.'||pieceColor(tg)!==color) addIfNotKingCapture(res,{r:rr,c:cc,fromR:r,fromC:c,capture:tg!=='.'});
             }
           }
         }
-
-        // рокировка
+        // рокировка: проверяем, что клетки не под боем
         if(color===WHITEc && r===7 && c===4){
-          // короткая
-          if(
-            st.castling.K &&
-            st.board[7][5]==='.' &&
-            st.board[7][6]==='.' &&
-            !isAttacked(st.board,7,4,BLACKc) &&
-            !isAttacked(st.board,7,5,BLACKc) &&
-            !isAttacked(st.board,7,6,BLACKc)
-          ){
+          if(st.castling.K && st.board[7][5]==='.' && st.board[7][6]==='.' &&
+             !isAttacked(st.board,7,4,BLACKc) && !isAttacked(st.board,7,5,BLACKc) && !isAttacked(st.board,7,6,BLACKc))
             res.push({r:7,c:6,fromR:7,fromC:4,castle:'K'});
-          }
-          // длинная
-          if(
-            st.castling.Q &&
-            st.board[7][3]==='.' &&
-            st.board[7][2]==='.' &&
-            st.board[7][1]==='.' &&
-            !isAttacked(st.board,7,4,BLACKc) &&
-            !isAttacked(st.board,7,3,BLACKc) &&
-            !isAttacked(st.board,7,2,BLACKc)
-          ){
+          if(st.castling.Q && st.board[7][3]==='.' && st.board[7][2]==='.' && st.board[7][1]==='.' &&
+             !isAttacked(st.board,7,4,BLACKc) && !isAttacked(st.board,7,3,BLACKc) && !isAttacked(st.board,7,2,BLACKc))
             res.push({r:7,c:2,fromR:7,fromC:4,castle:'Q'});
-          }
         }
-
         if(color===BLACKc && r===0 && c===4){
-          // короткая
-          if(
-            st.castling.k &&
-            st.board[0][5]==='.' &&
-            st.board[0][6]==='.' &&
-            !isAttacked(st.board,0,4,WHITEc) &&
-            !isAttacked(st.board,0,5,WHITEc) &&
-            !isAttacked(st.board,0,6,WHITEc)
-          ){
+          if(st.castling.k && st.board[0][5]==='.' && st.board[0][6]==='.' &&
+             !isAttacked(st.board,0,4,WHITEc) && !isAttacked(st.board,0,5,WHITEc) && !isAttacked(st.board,0,6,WHITEc))
             res.push({r:0,c:6,fromR:0,fromC:4,castle:'k'});
-          }
-          // длинная
-          if(
-            st.castling.q &&
-            st.board[0][3]==='.' &&
-            st.board[0][2]==='.' &&
-            st.board[0][1]==='.' &&
-            !isAttacked(st.board,0,4,WHITEc) &&
-            !isAttacked(st.board,0,3,WHITEc) &&
-            !isAttacked(st.board,0,2,WHITEc)
-          ){
+          if(st.castling.q && st.board[0][3]==='.' && st.board[0][2]==='.' && st.board[0][1]==='.' &&
+             !isAttacked(st.board,0,4,WHITEc) && !isAttacked(st.board,0,3,WHITEc) && !isAttacked(st.board,0,2,WHITEc))
             res.push({r:0,c:2,fromR:0,fromC:4,castle:'q'});
-          }
         }
       }
     }
   }
   return res;
 }
-
-/* фильтр: убрать ходы, после которых король остаётся под шахом */
+/* фильтр легальности: после применения хода король не под боем */
 function generateMoves(color){
   const pseudo = generatePseudo(color);
   const legal  = [];
-
   for(const m of pseudo){
     const b = cloneBoard(st.board);
     const pc = b[m.fromR][m.fromC];
-
-    // применяем ход на копии
     b[m.fromR][m.fromC]='.';
-    if(m.ep){
-      b[m.epVictim.r][m.epVictim.c]='.';
-    }
-    b[m.r][m.c] = m.promo
-      ? (pieceColor(pc)===WHITEc?'Q':'q')
-      : pc;
-
-    // рокировка на копии
+    if(m.ep) b[m.epVictim.r][m.epVictim.c]='.';
+    b[m.r][m.c] = m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
     if(m.castle){
       if(m.castle==='K'){b[7][7]='.';b[7][5]='R';}
       if(m.castle==='Q'){b[7][0]='.';b[7][3]='R';}
       if(m.castle==='k'){b[0][7]='.';b[0][5]='r';}
       if(m.castle==='q'){b[0][0]='.';b[0][3]='r';}
     }
-
-    // где король после хода?
-    const kpos = (pc.toLowerCase()==='k')
-      ? {r:m.r, c:m.c}
-      : kingSquare(color);
-
-    // проверяем, атакуется ли он противником
-    const attacked = isAttacked(
-      b,
-      kpos.r,
-      kpos.c,
-      color===WHITEc?BLACKc:WHITEc
-    );
-
+    const kpos = (pc.toLowerCase()==='k') ? {r:m.r,c:m.c} : kingSquare(color);
+    const attacked = isAttacked(b, kpos.r, kpos.c, color===WHITEc?BLACKc:WHITEc);
     if(!attacked) legal.push(m);
   }
-
   return legal;
 }
-
-/* клетки, куда король не имеет права пойти (для красной подсветки) */
+/* красная подсветка клеток, куда король не имеет права идти */
 function kingIllegalSquares(r,c){
   const color=pieceColor(st.board[r][c]);
-  const illegal=[];
-  const pseudo=[];
-
+  const illegal=[], pseudo=[];
   for(let dr=-1;dr<=1;dr++){
     for(let dc=-1;dc<=1;dc++){
       if(dr||dc){
         const rr=r+dr,cc=c+dc;
         if(!inBoard(rr,cc)) continue;
         const tg=st.board[rr][cc];
-        if(tg==='.'||pieceColor(tg)!==color){
-          pseudo.push({r:rr,c:cc});
-        }
+        if(tg==='.'||pieceColor(tg)!==color) pseudo.push({r:rr,c:cc});
       }
     }
   }
-
-  const legal=generateMoves(color)
-    .filter(m=>m.fromR===r&&m.fromC===c)
-    .map(m=>m.r+','+m.c);
-
-  for(const q of pseudo){
-    if(!legal.includes(q.r+','+q.c))
-      illegal.push(q);
-  }
-
+  const legal=generateMoves(color).filter(m=>m.fromR===r&&m.fromC===c).map(m=>m.r+','+m.c);
+  for(const q of pseudo){ if(!legal.includes(q.r+','+q.c)) illegal.push(q); }
   return illegal;
 }
-
-/* применение хода в реальном состоянии */
+/* применение хода */
 function makeMove(m){
   const pc = st.board[m.fromR][m.fromC];
-
   st.board[m.fromR][m.fromC]='.';
-  if(m.ep){
-    st.board[m.epVictim.r][m.epVictim.c]='.';
-  }
-  st.board[m.r][m.c] = m.promo
-    ? (pieceColor(pc)===WHITEc?'Q':'q')
-    : pc;
-
-  // обновить координаты короля
+  if(m.ep) st.board[m.epVictim.r][m.epVictim.c]='.';
+  st.board[m.r][m.c] = m.promo ? (pieceColor(pc)===WHITEc?'Q':'q') : pc;
   if(pc==='K') st.wk={r:m.r,c:m.c};
   if(pc==='k') st.bk={r:m.r,c:m.c};
-
-  // рокировка (реально двигаем ладьи)
   if(m.castle){
     if(m.castle==='K'){st.board[7][7]='.';st.board[7][5]='R';}
     if(m.castle==='Q'){st.board[7][0]='.';st.board[7][3]='R';}
     if(m.castle==='k'){st.board[0][7]='.';st.board[0][5]='r';}
     if(m.castle==='q'){st.board[0][0]='.';st.board[0][3]='r';}
   }
-
-  // права рокировки
   if(pc==='K'){st.castling.K=false;st.castling.Q=false;}
   if(pc==='k'){st.castling.k=false;st.castling.q=false;}
   if(pc==='R'&&m.fromR===7&&m.fromC===7) st.castling.K=false;
   if(pc==='R'&&m.fromR===7&&m.fromC===0) st.castling.Q=false;
   if(pc==='r'&&m.fromR===0&&m.fromC===7) st.castling.k=false;
   if(pc==='r'&&m.fromR===0&&m.fromC===0) st.castling.q=false;
-
-  // en passant право
   st.ep = m.epGive || null;
-
-  // чей ход теперь
   st.turn = (st.turn===WHITEc)?BLACKc:WHITEc;
   st.full += (st.turn===WHITEc?1:0);
-
-  st.lastMove = {
-    fromR:m.fromR,
-    fromC:m.fromC,
-    r:m.r,
-    c:m.c
-  };
+  st.lastMove={fromR:m.fromR,fromC:m.fromC,r:m.r,c:m.c};
 }
 
 /* ===== ИИ ===== */
-/*
-  think — визуальная задержка перед тем как ИИ двинет фигуру.
-  Игрок ходит мгновенно.
-  supergm думает глубоко, но расчёт больше не блокирует клик игрока:
-  мы считаем bestMove в setTimeout(...,0).
-*/
 const LEVEL = {
-  newbie:    { depth: 1, noise: 60, think: 300  },
-  casual:    { depth: 2, noise: 35, think: 500  },
-  club:      { depth: 3, noise: 15, think: 800  },
-  master:    { depth: 4, noise:  6, think: 1500 },
-  supergm:   { depth: 5, noise:  0, think: 3000 }
+  newbie:  { depth:1, noise:60, think:300  },
+  casual:  { depth:2, noise:35, think:500  },
+  club:    { depth:3, noise:15, think:800  },
+  master:  { depth:4, noise: 6, think:1500 },
+  supergm: { depth:5, noise: 0, think:3000 }
 };
-
 const pieceVal = { p:100, n:320, b:330, r:500, q:900, k:0 };
-const hist     = [];
-
-function edgeDist(r,c){
-  return Math.min(r,c,7-r,7-c);
-}
-
+const hist = [];
+function edgeDist(r,c){ return Math.min(r,c,7-r,7-c); }
 function evaluate(){
-  // очень простая оценка + лёгкий эндшпильный мотив
   let s=0, w=0, b=0;
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const ch=st.board[r][c];
-      if(ch==='.'){continue;}
-      const v=pieceVal[ch.toLowerCase()]||0;
-      s += (ch===ch.toUpperCase()?1:-1)*v;
-      if(ch===ch.toUpperCase()) w+=v; else b+=v;
-    }
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const ch=st.board[r][c]; if(ch==='.'){continue;}
+    const v=pieceVal[ch.toLowerCase()]||0;
+    s += (ch===ch.toUpperCase()?1:-1)*v;
+    if(ch===ch.toUpperCase()) w+=v; else b+=v;
   }
-
-  // эндшпиль: гоним вражеского короля к краю
-  const endgame = (w<=1300 || b<=1300);
-  const ek = (st.turn===WHITE) ? st.bk : st.wk;
-  if(endgame){
-    s += (3 - edgeDist(ek.r,ek.c)) * 40 * (st.turn===WHITE?1:-1);
-  }
-
-  // небольшой штраф за повтор
+  const endgame=(w<=1300||b<=1300);
+  const ek=(st.turn===WHITE)?st.bk:st.wk;
+  if(endgame){ s += (3 - edgeDist(ek.r,ek.c)) * 40 * (st.turn===WHITE?1:-1); }
   const key=st.board.map(r=>r.join('')).join('|')+st.turn;
-  const repeats=hist.filter(k=>k===key).length;
-  s -= repeats*30;
-
+  const repeats=hist.filter(k=>k===key).length; s -= repeats*30;
   return s;
 }
-
 function orderFor(color){
-  // жёстко упорядочим: захваты сначала
-  const ms = generateMoves(color);
+  const ms=generateMoves(color);
   ms.sort((a,b)=>(b.capture?1:0)-(a.capture?1:0));
   return ms;
 }
-
 function search(depth,alpha,beta,color){
-  if(depth===0){
-    // оценка с точки зрения 'color'
-    return evaluate() * (color===WHITE?1:-1);
-  }
-
-  const ms = orderFor(color);
+  if(depth===0) return evaluate()*(color===WHITE?1:-1);
+  const ms=orderFor(color);
   if(!ms.length){
-    // мат или пат
-    const k = kingSquare(color);
-    const check = isAttacked(st.board,k.r,k.c, color===WHITE?BLACK:WHITE);
-    return (check?-99999:0) * (color===WHITE?1:-1);
+    const k=kingSquare(color);
+    const check=isAttacked(st.board,k.r,k.c,color===WHITE?BLACK:WHITE);
+    return (check?-99999:0)*(color===WHITE?1:-1);
   }
-
-  let best=-1e9;
-
-  // snapshot текущего состояния
-  const snap = JSON.parse(JSON.stringify(st));
-
+  let best=-1e9; const snap=JSON.parse(JSON.stringify(st));
   for(const m of ms){
     makeMove(m);
-
-    const sc = -search(depth-1,-beta,-alpha,color===WHITE?BLACK:WHITE);
-
-    // откатить в snapshot
-    Object.assign(st, snap);
-    st.board = snap.board.map(r=>r.slice());
-
+    const sc=-search(depth-1,-beta,-alpha,color===WHITE?BLACK:WHITE);
+    Object.assign(st,snap); st.board=snap.board.map(r=>r.slice());
     if(sc>best) best=sc;
     if(best>alpha) alpha=best;
     if(alpha>=beta) break;
   }
   return best;
 }
-
 function bestMove(level){
-  const cfg   = LEVEL[level] || LEVEL.casual;
-  const color = st.turn;
-  const ms    = orderFor(color);
-
+  const cfg=LEVEL[level]||LEVEL.casual;
+  const color=st.turn;
+  const ms=orderFor(color);
   if(!ms.length) return null;
-
-  const snap = JSON.parse(JSON.stringify(st));
-  let scored=[];
-
+  const snap=JSON.parse(JSON.stringify(st));
+  const scored=[];
   for(const m of ms){
     makeMove(m);
-    const sc = -search(cfg.depth-1, -1e9, 1e9, color===WHITE?BLACK:WHITE);
-
-    // откат
-    Object.assign(st, snap);
-    st.board = snap.board.map(r=>r.slice());
-
+    const sc=-search(cfg.depth-1,-1e9,1e9,color===WHITE?BLACK:WHITE);
+    Object.assign(st,snap); st.board=snap.board.map(r=>r.slice());
     scored.push({m,sc});
   }
-
-  // "шум" для слабых уровней
-  if(cfg.noise){
-    scored.forEach(s=> {
-      s.sc += (Math.random()*2-1)*cfg.noise;
-    });
-  }
-
-  scored.sort((a,b)=> b.sc-a.sc);
+  if(cfg.noise) scored.forEach(s=>{ s.sc+=(Math.random()*2-1)*cfg.noise; });
+  scored.sort((a,b)=>b.sc-a.sc);
   return scored[0].m;
 }
 
@@ -921,227 +535,120 @@ const ui = {
   status:  document.getElementById('chxStatus'),
   log:     document.getElementById('chxLog')
 };
-
-function uTurn(){
-  ui.turn.textContent = st.turn===WHITE ? 'Ход белых' : 'Ход чёрных';
-}
-
-function uStatus(t){
-  ui.status.textContent = t;
-}
-
+function uTurn(){ ui.turn.textContent = st.turn===WHITE ? 'Ход белых' : 'Ход чёрных'; }
+function uStatus(t){ ui.status.textContent=t; }
 function uLog(san){
-  if(!san){
-    ui.log.textContent='';
-  } else {
-    // простейший вывод: добавляем SAN; перенос строки после хода чёрных
-    ui.log.textContent += san + (st.turn===WHITE?'\n':' ');
-  }
+  if(!san) ui.log.textContent='';
+  else ui.log.textContent += san + (st.turn===WHITE?'\n':' ');
 }
-
-/* SAN генерация очень упрощённая */
 function sanOf(m,cap){
-  const p = st.board[m.fromR][m.fromC];
-  const name = {
-    p:'', n:'N', b:'B', r:'R', q:'Q', k:'K'
-  }[p.toLowerCase()];
-  const file = String.fromCharCode(97+m.fromC);
-  const to   = String.fromCharCode(97+m.c) + (8-m.r);
+  const p=st.board[m.fromR][m.fromC];
+  const name={p:'', n:'N', b:'B', r:'R', q:'Q', k:'K'}[p.toLowerCase()];
+  const file=String.fromCharCode(97+m.fromC);
+  const to=String.fromCharCode(97+m.c)+(8-m.r);
   return (name||(cap?file:''))+(cap?'x':'')+to+(m.promo?'=Q':'');
 }
-
-/* завершение партии */
 function gameOver(){
-  const ms = generateMoves(st.turn);
+  const ms=generateMoves(st.turn);
   if(!ms.length){
     const k=kingSquare(st.turn);
-    const check=isAttacked(
-      st.board,
-      k.r,k.c,
-      st.turn===WHITE?BLACK:WHITE
-    );
+    const check=isAttacked(st.board,k.r,k.c, st.turn===WHITE?BLACK:WHITE);
     uStatus(check?'Мат':'Пат');
     return true;
   }
   return false;
 }
+function checkGame(){ if(!gameOver()) uStatus('Игра идёт'); uTurn(); }
 
-function checkGame(){
-  if(!gameOver()) {
-    uStatus('Игра идёт');
-  }
-  uTurn();
-}
-
-/* клик по доске */
+/* клик по доске: твой ход — мгновенно; расчёт ИИ — асинхронно */
 function clickBoard(ev){
-  // переводим координаты клика в (r,c) с учётом flip
   const rect=cvs.getBoundingClientRect();
-  let x=ev.clientX-rect.left,
-      y=ev.clientY-rect.top;
-
-  if(st.flipped){
-    x = rect.width - x;
-    y = rect.height - y;
-  }
-
-  let c=Math.floor(x/S),
-      r=Math.floor(y/S);
+  let x=ev.clientX-rect.left, y=ev.clientY-rect.top;
+  if(st.flipped){ x=rect.width-x; y=rect.height-y; }
+  let c=Math.floor(x/S), r=Math.floor(y/S);
 
   if(!sel){
-    // выбираем фигуру
     const ch=st.board[r][c];
     if(ch!=='.' && pieceColor(ch)===st.turn){
       sel={r,c};
-      movesCache = generateMoves(st.turn)
-        .filter(m=>m.fromR===r && m.fromC===c);
-
-      illegalKingSquares = (ch.toLowerCase()==='k')
-        ? kingIllegalSquares(r,c)
-        : [];
+      movesCache = generateMoves(st.turn).filter(m=>m.fromR===r && m.fromC===c);
+      illegalKingSquares = (ch.toLowerCase()==='k') ? kingIllegalSquares(r,c) : [];
     }
   } else {
-    // пытаемся сделать ход
     const mv = movesCache.find(m=>m.r===r && m.c===c);
-
     if(mv){
-      // 1. Ход игрока — МГНОВЕННО
       const cap = !!mv.capture || mv.ep;
       const san = sanOf(mv,cap);
-
       hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
+      makeMove(mv); uLog(san); checkGame(); render();
 
-      makeMove(mv);
-      uLog(san);
-      checkGame();
-      render();
-
-      // 2. Если нужен ход ИИ — откладываем ВСЁ вычисление в setTimeout
+      // очередь ИИ?
       if(
         ui.mode.value==='ai' &&
         !gameOver() &&
-        (
-          (st.turn===WHITEc && ui.color.value==='b') ||
-          (st.turn===BLACKc && ui.color.value==='w')
-        )
+        ((st.turn===WHITE && ui.color.value==='b') || (st.turn===BLACK && ui.color.value==='w'))
       ){
-        uStatus('ИИ думает…');
-
         const cfg = LEVEL[ui.level.value] || LEVEL.casual;
-
-        // Сначала отпускаем главный поток, чтобы UI не завис
-        setTimeout(() => {
-          // heavy расчёт уже «асинхронно»
+        uStatus('ИИ думает…');
+        // не блокируем поток: сначала выходим из обработчика
+        setTimeout(()=>{
           const choice = bestMove(ui.level.value);
-
-          // теперь небольшая визуальная пауза для правдоподобия
-          setTimeout(() => {
+          setTimeout(()=>{
             if(choice){
               const san2 = sanOf(choice, !!choice.capture||choice.ep);
               hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
-              makeMove(choice);
-              uLog(san2);
+              makeMove(choice); uLog(san2);
             }
-            checkGame();
-            render();
+            checkGame(); render();
           }, cfg.think);
-
         }, 0);
       }
-
     } else {
-      // нелегальный клик
-      if(inCheckNow(st.turn)){
-        uStatus('Шах! Нужно защитить короля.');
-      }
+      if(inCheckNow(st.turn)) uStatus('Шах! Нужно защитить короля.');
     }
-
-    sel=null;
-    movesCache=[];
-    illegalKingSquares=[];
+    sel=null; movesCache=[]; illegalKingSquares=[];
   }
-
   render();
 }
 
-/* сброс партии */
+/* сброс */
 function resetGame(){
-  st.board    = startBoard();
-  st.turn     = WHITE;
-  st.wk       = {r:7,c:4};
-  st.bk       = {r:0,c:4};
-  st.castling = {K:true,Q:true,k:true,q:true};
-  st.ep       = null;
-  st.half     = 0;
-  st.full     = 1;
-  st.lastMove = null;
+  st.board=startBoard(); st.turn=WHITE;
+  st.wk={r:7,c:4}; st.bk={r:0,c:4};
+  st.castling={K:true,Q:true,k:true,q:true};
+  st.ep=null; st.half=0; st.full=1; st.lastMove=null;
+  sel=null; movesCache=[]; illegalKingSquares=[];
+  ui.log.textContent=''; hist.length=0;
+  render(); checkGame();
 
-  sel=null;
-  movesCache=[];
-  illegalKingSquares=[];
-  ui.log.textContent='';
-  hist.length=0;
-
-  render();
-  checkGame();
-
-  // Если игрок выбрал чёрных — ИИ делает первый ход.
+  // если игрок чёрными — ИИ делает первый ход (асинхронно)
   if(ui.color.value==='b'){
+    const cfg=LEVEL[ui.level.value]||LEVEL.casual;
     uStatus('ИИ думает…');
-    const cfg = LEVEL[ui.level.value] || LEVEL.casual;
-
-    // отпускаем поток, потом считаем ход ИИ
-    setTimeout(() => {
-      const mv = bestMove(ui.level.value);
-
-      setTimeout(() => {
+    setTimeout(()=>{
+      const mv=bestMove(ui.level.value);
+      setTimeout(()=>{
         if(mv){
           const san2=sanOf(mv, !!mv.capture||mv.ep);
           hist.push(st.board.map(r=>r.join('')).join('|')+st.turn);
-          makeMove(mv);
-          uLog(san2);
+          makeMove(mv); uLog(san2);
         }
-        checkGame();
-        render();
+        checkGame(); render();
       }, cfg.think);
-
     }, 0);
   }
 }
-
-/* переворот доски */
 function flipBoard(){
   st.flipped=!st.flipped;
-  ctx.setTransform(
-    st.flipped?-1:1,0,0,
-    st.flipped?-1:1,
-    st.flipped?BOARD:0,
-    st.flipped?BOARD:0
-  );
+  ctx.setTransform(st.flipped?-1:1,0,0,st.flipped?-1:1, st.flipped?BOARD:0, st.flipped?BOARD:0);
   render();
 }
 
 /* init */
-const uiColor = document.getElementById('chxColor');
-const uiLevel = document.getElementById('chxLevel');
-const uiMode  = document.getElementById('chxMode');
-const uiNew   = document.getElementById('chxNew');
-const uiFlip  = document.getElementById('chxFlip');
-
-// ui.* refs were already defined above (ui.color etc.), sync them:
-ui.color = uiColor;
-ui.level = uiLevel;
-ui.mode  = uiMode;
-ui.btnNew= uiNew;
-ui.btnFlip=uiFlip;
-
 cvs.addEventListener('click', clickBoard);
-ui.btnNew.addEventListener('click', resetGame);
-ui.btnFlip.addEventListener('click', flipBoard);
-
-resizeBoard();
-render();
-resetGame();
+document.getElementById('chxNew').addEventListener('click', resetGame);
+document.getElementById('chxFlip').addEventListener('click', flipBoard);
+resizeBoard(); render(); resetGame();
 </script>
 </body>
 </html>
