@@ -1,0 +1,33 @@
+[
+  {
+    "id": "basics-1",
+    "title": "Check, Checkmate, Stalemate",
+    "level": "Beginner",
+    "description": "Understand the key end conditions.",
+    "content": [
+      "Check: your king is attacked — you must respond immediately.",
+      "Checkmate: king is in check and has no legal escape — game ends.",
+      "Stalemate: no legal moves but king is NOT in check — draw."
+    ]
+  },
+  {
+    "id": "tactics-1",
+    "title": "Fork",
+    "level": "Beginner",
+    "description": "One piece attacks two targets at once.",
+    "content": [
+      "Knights are famous for forks because of their L-move.",
+      "Goal: attack king + queen/rook, or win material."
+    ]
+  },
+  {
+    "id": "tactics-2",
+    "title": "Pin",
+    "level": "Beginner",
+    "description": "A piece can’t move because it exposes something valuable.",
+    "content": [
+      "Absolute pin: moving exposes king (illegal).",
+      "Relative pin: moving loses queen/rook, still usually bad."
+    ]
+  }
+]
