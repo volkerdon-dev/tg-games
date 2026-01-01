@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Train — TG Chess</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>🎯 Train</h1>
+        <p>Puzzles & tactics streak (MVP)</p>
+      </div>
+      <div class="row">
+        <a class="btn ghost" href="../index.html">← Home</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between; align-items:flex-end">
+        <div>
+          <div class="small">Theme</div>
+          <select id="theme">
+            <option value="all">All</option>
+            <option value="mate-in-1">Mate in 1</option>
+            <option value="fork">Fork</option>
+            <option value="pin">Pin</option>
+          </select>
+        </div>
+        <button class="btn" id="next">Next puzzle</button>
+      </div>
+
+      <hr />
+
+      <div class="panel">
+        <div class="kv">
+          <div>Puzzle</div><div id="puzzleId">—</div>
+          <div>FEN</div><div id="fen">—</div>
+          <div>Expected</div><div id="expected">—</div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <input class="input" id="answer" placeholder='Type best move e.g. "Qg2#"' style="flex:1; min-width:240px" />
+          <button class="btn secondary" id="check">Check</button>
+        </div>
+
+        <p class="small" id="feedback" style="margin-top:12px"></p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./train.js"></script>
+</body>
+</html>
