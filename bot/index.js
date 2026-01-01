@@ -12,8 +12,14 @@ const bot = new Telegraf(BOT_TOKEN);
 
 // /start — клавиатура c WebApp-кнопкой
 bot.start((ctx) => ctx.reply(
-  'Добро пожаловать! Нажми "Games" чтобы открыть мини-игры.',
-  Markup.keyboard([ Markup.button.webApp('🎮 Games', WEBAPP_URL) ]).resize()
+  '♟️ Добро пожаловать в TG Chess! Нажми "Chess" чтобы играть и учиться.',
+  Markup.keyboard([ Markup.button.webApp('♟️ Chess', WEBAPP_URL) ]).resize()
+));
+
+// (опционально) команда /chess
+bot.command('chess', (ctx) => ctx.reply(
+  'Открыть TG Chess:',
+  Markup.keyboard([ Markup.button.webApp('♟️ Chess', WEBAPP_URL) ]).resize()
 ));
 
 // приём данных из WebApp (sendData)
@@ -22,8 +28,33 @@ bot.on('web_app_data', async (ctx) => {
     const raw = ctx.message.web_app_data?.data || '{}';
     const payload = JSON.parse(raw);
     console.log('WEBAPP DATA:', payload);
-    await ctx.reply(`Результат принят: ${payload.game ?? 'game'} — ${payload.score ?? '?'} очков`);
-  } catch (e) { console.error(e); }
+
+    // ожидаемые события из WebApp:
+    // { type:"lesson_complete", lessonId:"basics-1" }
+    // { type:"puzzle_result", puzzleId:"p1", result:"solved/failed", theme:"mate-in-1" }
+    // { type:"game_result", mode:"vs_ai_mvp", level:4, side:"white", result:"win/loss/draw", moves:32 }
+
+    if (payload.type === 'lesson_complete') {
+      await ctx.reply(`✅ Урок пройден: ${payload.lessonId}`);
+      return;
+    }
+
+    if (payload.type === 'puzzle_result') {
+      await ctx.reply(`🎯 Пазл ${payload.puzzleId}: ${payload.result}${payload.theme ? ` (${payload.theme})` : ''}`);
+      return;
+    }
+
+    if (payload.type === 'game_result') {
+      await ctx.reply(`♟️ Игра завершена: ${payload.result} — ${payload.moves} ход(ов) — lvl ${payload.level ?? '?'}`);
+      return;
+    }
+
+    // fallback на старый формат (если что-то пришло не по схеме)
+    await ctx.reply(`Данные приняты ✅\n${raw}`);
+  } catch (e) {
+    console.error(e);
+    await ctx.reply('Ошибка обработки данных из WebApp ❌');
+  }
 });
 
 // healthcheck для хостинга
