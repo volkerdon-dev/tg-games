@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Play — TG Chess</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>♟️ Play</h1>
+        <p>Tap a piece → tap destination (MVP no strict rules)</p>
+      </div>
+      <div class="row">
+        <a class="btn ghost" href="../index.html">← Home</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:12px">
+        <div>
+          <label>Side</label><br />
+          <select id="side">
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+        </div>
+        <div>
+          <label>AI level (MVP)</label><br />
+          <select id="level">
+            <option>1</option><option>2</option><option>3</option><option selected>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+          </select>
+        </div>
+        <button id="newGame" class="btn">New Game</button>
+        <button id="endGame" class="btn secondary">End & Save</button>
+      </div>
+
+      <div class="boardWrap">
+        <div class="board" id="board" aria-label="chess board"></div>
+
+        <div style="flex:1; min-width:260px">
+          <div class="panel">
+            <div class="kv">
+              <div>Turn</div><div id="turn">—</div>
+              <div>Moves</div><div id="moves">0</div>
+              <div>Selected</div><div id="selected">—</div>
+            </div>
+            <hr />
+            <div class="row">
+              <button id="undo" class="btn ghost">Undo</button>
+              <button id="hint" class="btn ghost">Hint</button>
+              <button id="reset" class="btn ghost">Reset</button>
+            </div>
+            <p class="small" id="hintText" style="margin:12px 0 0"></p>
+          </div>
+
+          <div class="panel" style="margin-top:12px">
+            <p class="small" style="margin:0">
+              MVP note: legal move checking + real Stockfish AI will be added next.
+              Сейчас важнее каркас разделов и прогресса.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./chess.js"></script>
+</body>
+</html>
