@@ -1,100 +1,73 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Game Hub</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script defer src="./shared/telegram.js"></script>
-  <style>
-    :root {
-      --bg: var(--tg-theme-bg-color,#0f0f12);
-      --text: var(--tg-theme-text-color,#f5f7ff);
-      --hint:#98a1b3; --card:#171a22; --card2:#1f2430;
-      --btn:#4e9eff; --btn-text:#fff;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto}
-    .wrap{max-width:960px;margin:0 auto;padding:16px}
-    header h1{margin:4px 0 2px;font-size:26px;display:flex;align-items:center;gap:8px}
-    header p{margin:0;color:var(--hint)}
-    .grid{display:grid;gap:12px;margin-top:14px;grid-template-columns:1fr}
-    @media(min-width:520px){.grid{grid-template-columns:1fr 1fr}}
-    @media(min-width:900px){.grid{grid-template-columns:1fr 1fr 1fr}}
-
-    .card{position:relative;background:linear-gradient(180deg,var(--card),var(--card2));
-      border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;
-      box-shadow:0 10px 26px rgba(0,0,0,.35); transition:transform .12s ease, box-shadow .12s ease;}
-    .card:hover{transform:translateY(-2px); box-shadow:0 16px 34px rgba(0,0,0,.45)}
-    .title{font-weight:800;font-size:18px;display:flex;align-items:center;gap:8px}
-    .desc{color:var(--hint);margin:0}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    a.btn,button.btn{border:0;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer;text-decoration:none}
-    .primary{background:var(--btn);color:var(--btn-text)}
-    .secondary{background:#2a2f3b;color:#eaeefe}
-    .badge{position:absolute;top:10px;right:10px;background:#ff784a;color:#fff;font-weight:800;padding:4px 8px;border-radius:999px;font-size:11px;letter-spacing:.3px}
-    .card a.cover{position:absolute;inset:0;border-radius:18px;outline:0}
-    .card a.cover:focus{box-shadow:0 0 0 3px rgba(78,158,255,.65) inset}
-  </style>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TG Chess</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>🎮 Game Hub</h1>
-      <p>Выбери игру и играй прямо в Telegram.</p>
-    </header>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>♟️ TG Chess</h1>
+        <p>Play, learn, train — chess only</p>
+      </div>
+      <div class="pill">
+        <span>⚡</span>
+        <span id="pillInfo">MVP</span>
+      </div>
+    </div>
 
-    <section class="grid">
+    <div class="grid">
+      <a class="card" href="./chess/index.html">
+        <h2>♟️ Play</h2>
+        <p>Play vs AI (MVP) — move pieces by tap/click</p>
+      </a>
 
-      <article class="card">
-        <div class="title">❌ Tic-Tac-Toe</div>
-        <p class="desc">Быстрая партия 3×3. Отправляет результат в бота.</p>
-        <div class="actions">
-          <a class="btn primary" href="./games/tictactoe/index.html">Играть</a>
-        </div>
-      </article>
+      <a class="card" href="./learn/index.html">
+        <h2>📚 Learn</h2>
+        <p>Short lessons + mini quiz</p>
+      </a>
 
-      <article class="card">
-        <div class="title">2048</div>
-        <p class="desc">Соедини одинаковые числа и доберись до 2048.</p>
-        <div class="actions">
-          <a class="btn primary" href="./games/2048/">Играть</a>
-        </div>
-      </article>
+      <a class="card" href="./train/index.html">
+        <h2>🎯 Train</h2>
+        <p>Puzzles, streak, tactics themes</p>
+      </a>
 
-      <article class="card">
-        <div class="title">♟️ Chess</div>
-        <p class="desc">Игра против ИИ Stockfish. Выбор цвета и сложности.</p>
-        <div class="actions">
-          <a class="btn primary" href="./games/chess/index.html">Играть</a>
-        </div>
-        <span class="badge">NEW</span>
-      </article>
+      <a class="card" href="./progress/index.html">
+        <h2>📈 Progress</h2>
+        <p>Stats, streak, achievements (MVP)</p>
+      </a>
+    </div>
 
-      <article class="card">
-        <div class="title">🧱 Falling Blocks</div>
-        <p class="desc">Классические тетромино. Очищай линии и набирай очки.</p>
-        <div class="actions">
-          <a class="btn primary" href="./games/tetromino/">Играть</a>
-        </div>
-      </article>
+    <hr />
 
-      <article class="card">
-        <div class="title">🔴 Rocky Ball</div>
-        <p class="desc">2D платформер с уровнями и кольцами.</p>
-        <div class="actions">
-          <a class="btn primary" href="./games/rocky-ball/index.html">Играть</a>
-          <button class="btn secondary" onclick="TG?.share?.('rocky-ball')">Рекорд</button>
-        </div>
-      </article>
-
-    </section>
+    <div class="panel">
+      <div class="kv">
+        <div>Today’s streak</div><div id="streak">—</div>
+        <div>Lessons completed</div><div id="lessons">—</div>
+        <div>Puzzles solved</div><div id="puzzles">—</div>
+      </div>
+      <p class="small" style="margin:12px 0 0">
+        Tip: open <b>Train</b> and solve 5 puzzles daily — that’s the fastest improvement loop.
+      </p>
+    </div>
   </div>
 
-  <script>
-    const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
-    document.addEventListener('DOMContentLoaded', ()=> window.TG?.init?.());
+  <script type="module">
+    import { initTelegram } from "./shared/telegram.js";
+    import { loadState, touch } from "./shared/storage.js";
+    import { setText } from "./shared/ui.js";
+
+    initTelegram();
+    const state = loadState();
+    touch(state);
+
+    setText("streak", `${state.stats.streakDays} day(s)`);
+    setText("lessons", String(state.stats.lessonsCompleted));
+    setText("puzzles", String(state.stats.puzzlesSolved));
+    setText("pillInfo", "Chess-only");
   </script>
 </body>
 </html>
-
