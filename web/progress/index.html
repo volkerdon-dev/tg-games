@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Progress — TG Chess</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>📈 Progress</h1>
+        <p>Your improvement dashboard (MVP)</p>
+      </div>
+      <div class="row">
+        <a class="btn ghost" href="../index.html">← Home</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="pageTitle">Stats</h2>
+      <div class="kv">
+        <div>Streak</div><div id="streak">—</div>
+        <div>Games played</div><div id="gp">—</div>
+        <div>Wins</div><div id="gw">—</div>
+        <div>Losses</div><div id="gl">—</div>
+        <div>Draws</div><div id="gd">—</div>
+        <div>Total moves</div><div id="moves">—</div>
+        <div>Lessons completed</div><div id="lc">—</div>
+        <div>Puzzles solved</div><div id="ps">—</div>
+        <div>Puzzles failed</div><div id="pf">—</div>
+      </div>
+
+      <hr />
+
+      <div class="row">
+        <button class="btn ghost" id="reset">Reset local progress</button>
+      </div>
+
+      <p class="small" style="margin-top:12px">
+        Next step: we’ll store progress on server and add real chess analysis.
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="./progress.js"></script>
+</body>
+</html>
