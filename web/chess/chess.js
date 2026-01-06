@@ -45,7 +45,7 @@ const BLACK = "b";
 
 // 0x88 helpers
 const isOffboard = (sq) => (sq & 0x88) !== 0;
-const rankOf = (sq) => sq >> 4;      // 0..7 (0 = rank 8)
+const rankOf = (sq) => sq >> 4;      // 0..7 (0 = top)
 const fileOf = (sq) => sq & 7;       // 0..7
 const sqOf = (rank, file) => (rank << 4) | file;
 
@@ -61,14 +61,11 @@ function opponent(color){ return color === WHITE ? BLACK : WHITE; }
 let game = null;
 
 function createEmptyBoard() {
-  const b = new Array(128).fill(null);
-  return b;
+  return new Array(128).fill(null);
 }
 
 function initialGame() {
   const board = createEmptyBoard();
-
-  // pieces: {c:'w'|'b', t:'P'|'N'|'B'|'R'|'Q'|'K'}
   const put = (r,f,c,t) => { board[sqOf(r,f)] = { c, t }; };
 
   // black back rank (rank 8 => r=0)
@@ -104,7 +101,6 @@ function cloneCastling(c) {
 }
 
 function snapshot() {
-  // store minimal full state for undo
   const s = {
     board: game.board.slice(),
     turn: game.turn,
@@ -142,7 +138,6 @@ function setPiece(sq, p) { game.board[sq] = p; }
 function isSquareAttacked(byColor, targetSq) {
   // Pawns
   if (byColor === WHITE) {
-    // white pawns attack up (toward rank decreasing): from target, attackers are one rank below
     const a1 = targetSq + 17;
     const a2 = targetSq + 15;
     if (!isOffboard(a1)) {
@@ -154,7 +149,6 @@ function isSquareAttacked(byColor, targetSq) {
       if (p && p.c === WHITE && p.t === "P") return true;
     }
   } else {
-    // black pawns attack down: attackers are one rank above
     const a1 = targetSq - 17;
     const a2 = targetSq - 15;
     if (!isOffboard(a1)) {
@@ -219,7 +213,7 @@ function inCheck(color) {
 
 // -------------------- move generation --------------------
 function addMove(moves, move) {
-  // Do not allow capturing king (in real chess king is never captured)
+  // forbid capturing king
   if (move.capture && move.capture.t === "K") return;
   moves.push(move);
 }
@@ -239,7 +233,6 @@ function genPseudoMoves(color) {
 
       const one = sq + dir;
       if (!isOffboard(one) && !pieceAt(one)) {
-        // promotion?
         if (rankOf(one) === promoteRank) {
           for (const promo of ["Q","R","B","N"]) {
             addMove(moves, { from:sq, to:one, piece:p, capture:null, promotion:promo, flags:"p" });
@@ -248,19 +241,16 @@ function genPseudoMoves(color) {
           addMove(moves, { from:sq, to:one, piece:p, capture:null, promotion:null, flags:"" });
         }
 
-        // two squares
         const two = sq + dir*2;
         if (rankOf(sq) === startRank && !pieceAt(two) && !isOffboard(two)) {
           addMove(moves, { from:sq, to:two, piece:p, capture:null, promotion:null, flags:"2" });
         }
       }
 
-      // captures
       for (const capDir of (color === WHITE ? [-17,-15] : [17,15])) {
         const to = sq + capDir;
         if (isOffboard(to)) continue;
 
-        // en passant
         if (to === game.ep) {
           addMove(moves, { from:sq, to, piece:p, capture:{ c: opponent(color), t:"P" }, promotion:null, flags:"e" });
           continue;
@@ -268,7 +258,6 @@ function genPseudoMoves(color) {
 
         const target = pieceAt(to);
         if (target && target.c !== color) {
-          // promotion capture?
           if (rankOf(to) === promoteRank) {
             for (const promo of ["Q","R","B","N"]) {
               addMove(moves, { from:sq, to, piece:p, capture:target, promotion:promo, flags:"cp" });
@@ -321,7 +310,6 @@ function genPseudoMoves(color) {
 
       // castling
       if (color === WHITE) {
-        // King side: e1->g1, rook h1->f1
         if (game.castling.wK) {
           const e1 = sqOf(7,4), f1 = sqOf(7,5), g1 = sqOf(7,6), h1 = sqOf(7,7);
           if (sq === e1 && pieceAt(h1)?.t === "R" && !pieceAt(f1) && !pieceAt(g1)) {
@@ -330,7 +318,6 @@ function genPseudoMoves(color) {
             }
           }
         }
-        // Queen side: e1->c1, rook a1->d1
         if (game.castling.wQ) {
           const e1 = sqOf(7,4), d1 = sqOf(7,3), c1 = sqOf(7,2), b1 = sqOf(7,1), a1 = sqOf(7,0);
           if (sq === e1 && pieceAt(a1)?.t === "R" && !pieceAt(d1) && !pieceAt(c1) && !pieceAt(b1)) {
@@ -340,7 +327,6 @@ function genPseudoMoves(color) {
           }
         }
       } else {
-        // black castling
         if (game.castling.bK) {
           const e8 = sqOf(0,4), f8 = sqOf(0,5), g8 = sqOf(0,6), h8 = sqOf(0,7);
           if (sq === e8 && pieceAt(h8)?.t === "R" && !pieceAt(f8) && !pieceAt(g8)) {
@@ -358,7 +344,6 @@ function genPseudoMoves(color) {
           }
         }
       }
-
       continue;
     }
   }
@@ -366,7 +351,8 @@ function genPseudoMoves(color) {
   return moves;
 }
 
-function makeMove(move) {
+// IMPORTANT FIX: makeMove() must NOT call finalize during simulations
+function makeMove(move, { simulate = false } = {}) {
   snapshot();
 
   const color = move.piece.c;
@@ -375,17 +361,15 @@ function makeMove(move) {
   // clear en passant by default
   game.ep = -1;
 
-  // handle castling rights updates due to moving piece
+  // castling rights updates due to moving piece
   const from = move.from;
   const to = move.to;
 
-  // moving king => lose both castling rights
   if (move.piece.t === "K") {
     if (color === WHITE) { game.castling.wK = false; game.castling.wQ = false; }
     else { game.castling.bK = false; game.castling.bQ = false; }
   }
 
-  // moving rook from initial squares => lose that side right
   if (move.piece.t === "R") {
     if (from === sqOf(7,7)) game.castling.wK = false;
     if (from === sqOf(7,0)) game.castling.wQ = false;
@@ -393,7 +377,6 @@ function makeMove(move) {
     if (from === sqOf(0,0)) game.castling.bQ = false;
   }
 
-  // capture rook on initial squares => lose castling right for opponent
   if (move.capture && move.flags.includes("c")) {
     if (to === sqOf(7,7)) game.castling.wK = false;
     if (to === sqOf(7,0)) game.castling.wQ = false;
@@ -403,36 +386,27 @@ function makeMove(move) {
 
   // en passant capture
   if (move.flags.includes("e")) {
-    // target square is empty; remove captured pawn behind
-    if (color === WHITE) {
-      const capSq = to + 16;
-      setPiece(capSq, null);
-    } else {
-      const capSq = to - 16;
-      setPiece(capSq, null);
-    }
+    if (color === WHITE) setPiece(to + 16, null);
+    else setPiece(to - 16, null);
   }
 
   // move piece
   setPiece(from, null);
 
   let placed = move.piece;
-  // promotion
   if (move.promotion) placed = { c: color, t: move.promotion };
 
   setPiece(to, placed);
 
-  // castling move rook
+  // castling rook move
   if (move.flags === "k" || move.flags === "q") {
     if (color === WHITE) {
       if (move.flags === "k") {
-        // e1->g1 rook h1->f1
         const h1 = sqOf(7,7), f1 = sqOf(7,5);
         const rook = pieceAt(h1);
         setPiece(h1, null);
         setPiece(f1, rook);
       } else {
-        // e1->c1 rook a1->d1
         const a1 = sqOf(7,0), d1 = sqOf(7,3);
         const rook = pieceAt(a1);
         setPiece(a1, null);
@@ -440,13 +414,11 @@ function makeMove(move) {
       }
     } else {
       if (move.flags === "k") {
-        // e8->g8 rook h8->f8
         const h8 = sqOf(0,7), f8 = sqOf(0,5);
         const rook = pieceAt(h8);
         setPiece(h8, null);
         setPiece(f8, rook);
       } else {
-        // e8->c8 rook a8->d8
         const a8 = sqOf(0,0), d8 = sqOf(0,3);
         const rook = pieceAt(a8);
         setPiece(a8, null);
@@ -467,8 +439,7 @@ function makeMove(move) {
   game.plies += 1;
   game.lastMove = { from, to };
 
-  // determine game over
-  finalizeIfGameOver();
+  if (!simulate) finalizeIfGameOver();
 }
 
 function unmakeMove() {
@@ -480,8 +451,7 @@ function genLegalMoves(color) {
   const legal = [];
 
   for (const m of pseudo) {
-    makeMove(m);
-    // after move, it's opponent's turn; check if mover king is in check -> illegal
+    makeMove(m, { simulate: true });
     const mover = opponent(game.turn); // because turn already switched
     const illegal = inCheck(mover);
     unmakeMove();
@@ -496,17 +466,15 @@ function legalMovesFromSquare(color, fromSq) {
 }
 
 function finalizeIfGameOver() {
-  // after a move, game.turn is side to play
   const sideToPlay = game.turn;
-
   const legal = genLegalMoves(sideToPlay);
+
   if (legal.length > 0) {
     game.gameOver = false;
     game.result = null;
     return;
   }
 
-  // no legal moves => mate or stalemate
   if (inCheck(sideToPlay)) {
     game.gameOver = true;
     game.result = { type: "checkmate", winner: opponent(sideToPlay) };
@@ -518,20 +486,18 @@ function finalizeIfGameOver() {
 
 // -------------------- AI --------------------
 function evaluateMove(move, level) {
-  // basic: prefer captures/promotions/checks; higher level => less randomness
   let score = 0;
 
   if (move.capture) score += VALUE[move.capture.t] * 10;
   if (move.promotion) score += 90;
   if (move.flags === "k" || move.flags === "q") score += 2;
 
-  // check bonus: simulate
-  makeMove(move);
-  const givesCheck = inCheck(game.turn); // after move, turn is opponent; if opponent in check => givesCheck
+  makeMove(move, { simulate: true });
+  const givesCheck = inCheck(game.turn); // after move turn is opponent
   unmakeMove();
   if (givesCheck) score += 6;
 
-  const noiseFactor = (11 - level); // level 10 => 1, level 1 => 10
+  const noiseFactor = (11 - level);
   score += Math.random() * noiseFactor * 3;
 
   return score;
@@ -552,7 +518,6 @@ function aiMoveIfNeeded() {
     return;
   }
 
-  // choose best scored
   let best = moves[0];
   let bestScore = -Infinity;
   for (const m of moves) {
@@ -567,9 +532,9 @@ function aiMoveIfNeeded() {
     if (game.gameOver) return;
     makeMove(best);
     render();
-    // chain if still AI (should not, but safe)
+    if (game.gameOver) onGameFinished();
     aiMoveIfNeeded();
-  }, 250);
+  }, 200);
 }
 
 // -------------------- UI board mapping (orientation) --------------------
@@ -578,7 +543,6 @@ function orientation() {
 }
 
 function displayToSq(r, c) {
-  // r,c in 0..7 (r=0 top)
   const ori = orientation();
   const rank = (ori === "white") ? r : (7 - r);
   const file = (ori === "white") ? c : (7 - c);
@@ -607,6 +571,19 @@ function statusText() {
   return "Playing";
 }
 
+function applyPieceColorStyles(squareEl, piece) {
+  // make colors readable and consistent
+  if (!piece) return;
+  if (piece.c === WHITE) {
+    squareEl.style.color = "rgba(234,240,255,0.95)";
+    squareEl.style.textShadow = "0 1px 2px rgba(0,0,0,0.55)";
+  } else {
+    // dark pieces with glow so they are visible on dark squares
+    squareEl.style.color = "rgba(10,12,16,0.92)";
+    squareEl.style.textShadow = "0 0 2px rgba(255,255,255,0.70), 0 2px 3px rgba(0,0,0,0.55)";
+  }
+}
+
 function render() {
   boardEl.innerHTML = "";
   boardEl.style.display = "flex";
@@ -625,6 +602,8 @@ function render() {
       const internalSq = displayToSq(r,c);
       const p = pieceAt(internalSq);
       sq.textContent = p ? PIECES[pieceKey(p)] : "";
+
+      if (p) applyPieceColorStyles(sq, p);
 
       if (game.selectedSq === internalSq) sq.classList.add("sel");
       if (game.legalTargets.has(internalSq)) sq.classList.add("hint");
@@ -652,39 +631,33 @@ function onSquareClick(e) {
   const sq = displayToSq(r,c);
 
   const userColor = (sideEl.value === "white") ? WHITE : BLACK;
-  if (game.turn !== userColor) return; // user can move only on their turn
+  if (game.turn !== userColor) return;
 
   const p = pieceAt(sq);
 
-  // if nothing selected: select own piece
   if (game.selectedSq < 0) {
     if (!p || p.c !== game.turn) return;
     selectSquare(sq);
     return;
   }
 
-  // if clicked same => deselect
   if (game.selectedSq === sq) {
     clearSelection();
     render();
     return;
   }
 
-  // if clicked another own piece => reselect
   if (p && p.c === game.turn) {
     selectSquare(sq);
     return;
   }
 
-  // attempt move if target is legal
   if (game.legalTargets.has(sq)) {
     const moves = legalMovesFromSquare(game.turn, game.selectedSq);
     let chosen = moves.find(m => m.to === sq);
     if (!chosen) return;
 
-    // if promotion and multiple options: auto queen for now
     if (chosen.promotion) {
-      // already set in move object; but if multiple moves exist (Q,R,B,N) pick Q
       const q = moves.find(m => m.to === sq && m.promotion === "Q");
       if (q) chosen = q;
     }
@@ -692,13 +665,13 @@ function onSquareClick(e) {
     makeMove(chosen);
     clearSelection();
     render();
-    aiMoveIfNeeded();
 
     if (game.gameOver) onGameFinished();
+    else aiMoveIfNeeded();
+
     return;
   }
 
-  // otherwise: clear selection
   clearSelection();
   render();
 }
@@ -719,7 +692,6 @@ function selectSquare(sq) {
 
 // -------------------- game results + stats --------------------
 function updateStatsAndSend(result) {
-  // result: 'win'|'loss'|'draw'
   state.stats.gamesPlayed += 1;
   if (result === "win") state.stats.gamesWon += 1;
   if (result === "loss") state.stats.gamesLost += 1;
@@ -766,27 +738,23 @@ function newGame() {
   game = initialGame();
   clearSelection();
   render();
-  // if user chose black, white (AI) must start
-  aiMoveIfNeeded();
+  aiMoveIfNeeded(); // if user is black => AI starts
 }
 
 function resetPosition() {
-  // keep side/level settings but reset board
   newGame();
 }
 
 function undo() {
   if (game.history.length === 0) return;
+
   if (game.gameOver) {
-    // allow undo even after mate/stalemate to inspect
     game.gameOver = false;
     game.result = null;
   }
 
   const userColor = (sideEl.value === "white") ? WHITE : BLACK;
 
-  // In vs AI, make it convenient: undo until it's user's turn
-  // (usually 2 plies: AI move + user move)
   restore();
   if (game.turn !== userColor && game.history.length > 0) restore();
 
@@ -806,14 +774,13 @@ function hint() {
     return;
   }
 
-  // Suggest best move by simple evaluation (same as AI)
   const moves = genLegalMoves(game.turn);
   if (!moves.length) {
     hintTextEl.textContent = "No legal moves.";
     return;
   }
 
-  const level = Math.max(6, Number(levelEl.value) || 6); // make hints a bit smarter
+  const level = Math.max(6, Number(levelEl.value) || 6);
   let best = moves[0], bestScore = -Infinity;
   for (const m of moves) {
     const s = evaluateMove(m, level);
@@ -841,7 +808,6 @@ undoBtn.addEventListener("click", undo);
 hintBtn.addEventListener("click", hint);
 resignBtn.addEventListener("click", resign);
 
-// changing side should start fresh orientation
 sideEl.addEventListener("change", () => newGame());
 
 // init
