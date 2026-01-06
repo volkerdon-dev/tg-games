@@ -11,7 +11,7 @@
     <div class="header">
       <div class="brand">
         <h1>♟️ Play</h1>
-        <p>Tap a piece → tap destination (MVP no strict rules)</p>
+        <p>Legal chess rules • Check / Mate / Stalemate • AI plays any legal move</p>
       </div>
       <div class="row">
         <a class="btn ghost" href="../index.html">← Home</a>
@@ -27,15 +27,17 @@
             <option value="black">Black</option>
           </select>
         </div>
+
         <div>
-          <label>AI level (MVP)</label><br />
+          <label>AI level</label><br />
           <select id="level">
             <option>1</option><option>2</option><option>3</option><option selected>4</option>
             <option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
           </select>
         </div>
+
         <button id="newGame" class="btn">New Game</button>
-        <button id="endGame" class="btn secondary">End & Save</button>
+        <button id="endGame" class="btn secondary">Resign</button>
       </div>
 
       <div class="boardWrap">
@@ -44,23 +46,26 @@
         <div style="flex:1; min-width:260px">
           <div class="panel">
             <div class="kv">
+              <div>Status</div><div id="status">—</div>
               <div>Turn</div><div id="turn">—</div>
-              <div>Moves</div><div id="moves">0</div>
+              <div>Moves (plies)</div><div id="moves">0</div>
               <div>Selected</div><div id="selected">—</div>
             </div>
+
             <hr />
+
             <div class="row">
               <button id="undo" class="btn ghost">Undo</button>
               <button id="hint" class="btn ghost">Hint</button>
-              <button id="reset" class="btn ghost">Reset</button>
+              <button id="reset" class="btn ghost">Reset Position</button>
             </div>
+
             <p class="small" id="hintText" style="margin:12px 0 0"></p>
           </div>
 
           <div class="panel" style="margin-top:12px">
             <p class="small" style="margin:0">
-              MVP note: legal move checking + real Stockfish AI will be added next.
-              Сейчас важнее каркас разделов и прогресса.
+              Tip: tap a piece to see its legal moves. Checks are enforced; game ends on mate/stalemate.
             </p>
           </div>
         </div>
