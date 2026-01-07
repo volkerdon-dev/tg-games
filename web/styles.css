@@ -8,6 +8,10 @@
   --border:rgba(255,255,255,.08);
   --shadow: 0 10px 30px rgba(0,0,0,.35);
   --radius:18px;
+
+  /* neutral board colors */
+  --sqLight: rgba(240, 243, 248, 0.22);
+  --sqDark:  rgba(178, 186, 200, 0.26);
 }
 
 *{box-sizing:border-box}
@@ -27,10 +31,7 @@ a{color:inherit; text-decoration:none}
   display:flex; align-items:center; justify-content:space-between;
   gap:12px; padding:14px 0;
 }
-.brand{
-  display:flex; flex-direction:column;
-  gap:2px;
-}
+.brand{display:flex; flex-direction:column; gap:2px}
 .brand h1{margin:0; font-size:20px; letter-spacing:.2px}
 .brand p{margin:0; font-size:13px; color:var(--muted)}
 .pill{
@@ -60,9 +61,7 @@ a{color:inherit; text-decoration:none}
 .card h2{margin:0 0 6px; font-size:18px}
 .card p{margin:0; color:var(--muted); font-size:13px; line-height:1.4}
 
-.row{
-  display:flex; gap:12px; flex-wrap:wrap; align-items:center;
-}
+.row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
 .btn{
   background: rgba(110,231,255,.12);
   border:1px solid rgba(110,231,255,.22);
@@ -74,19 +73,10 @@ a{color:inherit; text-decoration:none}
   transition: transform .08s ease, background .12s ease, border-color .12s ease;
 }
 .btn:hover{transform: translateY(-1px); background: rgba(110,231,255,.16); border-color: rgba(110,231,255,.35)}
-.btn.secondary{
-  background: rgba(167,139,250,.12);
-  border-color: rgba(167,139,250,.22);
-}
-.btn.ghost{
-  background: transparent;
-  border-color: var(--border);
-  color: var(--muted);
-}
-hr{
-  border:none; height:1px; background: var(--border);
-  margin:16px 0;
-}
+.btn.secondary{background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.22)}
+.btn.ghost{background: transparent; border-color: var(--border); color:var(--muted)}
+
+hr{border:none; height:1px; background: var(--border); margin:16px 0}
 .small{font-size:12px; color:var(--muted)}
 
 .pageTitle{margin:6px 0 14px; font-size:18px}
@@ -97,20 +87,21 @@ hr{
   padding:14px;
 }
 
-.boardWrap{
-  display:flex; gap:14px; flex-wrap:wrap;
-}
+.boardWrap{display:flex; gap:14px; flex-wrap:wrap}
+
 .board{
   width: 360px;
   height: 360px;
   border-radius: 16px;
   overflow:hidden;
-  border:1px solid var(--border);
+  border:1px solid rgba(255,255,255,.10);
   box-shadow: var(--shadow);
+  background: rgba(255,255,255,.02);
 }
 @media (max-width:420px){
   .board{width: 320px; height:320px}
 }
+
 .square{
   width: 12.5%;
   height: 12.5%;
@@ -120,11 +111,42 @@ hr{
   font-size: 26px;
   user-select:none;
   cursor:pointer;
+  position:relative; /* needed for dots */
 }
-.square.light{background: rgba(234,240,255,.10)}
-.square.dark{background: rgba(12,18,32,.55)}
-.square.sel{outline: 2px solid rgba(110,231,255,.8); outline-offset:-2px}
-.square.hint{outline: 2px dashed rgba(167,139,250,.8); outline-offset:-2px}
+
+.square.light{background: var(--sqLight)}
+.square.dark{background: var(--sqDark)}
+
+.square.sel{
+  outline: 2px solid rgba(110,231,255,.85);
+  outline-offset:-2px;
+}
+
+/* NEW: move hints as DOT / RING */
+.square.hint-move::after{
+  content:"";
+  position:absolute;
+  width: 10px;
+  height: 10px;
+  border-radius:999px;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  background: rgba(110,231,255,.75);
+  box-shadow: 0 0 10px rgba(110,231,255,.25);
+}
+.square.hint-capture::after{
+  content:"";
+  position:absolute;
+  width: 62%;
+  height: 62%;
+  border-radius:999px;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  border: 3px solid rgba(167,139,250,.80);
+  box-shadow: 0 0 12px rgba(167,139,250,.20);
+}
 
 .kv{
   display:grid;
@@ -135,11 +157,7 @@ hr{
 .kv div{padding:6px 0; border-bottom:1px solid rgba(255,255,255,.06)}
 .kv div:nth-last-child(-n+2){border-bottom:none}
 
-.list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
+.list{display:flex; flex-direction:column; gap:10px}
 .item{
   border:1px solid var(--border);
   border-radius:14px;
