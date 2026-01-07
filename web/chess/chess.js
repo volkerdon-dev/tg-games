@@ -25,9 +25,10 @@ const hintBtn = document.getElementById("hint");
 const resetBtn = document.getElementById("reset");
 
 // -------------------- pieces --------------------
+// NOTE: bP changed to plain "♟" (без variation selector) — меньше проблем со “светлыми” пешками
 const PIECES = {
   wK:"♔", wQ:"♕", wR:"♖", wB:"♗", wN:"♘", wP:"♙",
-  bK:"♚", bQ:"♛", bR:"♜", bB:"♝", bN:"♞", bP:"♟︎"
+  bK:"♚", bQ:"♛", bR:"♜", bB:"♝", bN:"♞", bP:"♟"
 };
 
 const VALUE = { P:1, N:3, B:3, R:5, Q:9, K:1000 };
@@ -64,35 +65,42 @@ function createEmptyBoard() {
   return new Array(128).fill(null);
 }
 
-function initialGame() {
+function initialGame(playerColor) {
   const board = createEmptyBoard();
   const put = (r,f,c,t) => { board[sqOf(r,f)] = { c, t }; };
 
-  // black back rank (rank 8 => r=0)
+  // black pieces
   put(0,0,BLACK,"R"); put(0,1,BLACK,"N"); put(0,2,BLACK,"B"); put(0,3,BLACK,"Q");
   put(0,4,BLACK,"K"); put(0,5,BLACK,"B"); put(0,6,BLACK,"N"); put(0,7,BLACK,"R");
-  // black pawns (rank 7 => r=1)
   for (let f=0; f<8; f++) put(1,f,BLACK,"P");
 
-  // white pawns (rank 2 => r=6)
+  // white pieces
   for (let f=0; f<8; f++) put(6,f,WHITE,"P");
-  // white back rank (rank 1 => r=7)
   put(7,0,WHITE,"R"); put(7,1,WHITE,"N"); put(7,2,WHITE,"B"); put(7,3,WHITE,"Q");
   put(7,4,WHITE,"K"); put(7,5,WHITE,"B"); put(7,6,WHITE,"N"); put(7,7,WHITE,"R");
 
+  const aiColor = opponent(playerColor);
+
   return {
     board,
+    playerColor,
+    aiColor,
+
     turn: WHITE,
     castling: { wK:true, wQ:true, bK:true, bQ:true },
-    ep: -1, // en passant square
+    ep: -1,
     history: [],
     plies: 0,
     kingSq: { w: sqOf(7,4), b: sqOf(0,4) },
+
     gameOver: false,
-    result: null, // {type:'checkmate'|'stalemate'|'resign', winner:'w'|'b'|null}
+    result: null,
+
     selectedSq: -1,
     legalTargets: new Set(),
-    lastMove: null
+    lastMove: null,
+
+    aiThinking: false
   };
 }
 
@@ -110,7 +118,9 @@ function snapshot() {
     kingSq: { w: game.kingSq.w, b: game.kingSq.b },
     gameOver: game.gameOver,
     result: game.result ? { ...game.result } : null,
-    lastMove: game.lastMove ? { ...game.lastMove } : null
+    lastMove: game.lastMove ? { ...game.lastMove } : null,
+    // selection/history UI not needed
+    aiThinking: game.aiThinking
   };
   game.history.push(s);
 }
@@ -127,6 +137,8 @@ function restore() {
   game.gameOver = s.gameOver;
   game.result = s.result ? { ...s.result } : null;
   game.lastMove = s.lastMove ? { ...s.lastMove } : null;
+  game.aiThinking = s.aiThinking;
+
   game.selectedSq = -1;
   game.legalTargets = new Set();
 }
@@ -140,25 +152,13 @@ function isSquareAttacked(byColor, targetSq) {
   if (byColor === WHITE) {
     const a1 = targetSq + 17;
     const a2 = targetSq + 15;
-    if (!isOffboard(a1)) {
-      const p = pieceAt(a1);
-      if (p && p.c === WHITE && p.t === "P") return true;
-    }
-    if (!isOffboard(a2)) {
-      const p = pieceAt(a2);
-      if (p && p.c === WHITE && p.t === "P") return true;
-    }
+    if (!isOffboard(a1)) { const p = pieceAt(a1); if (p && p.c === WHITE && p.t === "P") return true; }
+    if (!isOffboard(a2)) { const p = pieceAt(a2); if (p && p.c === WHITE && p.t === "P") return true; }
   } else {
     const a1 = targetSq - 17;
     const a2 = targetSq - 15;
-    if (!isOffboard(a1)) {
-      const p = pieceAt(a1);
-      if (p && p.c === BLACK && p.t === "P") return true;
-    }
-    if (!isOffboard(a2)) {
-      const p = pieceAt(a2);
-      if (p && p.c === BLACK && p.t === "P") return true;
-    }
+    if (!isOffboard(a1)) { const p = pieceAt(a1); if (p && p.c === BLACK && p.t === "P") return true; }
+    if (!isOffboard(a2)) { const p = pieceAt(a2); if (p && p.c === BLACK && p.t === "P") return true; }
   }
 
   // Knights
@@ -169,28 +169,22 @@ function isSquareAttacked(byColor, targetSq) {
     if (p && p.c === byColor && p.t === "N") return true;
   }
 
-  // Bishops / Queens (diagonals)
+  // Bishops / Queens
   for (const d of OFFSETS.B) {
     let sq = targetSq + d;
     while (!isOffboard(sq)) {
       const p = pieceAt(sq);
-      if (p) {
-        if (p.c === byColor && (p.t === "B" || p.t === "Q")) return true;
-        break;
-      }
+      if (p) { if (p.c === byColor && (p.t === "B" || p.t === "Q")) return true; break; }
       sq += d;
     }
   }
 
-  // Rooks / Queens (straight)
+  // Rooks / Queens
   for (const d of OFFSETS.R) {
     let sq = targetSq + d;
     while (!isOffboard(sq)) {
       const p = pieceAt(sq);
-      if (p) {
-        if (p.c === byColor && (p.t === "R" || p.t === "Q")) return true;
-        break;
-      }
+      if (p) { if (p.c === byColor && (p.t === "R" || p.t === "Q")) return true; break; }
       sq += d;
     }
   }
@@ -207,14 +201,12 @@ function isSquareAttacked(byColor, targetSq) {
 }
 
 function inCheck(color) {
-  const ksq = game.kingSq[color];
-  return isSquareAttacked(opponent(color), ksq);
+  return isSquareAttacked(opponent(color), game.kingSq[color]);
 }
 
 // -------------------- move generation --------------------
 function addMove(moves, move) {
-  // forbid capturing king
-  if (move.capture && move.capture.t === "K") return;
+  if (move.capture && move.capture.t === "K") return; // king never captured
   moves.push(move);
 }
 
@@ -234,9 +226,7 @@ function genPseudoMoves(color) {
       const one = sq + dir;
       if (!isOffboard(one) && !pieceAt(one)) {
         if (rankOf(one) === promoteRank) {
-          for (const promo of ["Q","R","B","N"]) {
-            addMove(moves, { from:sq, to:one, piece:p, capture:null, promotion:promo, flags:"p" });
-          }
+          for (const promo of ["Q","R","B","N"]) addMove(moves, { from:sq, to:one, piece:p, capture:null, promotion:promo, flags:"p" });
         } else {
           addMove(moves, { from:sq, to:one, piece:p, capture:null, promotion:null, flags:"" });
         }
@@ -259,9 +249,7 @@ function genPseudoMoves(color) {
         const target = pieceAt(to);
         if (target && target.c !== color) {
           if (rankOf(to) === promoteRank) {
-            for (const promo of ["Q","R","B","N"]) {
-              addMove(moves, { from:sq, to, piece:p, capture:target, promotion:promo, flags:"cp" });
-            }
+            for (const promo of ["Q","R","B","N"]) addMove(moves, { from:sq, to, piece:p, capture:target, promotion:promo, flags:"cp" });
           } else {
             addMove(moves, { from:sq, to, piece:p, capture:target, promotion:null, flags:"c" });
           }
@@ -287,12 +275,8 @@ function genPseudoMoves(color) {
         let to = sq + d;
         while (!isOffboard(to)) {
           const target = pieceAt(to);
-          if (!target) {
-            addMove(moves, { from:sq, to, piece:p, capture:null, promotion:null, flags:"" });
-          } else {
-            if (target.c !== color) addMove(moves, { from:sq, to, piece:p, capture:target, promotion:null, flags:"c" });
-            break;
-          }
+          if (!target) addMove(moves, { from:sq, to, piece:p, capture:null, promotion:null, flags:"" });
+          else { if (target.c !== color) addMove(moves, { from:sq, to, piece:p, capture:target, promotion:null, flags:"c" }); break; }
           to += d;
         }
       }
@@ -344,6 +328,7 @@ function genPseudoMoves(color) {
           }
         }
       }
+
       continue;
     }
   }
@@ -351,17 +336,14 @@ function genPseudoMoves(color) {
   return moves;
 }
 
-// IMPORTANT FIX: makeMove() must NOT call finalize during simulations
 function makeMove(move, { simulate = false } = {}) {
   snapshot();
 
   const color = move.piece.c;
   const opp = opponent(color);
 
-  // clear en passant by default
   game.ep = -1;
 
-  // castling rights updates due to moving piece
   const from = move.from;
   const to = move.to;
 
@@ -384,13 +366,11 @@ function makeMove(move, { simulate = false } = {}) {
     if (to === sqOf(0,0)) game.castling.bQ = false;
   }
 
-  // en passant capture
   if (move.flags.includes("e")) {
     if (color === WHITE) setPiece(to + 16, null);
     else setPiece(to - 16, null);
   }
 
-  // move piece
   setPiece(from, null);
 
   let placed = move.piece;
@@ -398,39 +378,32 @@ function makeMove(move, { simulate = false } = {}) {
 
   setPiece(to, placed);
 
-  // castling rook move
   if (move.flags === "k" || move.flags === "q") {
     if (color === WHITE) {
       if (move.flags === "k") {
         const h1 = sqOf(7,7), f1 = sqOf(7,5);
         const rook = pieceAt(h1);
-        setPiece(h1, null);
-        setPiece(f1, rook);
+        setPiece(h1, null); setPiece(f1, rook);
       } else {
         const a1 = sqOf(7,0), d1 = sqOf(7,3);
         const rook = pieceAt(a1);
-        setPiece(a1, null);
-        setPiece(d1, rook);
+        setPiece(a1, null); setPiece(d1, rook);
       }
     } else {
       if (move.flags === "k") {
         const h8 = sqOf(0,7), f8 = sqOf(0,5);
         const rook = pieceAt(h8);
-        setPiece(h8, null);
-        setPiece(f8, rook);
+        setPiece(h8, null); setPiece(f8, rook);
       } else {
         const a8 = sqOf(0,0), d8 = sqOf(0,3);
         const rook = pieceAt(a8);
-        setPiece(a8, null);
-        setPiece(d8, rook);
+        setPiece(a8, null); setPiece(d8, rook);
       }
     }
   }
 
-  // update king squares
   if (placed.t === "K") game.kingSq[color] = to;
 
-  // set en passant square if pawn double move
   if (move.piece.t === "P" && move.flags === "2") {
     game.ep = (color === WHITE) ? (from - 16) : (from + 16);
   }
@@ -452,7 +425,7 @@ function genLegalMoves(color) {
 
   for (const m of pseudo) {
     makeMove(m, { simulate: true });
-    const mover = opponent(game.turn); // because turn already switched
+    const mover = opponent(game.turn);
     const illegal = inCheck(mover);
     unmakeMove();
     if (!illegal) legal.push(m);
@@ -493,7 +466,7 @@ function evaluateMove(move, level) {
   if (move.flags === "k" || move.flags === "q") score += 2;
 
   makeMove(move, { simulate: true });
-  const givesCheck = inCheck(game.turn); // after move turn is opponent
+  const givesCheck = inCheck(game.turn);
   unmakeMove();
   if (givesCheck) score += 6;
 
@@ -505,9 +478,7 @@ function evaluateMove(move, level) {
 
 function aiMoveIfNeeded() {
   if (game.gameOver) return;
-
-  const userColor = (sideEl.value === "white") ? WHITE : BLACK;
-  if (game.turn === userColor) return;
+  if (game.turn !== game.aiColor) return;
 
   const level = Number(levelEl.value) || 4;
   const moves = genLegalMoves(game.turn);
@@ -522,24 +493,29 @@ function aiMoveIfNeeded() {
   let bestScore = -Infinity;
   for (const m of moves) {
     const s = evaluateMove(m, level);
-    if (s > bestScore) {
-      bestScore = s;
-      best = m;
-    }
+    if (s > bestScore) { bestScore = s; best = m; }
   }
 
+  game.aiThinking = true;
+  render();
+
   setTimeout(() => {
+    game.aiThinking = false;
     if (game.gameOver) return;
+    if (game.turn !== game.aiColor) return;
+
     makeMove(best);
+    clearSelection(); // важно: после хода ИИ сбрасываем выделение
     render();
+
     if (game.gameOver) onGameFinished();
-    aiMoveIfNeeded();
   }, 200);
 }
 
 // -------------------- UI board mapping (orientation) --------------------
 function orientation() {
-  return sideEl.value === "black" ? "black" : "white";
+  // Теперь ориентация фиксируется на цвете игрока, а не берётся из select каждый раз
+  return game.playerColor === BLACK ? "black" : "white";
 }
 
 function displayToSq(r, c) {
@@ -556,29 +532,23 @@ function pieceKey(p) {
 }
 
 function statusText() {
+  if (game.aiThinking) return "AI thinking…";
+
   if (game.gameOver && game.result) {
-    if (game.result.type === "checkmate") {
-      return `CHECKMATE — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
-    }
+    if (game.result.type === "checkmate") return `CHECKMATE — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
     if (game.result.type === "stalemate") return "STALEMATE — Draw";
-    if (game.result.type === "resign") {
-      return `RESIGN — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
-    }
+    if (game.result.type === "resign") return `RESIGN — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
   }
 
-  const inChk = inCheck(game.turn);
-  if (inChk) return "CHECK";
-  return "Playing";
+  return inCheck(game.turn) ? "CHECK" : "Playing";
 }
 
 function applyPieceColorStyles(squareEl, piece) {
-  // make colors readable and consistent
   if (!piece) return;
   if (piece.c === WHITE) {
     squareEl.style.color = "rgba(234,240,255,0.95)";
     squareEl.style.textShadow = "0 1px 2px rgba(0,0,0,0.55)";
   } else {
-    // dark pieces with glow so they are visible on dark squares
     squareEl.style.color = "rgba(10,12,16,0.92)";
     squareEl.style.textShadow = "0 0 2px rgba(255,255,255,0.70), 0 2px 3px rgba(0,0,0,0.55)";
   }
@@ -602,7 +572,6 @@ function render() {
       const internalSq = displayToSq(r,c);
       const p = pieceAt(internalSq);
       sq.textContent = p ? PIECES[pieceKey(p)] : "";
-
       if (p) applyPieceColorStyles(sq, p);
 
       if (game.selectedSq === internalSq) sq.classList.add("sel");
@@ -625,13 +594,14 @@ function clearSelection() {
 
 function onSquareClick(e) {
   if (game.gameOver) return;
+  if (game.aiThinking) return; // пока бот ходит — не кликаем
 
   const r = Number(e.currentTarget.dataset.r);
   const c = Number(e.currentTarget.dataset.c);
   const sq = displayToSq(r,c);
 
-  const userColor = (sideEl.value === "white") ? WHITE : BLACK;
-  if (game.turn !== userColor) return;
+  // КЛЮЧЕВОЙ ФИКС: используем game.playerColor, а не sideEl.value
+  if (game.turn !== game.playerColor) return;
 
   const p = pieceAt(sq);
 
@@ -705,15 +675,13 @@ function updateStatsAndSend(result) {
     type: "game_result",
     mode: "vs_ai_legal",
     level: Number(levelEl.value) || 4,
-    side: sideEl.value,
+    side: game.playerColor === WHITE ? "white" : "black",
     result,
     plies: game.plies
   });
 }
 
 function onGameFinished() {
-  const userColor = (sideEl.value === "white") ? WHITE : BLACK;
-
   if (!game.result) return;
 
   if (game.result.type === "stalemate") {
@@ -723,22 +691,23 @@ function onGameFinished() {
 
   if (game.result.type === "checkmate") {
     const winner = game.result.winner;
-    updateStatsAndSend(winner === userColor ? "win" : "loss");
+    updateStatsAndSend(winner === game.playerColor ? "win" : "loss");
     return;
   }
 
   if (game.result.type === "resign") {
     const winner = game.result.winner;
-    updateStatsAndSend(winner === userColor ? "win" : "loss");
+    updateStatsAndSend(winner === game.playerColor ? "win" : "loss");
   }
 }
 
 // -------------------- controls --------------------
 function newGame() {
-  game = initialGame();
+  const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
+  game = initialGame(playerColor);
   clearSelection();
   render();
-  aiMoveIfNeeded(); // if user is black => AI starts
+  aiMoveIfNeeded(); // если игрок чёрный — белые (бот) стартуют
 }
 
 function resetPosition() {
@@ -753,32 +722,21 @@ function undo() {
     game.result = null;
   }
 
-  const userColor = (sideEl.value === "white") ? WHITE : BLACK;
-
+  // удобство vs AI: откатить до хода игрока
   restore();
-  if (game.turn !== userColor && game.history.length > 0) restore();
+  if (game.turn !== game.playerColor && game.history.length > 0) restore();
 
   clearSelection();
   render();
 }
 
 function hint() {
-  if (game.gameOver) {
-    hintTextEl.textContent = "Game over. Start a new game or undo.";
-    return;
-  }
-
-  const userColor = (sideEl.value === "white") ? WHITE : BLACK;
-  if (game.turn !== userColor) {
-    hintTextEl.textContent = "Wait for AI move…";
-    return;
-  }
+  if (game.gameOver) { hintTextEl.textContent = "Game over. Start a new game or undo."; return; }
+  if (game.aiThinking) { hintTextEl.textContent = "AI thinking…"; return; }
+  if (game.turn !== game.playerColor) { hintTextEl.textContent = "Wait for AI move…"; return; }
 
   const moves = genLegalMoves(game.turn);
-  if (!moves.length) {
-    hintTextEl.textContent = "No legal moves.";
-    return;
-  }
+  if (!moves.length) { hintTextEl.textContent = "No legal moves."; return; }
 
   const level = Math.max(6, Number(levelEl.value) || 6);
   let best = moves[0], bestScore = -Infinity;
@@ -792,9 +750,7 @@ function hint() {
 function resign() {
   if (game.gameOver) return;
 
-  const userColor = (sideEl.value === "white") ? WHITE : BLACK;
-  const winner = opponent(userColor);
-
+  const winner = opponent(game.playerColor);
   game.gameOver = true;
   game.result = { type: "resign", winner };
   render();
