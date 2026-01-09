@@ -3,73 +3,113 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Play — TG Chess</title>
+  <title>Chess • Play</title>
   <link rel="stylesheet" href="../styles.css" />
 </head>
+
 <body>
   <div class="container">
     <div class="header">
       <div class="brand">
-        <h1>♟️ Play</h1>
+        <h1>♟ Play</h1>
         <p>Legal chess rules • Check / Mate / Stalemate • AI plays any legal move</p>
       </div>
-      <div class="row">
-        <a class="btn ghost" href="../index.html">← Home</a>
-      </div>
+      <a class="btn ghost" href="../index.html">← Home</a>
     </div>
 
     <div class="panel">
-      <div class="row" style="margin-bottom:12px">
+      <div class="row" style="gap:14px; align-items:flex-end">
         <div>
-          <label>Side</label><br />
+          <label for="side">Side</label><br/>
           <select id="side">
-            <option value="white">White</option>
+            <option value="white" selected>White</option>
             <option value="black">Black</option>
           </select>
         </div>
 
         <div>
-          <label>AI level</label><br />
+          <label for="level">AI level</label><br/>
           <select id="level">
-            <option>1</option><option>2</option><option>3</option><option selected>4</option>
-            <option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10" selected>10</option>
           </select>
         </div>
 
-        <button id="newGame" class="btn">New Game</button>
-        <button id="endGame" class="btn secondary">Resign</button>
-      </div>
+        <div>
+          <label for="timeControl">Time</label><br/>
+          <select id="timeControl">
+            <option value="off">No clock</option>
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+            <option value="20" selected>20 min</option>
+            <option value="30">30 min</option>
+            <option value="60">60 min</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
 
-      <div class="boardWrap">
-        <div class="board" id="board" aria-label="chess board"></div>
-
-        <div style="flex:1; min-width:260px">
-          <div class="panel">
-            <div class="kv">
-              <div>Status</div><div id="status">—</div>
-              <div>Turn</div><div id="turn">—</div>
-              <div>Moves (plies)</div><div id="moves">0</div>
-              <div>Selected</div><div id="selected">—</div>
-            </div>
-
-            <hr />
-
-            <div class="row">
-              <button id="undo" class="btn ghost">Undo</button>
-              <button id="hint" class="btn ghost">Hint</button>
-              <button id="reset" class="btn ghost">Reset Position</button>
-            </div>
-
-            <p class="small" id="hintText" style="margin:12px 0 0"></p>
-          </div>
-
-          <div class="panel" style="margin-top:12px">
-            <p class="small" style="margin:0">
-              Tip: tap a piece to see its legal moves. Checks are enforced; game ends on mate/stalemate.
-            </p>
+        <div id="customTimeWrap" style="display:none">
+          <label>Custom (mm:ss)</label><br/>
+          <div class="row" style="gap:8px">
+            <input id="timeMinutes" class="input" type="number" min="0" value="20" style="width:78px" />
+            <input id="timeSeconds" class="input" type="number" min="0" max="59" value="0" style="width:78px" />
           </div>
         </div>
+
+        <button class="btn" id="newGame">New Game</button>
+        <button class="btn secondary" id="endGame">Resign</button>
       </div>
+    </div>
+
+    <div class="boardWrap" style="margin-top:14px">
+      <!-- BOARD + COORDS -->
+      <div class="boardFrame" id="boardFrame">
+        <div class="corner"></div>
+        <div class="coords files top" id="filesTop"></div>
+        <div class="corner"></div>
+
+        <div class="coords ranks left" id="ranksLeft"></div>
+        <div class="board" id="board"></div>
+        <div class="coords ranks right" id="ranksRight"></div>
+
+        <div class="corner"></div>
+        <div class="coords files bottom" id="filesBottom"></div>
+        <div class="corner"></div>
+      </div>
+
+      <!-- STATUS PANEL -->
+      <div class="panel" style="flex:1; min-width:280px">
+        <div class="kv">
+          <div>Status</div><div id="status">—</div>
+          <div>Turn</div><div id="turn">—</div>
+          <div>Moves (plies)</div><div id="moves">0</div>
+          <div>Selected</div><div id="selected">—</div>
+          <div>White time</div><div id="wClock">—</div>
+          <div>Black time</div><div id="bClock">—</div>
+        </div>
+
+        <hr/>
+
+        <div class="row">
+          <button class="btn ghost" id="undo">Undo</button>
+          <button class="btn ghost" id="hint">Hint</button>
+          <button class="btn ghost" id="reset">Reset Position</button>
+        </div>
+
+        <div class="small" id="hintText" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="small" style="margin-top:12px">
+      Tip: tap a piece to see its legal moves. Checks are enforced; game ends on mate/stalemate/timeout.
     </div>
   </div>
 
