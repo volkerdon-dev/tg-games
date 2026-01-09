@@ -170,7 +170,7 @@ function inCheck(color) {
 
 // -------------------- move gen (pseudo) --------------------
 function addMove(moves, move) {
-  if (move.capture && move.capture.t === "K") return; // no king capture
+  if (move.capture && move.capture.t === "K") return;
   moves.push(move);
 }
 
@@ -301,7 +301,7 @@ function genPseudoMoves(color) {
   return moves;
 }
 
-// -------------------- APPLY / REVERT (core fix) --------------------
+// -------------------- APPLY / REVERT (FIXED) --------------------
 function applyMove(move, { recordUndo = false } = {}) {
   const color = move.piece.c;
   const opp = opponent(color);
@@ -310,7 +310,7 @@ function applyMove(move, { recordUndo = false } = {}) {
     from: move.from,
     to: move.to,
     moved: clonePiece(pieceAt(move.from)) || clonePiece(move.piece),
-    captured: clonePiece(pieceAt(move.to)),
+    captured: clonePiece(pieceAt(move.to)), // <— IMPORTANT: for en-passant this should stay null
     prevCastling: { ...game.castling },
     prevEp: game.ep,
     prevPlies: game.plies,
@@ -320,21 +320,21 @@ function applyMove(move, { recordUndo = false } = {}) {
     prevGameOver: game.gameOver,
     prevResult: game.result ? { ...game.result } : null,
     rookMove: null,
-    epCapture: null,
+    epCapture: null, // {sq, piece}
   };
 
   // clear ep
   game.ep = -1;
 
-  // en passant capture
+  // en passant capture: remove pawn behind target square
   if (move.flags.includes("e")) {
     const capSq = (color === WHITE) ? (move.to + 16) : (move.to - 16);
     prev.epCapture = { sq: capSq, piece: clonePiece(pieceAt(capSq)) };
     setPiece(capSq, null);
-    prev.captured = { c: opp, t: "P" };
+    // NOTE: prev.captured remains whatever was on "to" square (it is null in EP) — FIX
   }
 
-  // castling rights updates by moved piece / rook moved / rook captured
+  // castling rights updates
   if (prev.moved?.t === "K") {
     if (color === WHITE) { game.castling.wK = false; game.castling.wQ = false; }
     else { game.castling.bK = false; game.castling.bQ = false; }
@@ -421,11 +421,11 @@ function revertMove(prev) {
     setPiece(prev.rookMove.to, null);
   }
 
-  // restore pieces
+  // restore moved piece + captured piece on "to"
   setPiece(prev.from, prev.moved);
   setPiece(prev.to, prev.captured);
 
-  // restore en passant captured pawn
+  // restore en passant captured pawn back to its original square
   if (prev.epCapture) {
     setPiece(prev.epCapture.sq, prev.epCapture.piece);
   }
@@ -476,7 +476,7 @@ function evaluateMove(move, level) {
   if (move.flags === "k" || move.flags === "q") score += 2;
 
   const undo = applyMove(move, { recordUndo: false });
-  const givesCheck = inCheck(game.turn); // after move, opponent to play
+  const givesCheck = inCheck(game.turn);
   revertMove(undo);
   if (givesCheck) score += 6;
 
@@ -521,266 +521,4 @@ function aiMoveIfNeeded() {
   }, 220);
 }
 
-// -------------------- UI mapping --------------------
-function orientation() {
-  return game.playerColor === BLACK ? "black" : "white";
-}
-
-function displayToSq(r, c) {
-  const ori = orientation();
-  const rank = (ori === "white") ? r : (7 - r);
-  const file = (ori === "white") ? c : (7 - c);
-  return sqOf(rank, file);
-}
-
-function pieceKey(p) {
-  if (!p) return "";
-  return (p.c === WHITE ? "w" : "b") + p.t;
-}
-
-// -------------------- UI helpers --------------------
-function clearSelection() {
-  game.selectedSq = -1;
-  game.selectedMoves = [];
-  game.hintMap = new Map();
-  hintTextEl.textContent = "";
-}
-
-function selectSquare(sq) {
-  game.selectedSq = sq;
-  game.selectedMoves = legalMovesFromSquare(game.turn, sq);
-  game.hintMap = new Map();
-
-  for (const m of game.selectedMoves) {
-    game.hintMap.set(m.to, m.capture ? "capture" : "move");
-  }
-
-  hintTextEl.textContent = game.selectedMoves.length
-    ? `Legal moves: ${game.selectedMoves.map(m => algebraic(m.to)).slice(0,10).join(", ")}${game.selectedMoves.length>10?"…":""}`
-    : "No legal moves for this piece.";
-}
-
-// -------------------- render --------------------
-function statusText() {
-  if (game.aiThinking) return "AI thinking…";
-  if (game.gameOver && game.result) {
-    if (game.result.type === "checkmate") return `CHECKMATE — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
-    if (game.result.type === "stalemate") return "STALEMATE — Draw";
-    if (game.result.type === "resign") return `RESIGN — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
-  }
-  return inCheck(game.turn) ? "CHECK" : "Playing";
-}
-
-function applyPieceColorStyles(el, piece) {
-  if (!piece) return;
-  if (piece.c === WHITE) {
-    el.style.color = "rgba(245,247,255,0.98)";
-    el.style.textShadow = "0 1px 2px rgba(0,0,0,0.55)";
-  } else {
-    // чуть светлее чёрные + сильный “контур”
-    el.style.color = "rgba(38,44,54,0.98)";
-    el.style.textShadow = "0 0 2px rgba(255,255,255,0.85), 0 2px 3px rgba(0,0,0,0.55)";
-  }
-}
-
-function render() {
-  boardEl.innerHTML = "";
-  boardEl.style.display = "flex";
-  boardEl.style.flexWrap = "wrap";
-
-  setText("status", statusText());
-  setText("turn", game.turn === WHITE ? "White" : "Black");
-  setText("moves", String(game.plies));
-  setText("selected", game.selectedSq >= 0 ? algebraic(game.selectedSq) : "—");
-
-  for (let r=0; r<8; r++) {
-    for (let c=0; c<8; c++) {
-      const el = document.createElement("div");
-      el.className = "square " + (((r+c)%2===0) ? "light" : "dark");
-
-      const internalSq = displayToSq(r,c);
-      const p = pieceAt(internalSq);
-      el.textContent = p ? PIECES[pieceKey(p)] : "";
-
-      if (p) applyPieceColorStyles(el, p);
-
-      if (game.selectedSq === internalSq) el.classList.add("sel");
-
-      const hint = game.hintMap.get(internalSq);
-      if (hint === "move") el.classList.add("hint-move");
-      if (hint === "capture") el.classList.add("hint-capture");
-
-      el.dataset.r = String(r);
-      el.dataset.c = String(c);
-      el.addEventListener("click", onSquareClick);
-
-      boardEl.appendChild(el);
-    }
-  }
-}
-
-// -------------------- click logic (core fix) --------------------
-function onSquareClick(e) {
-  if (game.gameOver) return;
-  if (game.aiThinking) return;
-  if (game.turn !== game.playerColor) return;
-
-  const r = Number(e.currentTarget.dataset.r);
-  const c = Number(e.currentTarget.dataset.c);
-  const sq = displayToSq(r,c);
-
-  const p = pieceAt(sq);
-
-  // no selection: select own piece
-  if (game.selectedSq < 0) {
-    if (!p || p.c !== game.turn) return;
-    selectSquare(sq);
-    render();
-    return;
-  }
-
-  // click same square -> deselect
-  if (game.selectedSq === sq) {
-    clearSelection();
-    render();
-    return;
-  }
-
-  // click another own piece -> reselect
-  if (p && p.c === game.turn) {
-    selectSquare(sq);
-    render();
-    return;
-  }
-
-  // try move (IMPORTANT: use selectedMoves, not recompute)
-  const moveType = game.hintMap.get(sq);
-  if (moveType) {
-    let chosen = game.selectedMoves.find(m => m.to === sq);
-    if (!chosen) return;
-
-    // if promotions exist, choose Q
-    if (chosen.promotion) {
-      const q = game.selectedMoves.find(m => m.to === sq && m.promotion === "Q");
-      if (q) chosen = q;
-    }
-
-    applyMove(chosen, { recordUndo: true });
-    clearSelection();
-
-    finalizeIfGameOver();
-    render();
-
-    if (game.gameOver) onGameFinished();
-    else aiMoveIfNeeded();
-
-    return;
-  }
-
-  // otherwise clear selection
-  clearSelection();
-  render();
-}
-
-// -------------------- results + stats --------------------
-function updateStatsAndSend(result) {
-  state.stats.gamesPlayed += 1;
-  if (result === "win") state.stats.gamesWon += 1;
-  if (result === "loss") state.stats.gamesLost += 1;
-  if (result === "draw") state.stats.gamesDraw += 1;
-  state.stats.totalMoves += game.plies;
-
-  touch(state);
-  saveState(state);
-
-  sendEvent({
-    type: "game_result",
-    mode: "vs_ai_legal",
-    level: Number(levelEl.value) || 4,
-    side: game.playerColor === WHITE ? "white" : "black",
-    result,
-    plies: game.plies
-  });
-}
-
-function onGameFinished() {
-  if (!game.result) return;
-
-  if (game.result.type === "stalemate") {
-    updateStatsAndSend("draw");
-    return;
-  }
-
-  if (game.result.type === "checkmate") {
-    updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
-    return;
-  }
-
-  if (game.result.type === "resign") {
-    updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
-  }
-}
-
-// -------------------- controls --------------------
-function newGame() {
-  const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
-  game = initialGame(playerColor);
-  clearSelection();
-  finalizeIfGameOver();
-  render();
-  aiMoveIfNeeded(); // if player is black, AI starts
-}
-
-function undo() {
-  if (!game.undoStack.length) return;
-
-  // undo last move
-  revertMove(game.undoStack.pop());
-
-  // if it's still not player's turn, undo one more (AI move)
-  if (game.undoStack.length && game.turn !== game.playerColor) {
-    revertMove(game.undoStack.pop());
-  }
-
-  game.aiThinking = false;
-  clearSelection();
-  finalizeIfGameOver();
-  render();
-}
-
-function hint() {
-  if (game.gameOver) { hintTextEl.textContent = "Game over. Start a new game or undo."; return; }
-  if (game.aiThinking) { hintTextEl.textContent = "AI thinking…"; return; }
-  if (game.turn !== game.playerColor) { hintTextEl.textContent = "Wait for AI move…"; return; }
-
-  const moves = genLegalMoves(game.turn);
-  if (!moves.length) { hintTextEl.textContent = "No legal moves."; return; }
-
-  const level = Math.max(6, Number(levelEl.value) || 6);
-  let best = moves[0], bestScore = -Infinity;
-  for (const m of moves) {
-    const s = evaluateMove(m, level);
-    if (s > bestScore) { bestScore = s; best = m; }
-  }
-  hintTextEl.textContent = `Hint: ${algebraic(best.from)} → ${algebraic(best.to)}${best.promotion ? ` = ${best.promotion}` : ""}`;
-}
-
-function resign() {
-  if (game.gameOver) return;
-  const winner = opponent(game.playerColor);
-  game.gameOver = true;
-  game.result = { type: "resign", winner };
-  render();
-  onGameFinished();
-}
-
-// bind
-newGameBtn.addEventListener("click", newGame);
-resetBtn.addEventListener("click", newGame);
-undoBtn.addEventListener("click", undo);
-hintBtn.addEventListener("click", hint);
-resignBtn.addEventListener("click", resign);
-sideEl.addEventListener("change", () => newGame());
-
-// init
-newGame();
+// -------------------- UI mapping
