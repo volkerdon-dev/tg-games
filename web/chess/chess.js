@@ -12,6 +12,16 @@ const boardEl = document.getElementById("board");
 const sideEl = document.getElementById("side");
 const levelEl = document.getElementById("level");
 
+const timeControlEl = document.getElementById("timeControl");
+const customTimeWrap = document.getElementById("customTimeWrap");
+const timeMinutesEl = document.getElementById("timeMinutes");
+const timeSecondsEl = document.getElementById("timeSeconds");
+
+const filesTopEl = document.getElementById("filesTop");
+const filesBottomEl = document.getElementById("filesBottom");
+const ranksLeftEl = document.getElementById("ranksLeft");
+const ranksRightEl = document.getElementById("ranksRight");
+
 const hintTextEl = document.getElementById("hintText");
 
 const newGameBtn = document.getElementById("newGame");
@@ -20,11 +30,13 @@ const undoBtn = document.getElementById("undo");
 const hintBtn = document.getElementById("hint");
 const resetBtn = document.getElementById("reset");
 
-// -------------------- pieces --------------------
-const PIECES = {
-  wK:"♔", wQ:"♕", wR:"♖", wB:"♗", wN:"♘", wP:"♙",
-  bK:"♚", bQ:"♛", bR:"♜", bB:"♝", bN:"♞", bP:"♟"
-};
+// clocks display
+const wClockId = "wClock";
+const bClockId = "bClock";
+
+// -------------------- pieces (FILLED glyphs for both) --------------------
+// We use filled (black) glyphs ♚♛♜♝♞♟ and color them via CSS (white/black).
+const GLYPH = { K:"♚", Q:"♛", R:"♜", B:"♝", N:"♞", P:"♟" };
 
 const VALUE = { P:1, N:3, B:3, R:5, Q:9, K:1000 };
 
@@ -98,11 +110,146 @@ function initialGame(playerColor) {
     undoStack: [],
 
     aiThinking: false,
+
+    // clock
+    clock: {
+      enabled: false,
+      wMs: 0,
+      bMs: 0,
+      timerId: null,
+      lastTs: null,
+    }
   };
 }
 
 function pieceAt(sq){ return game.board[sq]; }
 function setPiece(sq, p){ game.board[sq] = p; }
+
+// -------------------- coords --------------------
+function orientation() {
+  return game.playerColor === BLACK ? "black" : "white";
+}
+
+function updateCoords() {
+  if (!filesTopEl || !filesBottomEl || !ranksLeftEl || !ranksRightEl) return;
+
+  const ori = orientation();
+  const files = (ori === "white")
+    ? ["a","b","c","d","e","f","g","h"]
+    : ["h","g","f","e","d","c","b","a"];
+
+  const ranks = (ori === "white")
+    ? ["8","7","6","5","4","3","2","1"]
+    : ["1","2","3","4","5","6","7","8"];
+
+  filesTopEl.innerHTML = files.map(x => `<span>${x}</span>`).join("");
+  filesBottomEl.innerHTML = files.map(x => `<span>${x}</span>`).join("");
+  ranksLeftEl.innerHTML = ranks.map(x => `<span>${x}</span>`).join("");
+  ranksRightEl.innerHTML = ranks.map(x => `<span>${x}</span>`).join("");
+}
+
+// mapping from display (row/col) to internal 0x88 square
+function displayToSq(r, c) {
+  const ori = orientation();
+  const rank = (ori === "white") ? r : (7 - r);
+  const file = (ori === "white") ? c : (7 - c);
+  return sqOf(rank, file);
+}
+
+// -------------------- clock --------------------
+function stopClock() {
+  if (game?.clock?.timerId) {
+    clearInterval(game.clock.timerId);
+    game.clock.timerId = null;
+  }
+  if (game?.clock) game.clock.lastTs = null;
+}
+
+function formatMs(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+function renderClocks() {
+  if (!game.clock.enabled) {
+    setText(wClockId, "—");
+    setText(bClockId, "—");
+    return;
+  }
+  setText(wClockId, formatMs(game.clock.wMs));
+  setText(bClockId, formatMs(game.clock.bMs));
+}
+
+function onTimeout(loserColor) {
+  if (game.gameOver) return;
+  const winner = opponent(loserColor);
+  game.gameOver = true;
+  game.result = { type: "timeout", winner, loser: loserColor };
+  stopClock();
+  clearSelection();
+  render();
+  onGameFinished();
+}
+
+function tickClock() {
+  if (!game.clock.enabled) return;
+  if (game.gameOver) return;
+
+  const now = performance.now();
+  if (game.clock.lastTs == null) game.clock.lastTs = now;
+
+  const dt = now - game.clock.lastTs;
+  game.clock.lastTs = now;
+
+  // active clock = side to move
+  if (game.turn === WHITE) game.clock.wMs -= dt;
+  else game.clock.bMs -= dt;
+
+  if (game.clock.wMs <= 0) return onTimeout(WHITE);
+  if (game.clock.bMs <= 0) return onTimeout(BLACK);
+
+  renderClocks();
+}
+
+function startClockIfEnabled() {
+  stopClock();
+  if (!game.clock.enabled) {
+    renderClocks();
+    return;
+  }
+  game.clock.lastTs = performance.now();
+  game.clock.timerId = setInterval(tickClock, 200);
+  renderClocks();
+}
+
+function readTimeSettingSeconds() {
+  const v = timeControlEl?.value ?? "20";
+  if (v === "off") return null;
+  if (v === "custom") {
+    const mm = Math.max(0, parseInt(timeMinutesEl?.value ?? "20", 10) || 0);
+    const ss = Math.max(0, Math.min(59, parseInt(timeSecondsEl?.value ?? "0", 10) || 0));
+    return mm * 60 + ss;
+  }
+  const minutes = Math.max(0, parseInt(v, 10) || 0);
+  return minutes * 60;
+}
+
+function initClockFromUI() {
+  const seconds = readTimeSettingSeconds();
+  if (!seconds || seconds <= 0) {
+    game.clock.enabled = false;
+    game.clock.wMs = 0;
+    game.clock.bMs = 0;
+    startClockIfEnabled();
+    return;
+  }
+  game.clock.enabled = true;
+  game.clock.wMs = seconds * 1000;
+  game.clock.bMs = seconds * 1000;
+  startClockIfEnabled();
+}
 
 // -------------------- attack / check --------------------
 function isSquareAttacked(byColor, targetSq) {
@@ -301,7 +448,7 @@ function genPseudoMoves(color) {
   return moves;
 }
 
-// -------------------- APPLY / REVERT (FIXED) --------------------
+// -------------------- APPLY / REVERT (safe simulation + undo) --------------------
 function applyMove(move, { recordUndo = false } = {}) {
   const color = move.piece.c;
   const opp = opponent(color);
@@ -310,7 +457,7 @@ function applyMove(move, { recordUndo = false } = {}) {
     from: move.from,
     to: move.to,
     moved: clonePiece(pieceAt(move.from)) || clonePiece(move.piece),
-    captured: clonePiece(pieceAt(move.to)), // <— IMPORTANT: for en-passant this should stay null
+    captured: clonePiece(pieceAt(move.to)),
     prevCastling: { ...game.castling },
     prevEp: game.ep,
     prevPlies: game.plies,
@@ -320,18 +467,19 @@ function applyMove(move, { recordUndo = false } = {}) {
     prevGameOver: game.gameOver,
     prevResult: game.result ? { ...game.result } : null,
     rookMove: null,
-    epCapture: null, // {sq, piece}
+    epCapture: null,
+    prevClock: recordUndo ? { enabled: game.clock.enabled, wMs: game.clock.wMs, bMs: game.clock.bMs } : null
   };
 
   // clear ep
   game.ep = -1;
 
-  // en passant capture: remove pawn behind target square
+  // en passant capture
   if (move.flags.includes("e")) {
     const capSq = (color === WHITE) ? (move.to + 16) : (move.to - 16);
     prev.epCapture = { sq: capSq, piece: clonePiece(pieceAt(capSq)) };
     setPiece(capSq, null);
-    // NOTE: prev.captured remains whatever was on "to" square (it is null in EP) — FIX
+    // NOTE: prev.captured stays "to-square piece" (it is null for EP) — correct
   }
 
   // castling rights updates
@@ -401,6 +549,9 @@ function applyMove(move, { recordUndo = false } = {}) {
 
   if (recordUndo) game.undoStack.push(prev);
 
+  // reset clock tick origin after real move
+  if (recordUndo && game.clock.enabled) game.clock.lastTs = performance.now();
+
   return prev;
 }
 
@@ -421,13 +572,21 @@ function revertMove(prev) {
     setPiece(prev.rookMove.to, null);
   }
 
-  // restore moved piece + captured piece on "to"
+  // restore moved + captured
   setPiece(prev.from, prev.moved);
   setPiece(prev.to, prev.captured);
 
-  // restore en passant captured pawn back to its original square
+  // restore en-passant captured pawn
   if (prev.epCapture) {
     setPiece(prev.epCapture.sq, prev.epCapture.piece);
+  }
+
+  // restore clock snapshot (only for real undos)
+  if (prev.prevClock) {
+    game.clock.enabled = prev.prevClock.enabled;
+    game.clock.wMs = prev.prevClock.wMs;
+    game.clock.bMs = prev.prevClock.bMs;
+    game.clock.lastTs = performance.now();
   }
 }
 
@@ -466,6 +625,8 @@ function finalizeIfGameOver() {
     game.gameOver = true;
     game.result = { type: "stalemate", winner: null };
   }
+
+  stopClock();
 }
 
 // -------------------- AI --------------------
@@ -521,23 +682,6 @@ function aiMoveIfNeeded() {
   }, 220);
 }
 
-// -------------------- UI mapping --------------------
-function orientation() {
-  return game.playerColor === BLACK ? "black" : "white";
-}
-
-function displayToSq(r, c) {
-  const ori = orientation();
-  const rank = (ori === "white") ? r : (7 - r);
-  const file = (ori === "white") ? c : (7 - c);
-  return sqOf(rank, file);
-}
-
-function pieceKey(p) {
-  if (!p) return "";
-  return (p.c === WHITE ? "w" : "b") + p.t;
-}
-
 // -------------------- UI helpers --------------------
 function clearSelection() {
   game.selectedSq = -1;
@@ -563,25 +707,28 @@ function selectSquare(sq) {
 // -------------------- render --------------------
 function statusText() {
   if (game.aiThinking) return "AI thinking…";
+
   if (game.gameOver && game.result) {
     if (game.result.type === "checkmate") return `CHECKMATE — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
     if (game.result.type === "stalemate") return "STALEMATE — Draw";
     if (game.result.type === "resign") return `RESIGN — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
+    if (game.result.type === "timeout") return `TIMEOUT — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
   }
+
   return inCheck(game.turn) ? "CHECK" : "Playing";
 }
 
 function applyPieceColorStyles(el, piece) {
   if (!piece) return;
 
-  // white pieces: white + darker outline
   if (piece.c === WHITE) {
-    el.style.color = "rgba(255,255,255,0.98)";
+    // solid white
+    el.style.color = "#ffffff";
     el.style.textShadow = "0 0 2px rgba(0,0,0,0.65), 0 2px 2px rgba(0,0,0,0.35)";
   } else {
-    // black pieces: near-black + светлый “контур”
-    el.style.color = "rgba(18,18,18,0.98)";
-    el.style.textShadow = "0 0 2px rgba(255,255,255,0.75), 0 2px 2px rgba(0,0,0,0.35)";
+    // solid black + light outline
+    el.style.color = "#111111";
+    el.style.textShadow = "0 0 2px rgba(255,255,255,0.85), 0 2px 2px rgba(0,0,0,0.35)";
   }
 }
 
@@ -590,10 +737,15 @@ function render() {
   boardEl.style.display = "flex";
   boardEl.style.flexWrap = "wrap";
 
+  updateCoords();
+
   setText("status", statusText());
   setText("turn", game.turn === WHITE ? "White" : "Black");
   setText("moves", String(game.plies));
   setText("selected", game.selectedSq >= 0 ? algebraic(game.selectedSq) : "—");
+
+  // clocks (static render + ticking via interval)
+  renderClocks();
 
   for (let r=0; r<8; r++) {
     for (let c=0; c<8; c++) {
@@ -603,7 +755,7 @@ function render() {
       const internalSq = displayToSq(r,c);
       const p = pieceAt(internalSq);
 
-      el.textContent = p ? PIECES[pieceKey(p)] : "";
+      el.textContent = p ? GLYPH[p.t] : "";
       if (p) applyPieceColorStyles(el, p);
 
       if (game.selectedSq === internalSq) el.classList.add("sel");
@@ -701,29 +853,26 @@ function updateStatsAndSend(result) {
 function onGameFinished() {
   if (!game.result) return;
 
-  if (game.result.type === "stalemate") {
-    updateStatsAndSend("draw");
-    return;
-  }
-
-  if (game.result.type === "checkmate") {
-    updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
-    return;
-  }
-
-  if (game.result.type === "resign") {
-    updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
-  }
+  if (game.result.type === "stalemate") return updateStatsAndSend("draw");
+  if (game.result.type === "checkmate") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
+  if (game.result.type === "timeout") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
+  if (game.result.type === "resign") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
 }
 
 // -------------------- controls --------------------
 function newGame() {
+  stopClock();
+
   const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
   game = initialGame(playerColor);
+
+  // clock init
+  initClockFromUI();
+
   clearSelection();
   finalizeIfGameOver();
   render();
-  aiMoveIfNeeded();
+  aiMoveIfNeeded(); // if player black -> AI starts
 }
 
 function undo() {
@@ -737,6 +886,11 @@ function undo() {
   game.aiThinking = false;
   clearSelection();
   finalizeIfGameOver();
+
+  // restart clock tick from current moment
+  if (game.clock.enabled) startClockIfEnabled();
+  else stopClock();
+
   render();
 }
 
@@ -762,8 +916,20 @@ function resign() {
   const winner = opponent(game.playerColor);
   game.gameOver = true;
   game.result = { type: "resign", winner };
+  stopClock();
   render();
   onGameFinished();
+}
+
+function onTimeControlUIChange() {
+  if (!customTimeWrap) return;
+  customTimeWrap.style.display = (timeControlEl.value === "custom") ? "block" : "none";
+
+  // convenience: if user picks a preset, sync inputs
+  if (timeControlEl.value !== "custom" && timeControlEl.value !== "off") {
+    timeMinutesEl.value = String(parseInt(timeControlEl.value, 10) || 20);
+    timeSecondsEl.value = "0";
+  }
 }
 
 // bind
@@ -772,7 +938,12 @@ resetBtn.addEventListener("click", newGame);
 undoBtn.addEventListener("click", undo);
 hintBtn.addEventListener("click", hint);
 resignBtn.addEventListener("click", resign);
-sideEl.addEventListener("change", () => newGame());
 
-// init
+sideEl.addEventListener("change", () => newGame());
+timeControlEl.addEventListener("change", onTimeControlUIChange);
+timeMinutesEl?.addEventListener("change", () => {});
+timeSecondsEl?.addEventListener("change", () => {});
+
+// init UI + game
+onTimeControlUIChange();
 newGame();
