@@ -70,30 +70,35 @@
     </div>
 
     <div class="boardWrap" style="margin-top:14px">
-      <!-- BOARD + COORDS -->
-      <div class="boardFrame" id="boardFrame">
-        <div class="corner"></div>
-        <div class="coords files top" id="filesTop"></div>
-        <div class="corner"></div>
+      <!-- LEFT: CLOCK + BOARD -->
+      <div class="boardCol">
+        <div class="clockBar">
+          <div class="clockLabel" id="playerClockLabel">Your time</div>
+          <div class="clockValue" id="playerClock">20:00</div>
+        </div>
 
-        <div class="coords ranks left" id="ranksLeft"></div>
-        <div class="board" id="board"></div>
-        <div class="coords ranks right" id="ranksRight"></div>
+        <div class="boardFrame" id="boardFrame">
+          <div class="corner"></div>
+          <div class="coords files top" id="filesTop"></div>
+          <div class="corner"></div>
 
-        <div class="corner"></div>
-        <div class="coords files bottom" id="filesBottom"></div>
-        <div class="corner"></div>
+          <div class="coords ranks left" id="ranksLeft"></div>
+          <div class="board" id="board"></div>
+          <div class="coords ranks right" id="ranksRight"></div>
+
+          <div class="corner"></div>
+          <div class="coords files bottom" id="filesBottom"></div>
+          <div class="corner"></div>
+        </div>
       </div>
 
-      <!-- STATUS PANEL -->
+      <!-- RIGHT: STATUS -->
       <div class="panel" style="flex:1; min-width:280px">
         <div class="kv">
           <div>Status</div><div id="status">—</div>
           <div>Turn</div><div id="turn">—</div>
           <div>Moves (plies)</div><div id="moves">0</div>
           <div>Selected</div><div id="selected">—</div>
-          <div>White time</div><div id="wClock">—</div>
-          <div>Black time</div><div id="bClock">—</div>
         </div>
 
         <hr/>
