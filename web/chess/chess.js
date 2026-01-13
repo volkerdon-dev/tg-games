@@ -835,6 +835,12 @@ async function sfBestMoveFromFEN(fen, preset) {
     sleep(Math.max(1200, Number(preset.movetime) + 800)).then(() => null)
   ]).catch(() => null);
 
+  // If we timed out, clear the pending job so future searches still work.
+  if (bestMove == null && sf.currentJob?.bestMovePending) {
+    sfStop();
+    sf.currentJob = null;
+  }
+
   return bestMove;
 }
 
@@ -909,7 +915,15 @@ function uciToLegalMove(uci, legalMoves) {
 let aiRequestSeq = 0;
 function cancelPendingAi({ stopEngine = true } = {}) {
   aiRequestSeq += 1;
-  if (stopEngine) sfStop();
+  if (stopEngine) {
+    sfStop();
+    // Avoid getting stuck in a "busy" state if a bestmove never arrives.
+    if (sf.currentJob?.bestMovePending) {
+      try { sf.currentJob.reject(new Error("AI cancelled")); } catch { /* ignore */ }
+      sf.currentJob = null;
+    }
+    sf.readyWaiter = null;
+  }
   if (game) game.aiThinking = false;
 }
 
