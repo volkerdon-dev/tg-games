@@ -24,18 +24,17 @@ const ranksRightEl = document.getElementById("ranksRight");
 
 const hintTextEl = document.getElementById("hintText");
 
+const playerClockLabelEl = document.getElementById("playerClockLabel");
+const playerClockEl = document.getElementById("playerClock");
+
 const newGameBtn = document.getElementById("newGame");
 const resignBtn = document.getElementById("endGame");
 const undoBtn = document.getElementById("undo");
 const hintBtn = document.getElementById("hint");
 const resetBtn = document.getElementById("reset");
 
-// clocks display
-const wClockId = "wClock";
-const bClockId = "bClock";
-
-// -------------------- pieces (FILLED glyphs for both) --------------------
-// We use filled (black) glyphs ♚♛♜♝♞♟ and color them via CSS (white/black).
+// -------------------- pieces --------------------
+// Use filled glyphs and color them for solid look.
 const GLYPH = { K:"♚", Q:"♛", R:"♜", B:"♝", N:"♞", P:"♟" };
 
 const VALUE = { P:1, N:3, B:3, R:5, Q:9, K:1000 };
@@ -104,18 +103,20 @@ function initialGame(playerColor) {
     // UI selection
     selectedSq: -1,
     selectedMoves: [],
-    hintMap: new Map(), // toSq -> 'move'|'capture'
+    hintMap: new Map(),
 
     // undo for real moves only
     undoStack: [],
 
+    // last move highlight
+    lastMove: null,
+
     aiThinking: false,
 
-    // clock
+    // clock: ONLY for player (AI clock removed)
     clock: {
       enabled: false,
-      wMs: 0,
-      bMs: 0,
+      playerMs: 0,
       timerId: null,
       lastTs: null,
     }
@@ -125,14 +126,12 @@ function initialGame(playerColor) {
 function pieceAt(sq){ return game.board[sq]; }
 function setPiece(sq, p){ game.board[sq] = p; }
 
-// -------------------- coords --------------------
+// -------------------- coords + orientation --------------------
 function orientation() {
   return game.playerColor === BLACK ? "black" : "white";
 }
 
 function updateCoords() {
-  if (!filesTopEl || !filesBottomEl || !ranksLeftEl || !ranksRightEl) return;
-
   const ori = orientation();
   const files = (ori === "white")
     ? ["a","b","c","d","e","f","g","h"]
@@ -148,7 +147,6 @@ function updateCoords() {
   ranksRightEl.innerHTML = ranks.map(x => `<span>${x}</span>`).join("");
 }
 
-// mapping from display (row/col) to internal 0x88 square
 function displayToSq(r, c) {
   const ori = orientation();
   const rank = (ori === "white") ? r : (7 - r);
@@ -156,7 +154,7 @@ function displayToSq(r, c) {
   return sqOf(rank, file);
 }
 
-// -------------------- clock --------------------
+// -------------------- clock (player only) --------------------
 function stopClock() {
   if (game?.clock?.timerId) {
     clearInterval(game.clock.timerId);
@@ -172,21 +170,25 @@ function formatMs(ms) {
   return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
 }
 
-function renderClocks() {
+function renderPlayerClock() {
+  if (!playerClockEl) return;
+
   if (!game.clock.enabled) {
-    setText(wClockId, "—");
-    setText(bClockId, "—");
+    playerClockLabelEl.textContent = "No clock";
+    playerClockEl.textContent = "—";
     return;
   }
-  setText(wClockId, formatMs(game.clock.wMs));
-  setText(bClockId, formatMs(game.clock.bMs));
+
+  const sideName = game.playerColor === WHITE ? "White" : "Black";
+  playerClockLabelEl.textContent = `Your time (${sideName})`;
+  playerClockEl.textContent = formatMs(game.clock.playerMs);
 }
 
-function onTimeout(loserColor) {
+function onTimeout() {
   if (game.gameOver) return;
-  const winner = opponent(loserColor);
+
   game.gameOver = true;
-  game.result = { type: "timeout", winner, loser: loserColor };
+  game.result = { type: "timeout", winner: game.aiColor, loser: game.playerColor };
   stopClock();
   clearSelection();
   render();
@@ -197,31 +199,34 @@ function tickClock() {
   if (!game.clock.enabled) return;
   if (game.gameOver) return;
 
+  // IMPORTANT: clock ticks ONLY on player's turn (AI clock removed)
+  if (game.turn !== game.playerColor) {
+    game.clock.lastTs = performance.now();
+    return;
+  }
+
   const now = performance.now();
   if (game.clock.lastTs == null) game.clock.lastTs = now;
 
   const dt = now - game.clock.lastTs;
   game.clock.lastTs = now;
 
-  // active clock = side to move
-  if (game.turn === WHITE) game.clock.wMs -= dt;
-  else game.clock.bMs -= dt;
+  game.clock.playerMs -= dt;
 
-  if (game.clock.wMs <= 0) return onTimeout(WHITE);
-  if (game.clock.bMs <= 0) return onTimeout(BLACK);
+  if (game.clock.playerMs <= 0) return onTimeout();
 
-  renderClocks();
+  renderPlayerClock();
 }
 
 function startClockIfEnabled() {
   stopClock();
   if (!game.clock.enabled) {
-    renderClocks();
+    renderPlayerClock();
     return;
   }
   game.clock.lastTs = performance.now();
   game.clock.timerId = setInterval(tickClock, 200);
-  renderClocks();
+  renderPlayerClock();
 }
 
 function readTimeSettingSeconds() {
@@ -240,14 +245,12 @@ function initClockFromUI() {
   const seconds = readTimeSettingSeconds();
   if (!seconds || seconds <= 0) {
     game.clock.enabled = false;
-    game.clock.wMs = 0;
-    game.clock.bMs = 0;
+    game.clock.playerMs = 0;
     startClockIfEnabled();
     return;
   }
   game.clock.enabled = true;
-  game.clock.wMs = seconds * 1000;
-  game.clock.bMs = seconds * 1000;
+  game.clock.playerMs = seconds * 1000;
   startClockIfEnabled();
 }
 
@@ -405,7 +408,7 @@ function genPseudoMoves(color) {
         else if (target.c !== color) addMove(moves, { from:sq,to,piece:clonePiece(p),capture:clonePiece(target),promotion:null,flags:"c" });
       }
 
-      // castling
+      // castling (same as before)
       if (color === WHITE) {
         if (game.castling.wK) {
           const e1 = sqOf(7,4), f1 = sqOf(7,5), g1 = sqOf(7,6), h1 = sqOf(7,7);
@@ -448,7 +451,7 @@ function genPseudoMoves(color) {
   return moves;
 }
 
-// -------------------- APPLY / REVERT (safe simulation + undo) --------------------
+// -------------------- APPLY / REVERT --------------------
 function applyMove(move, { recordUndo = false } = {}) {
   const color = move.piece.c;
   const opp = opponent(color);
@@ -468,21 +471,18 @@ function applyMove(move, { recordUndo = false } = {}) {
     prevResult: game.result ? { ...game.result } : null,
     rookMove: null,
     epCapture: null,
-    prevClock: recordUndo ? { enabled: game.clock.enabled, wMs: game.clock.wMs, bMs: game.clock.bMs } : null
+    prevClockPlayerMs: recordUndo ? game.clock.playerMs : null,
+    prevLastMove: recordUndo ? (game.lastMove ? { ...game.lastMove } : null) : null,
   };
 
-  // clear ep
   game.ep = -1;
 
-  // en passant capture
   if (move.flags.includes("e")) {
     const capSq = (color === WHITE) ? (move.to + 16) : (move.to - 16);
     prev.epCapture = { sq: capSq, piece: clonePiece(pieceAt(capSq)) };
     setPiece(capSq, null);
-    // NOTE: prev.captured stays "to-square piece" (it is null for EP) — correct
   }
 
-  // castling rights updates
   if (prev.moved?.t === "K") {
     if (color === WHITE) { game.castling.wK = false; game.castling.wQ = false; }
     else { game.castling.bK = false; game.castling.bQ = false; }
@@ -500,14 +500,12 @@ function applyMove(move, { recordUndo = false } = {}) {
     if (move.to === sqOf(0,0)) game.castling.bQ = false;
   }
 
-  // move piece
   setPiece(move.from, null);
 
   let placed = clonePiece(move.piece);
   if (move.promotion) placed = { c: color, t: move.promotion };
   setPiece(move.to, placed);
 
-  // castling rook move
   if (move.flags === "k" || move.flags === "q") {
     if (color === WHITE) {
       if (move.flags === "k") {
@@ -536,10 +534,8 @@ function applyMove(move, { recordUndo = false } = {}) {
     }
   }
 
-  // update king sq
   if (placed.t === "K") game.kingSq[color] = move.to;
 
-  // ep target on pawn double
   if (move.piece.t === "P" && move.flags === "2") {
     game.ep = (color === WHITE) ? (move.from - 16) : (move.from + 16);
   }
@@ -547,16 +543,16 @@ function applyMove(move, { recordUndo = false } = {}) {
   game.turn = opp;
   game.plies += 1;
 
-  if (recordUndo) game.undoStack.push(prev);
-
-  // reset clock tick origin after real move
-  if (recordUndo && game.clock.enabled) game.clock.lastTs = performance.now();
+  if (recordUndo) {
+    game.undoStack.push(prev);
+    game.lastMove = { from: move.from, to: move.to };
+    if (game.clock.enabled) game.clock.lastTs = performance.now();
+  }
 
   return prev;
 }
 
 function revertMove(prev) {
-  // restore meta
   game.castling = { ...prev.prevCastling };
   game.ep = prev.prevEp;
   game.plies = prev.prevPlies;
@@ -566,27 +562,25 @@ function revertMove(prev) {
   game.gameOver = prev.prevGameOver;
   game.result = prev.prevResult ? { ...prev.prevResult } : null;
 
-  // restore rook if castling
   if (prev.rookMove) {
     setPiece(prev.rookMove.from, prev.rookMove.piece);
     setPiece(prev.rookMove.to, null);
   }
 
-  // restore moved + captured
   setPiece(prev.from, prev.moved);
   setPiece(prev.to, prev.captured);
 
-  // restore en-passant captured pawn
   if (prev.epCapture) {
     setPiece(prev.epCapture.sq, prev.epCapture.piece);
   }
 
-  // restore clock snapshot (only for real undos)
-  if (prev.prevClock) {
-    game.clock.enabled = prev.prevClock.enabled;
-    game.clock.wMs = prev.prevClock.wMs;
-    game.clock.bMs = prev.prevClock.bMs;
+  if (prev.prevClockPlayerMs != null) {
+    game.clock.playerMs = prev.prevClockPlayerMs;
     game.clock.lastTs = performance.now();
+  }
+
+  if (prev.prevLastMove !== undefined) {
+    game.lastMove = prev.prevLastMove;
   }
 }
 
@@ -668,6 +662,7 @@ function aiMoveIfNeeded() {
   game.aiThinking = true;
   render();
 
+  // SLOWER AI: 2 seconds
   setTimeout(() => {
     game.aiThinking = false;
     if (game.gameOver) return;
@@ -679,10 +674,10 @@ function aiMoveIfNeeded() {
     finalizeIfGameOver();
     render();
     if (game.gameOver) onGameFinished();
-  }, 220);
+  }, 2000);
 }
 
-// -------------------- UI helpers --------------------
+// -------------------- selection helpers --------------------
 function clearSelection() {
   game.selectedSq = -1;
   game.selectedMoves = [];
@@ -707,26 +702,21 @@ function selectSquare(sq) {
 // -------------------- render --------------------
 function statusText() {
   if (game.aiThinking) return "AI thinking…";
-
   if (game.gameOver && game.result) {
     if (game.result.type === "checkmate") return `CHECKMATE — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
     if (game.result.type === "stalemate") return "STALEMATE — Draw";
     if (game.result.type === "resign") return `RESIGN — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
     if (game.result.type === "timeout") return `TIMEOUT — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
   }
-
   return inCheck(game.turn) ? "CHECK" : "Playing";
 }
 
 function applyPieceColorStyles(el, piece) {
   if (!piece) return;
-
   if (piece.c === WHITE) {
-    // solid white
     el.style.color = "#ffffff";
     el.style.textShadow = "0 0 2px rgba(0,0,0,0.65), 0 2px 2px rgba(0,0,0,0.35)";
   } else {
-    // solid black + light outline
     el.style.color = "#111111";
     el.style.textShadow = "0 0 2px rgba(255,255,255,0.85), 0 2px 2px rgba(0,0,0,0.35)";
   }
@@ -744,8 +734,7 @@ function render() {
   setText("moves", String(game.plies));
   setText("selected", game.selectedSq >= 0 ? algebraic(game.selectedSq) : "—");
 
-  // clocks (static render + ticking via interval)
-  renderClocks();
+  renderPlayerClock();
 
   for (let r=0; r<8; r++) {
     for (let c=0; c<8; c++) {
@@ -763,6 +752,9 @@ function render() {
       const hint = game.hintMap.get(internalSq);
       if (hint === "move") el.classList.add("hint-move");
       if (hint === "capture") el.classList.add("hint-capture");
+
+      if (game.lastMove?.from === internalSq) el.classList.add("last-from");
+      if (game.lastMove?.to === internalSq) el.classList.add("last-to");
 
       el.dataset.r = String(r);
       el.dataset.c = String(c);
@@ -829,7 +821,7 @@ function onSquareClick(e) {
   render();
 }
 
-// -------------------- results + stats --------------------
+// -------------------- stats + event --------------------
 function updateStatsAndSend(result) {
   state.stats.gamesPlayed += 1;
   if (result === "win") state.stats.gamesWon += 1;
@@ -852,11 +844,10 @@ function updateStatsAndSend(result) {
 
 function onGameFinished() {
   if (!game.result) return;
-
   if (game.result.type === "stalemate") return updateStatsAndSend("draw");
   if (game.result.type === "checkmate") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
-  if (game.result.type === "timeout") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
-  if (game.result.type === "resign") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
+  if (game.result.type === "timeout") return updateStatsAndSend("loss");
+  if (game.result.type === "resign") return updateStatsAndSend("loss");
 }
 
 // -------------------- controls --------------------
@@ -866,28 +857,32 @@ function newGame() {
   const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
   game = initialGame(playerColor);
 
-  // clock init
   initClockFromUI();
-
   clearSelection();
+  game.lastMove = null;
+
   finalizeIfGameOver();
   render();
-  aiMoveIfNeeded(); // if player black -> AI starts
+  aiMoveIfNeeded();
 }
 
 function undo() {
   if (!game.undoStack.length) return;
 
+  // undo last move
   revertMove(game.undoStack.pop());
+
+  // if still not player's turn, undo one more (AI move)
   if (game.undoStack.length && game.turn !== game.playerColor) {
     revertMove(game.undoStack.pop());
   }
 
   game.aiThinking = false;
   clearSelection();
+  game.lastMove = null;
+
   finalizeIfGameOver();
 
-  // restart clock tick from current moment
   if (game.clock.enabled) startClockIfEnabled();
   else stopClock();
 
@@ -922,10 +917,7 @@ function resign() {
 }
 
 function onTimeControlUIChange() {
-  if (!customTimeWrap) return;
   customTimeWrap.style.display = (timeControlEl.value === "custom") ? "block" : "none";
-
-  // convenience: if user picks a preset, sync inputs
   if (timeControlEl.value !== "custom" && timeControlEl.value !== "off") {
     timeMinutesEl.value = String(parseInt(timeControlEl.value, 10) || 20);
     timeSecondsEl.value = "0";
@@ -941,9 +933,7 @@ resignBtn.addEventListener("click", resign);
 
 sideEl.addEventListener("change", () => newGame());
 timeControlEl.addEventListener("change", onTimeControlUIChange);
-timeMinutesEl?.addEventListener("change", () => {});
-timeSecondsEl?.addEventListener("change", () => {});
 
-// init UI + game
+// init
 onTimeControlUIChange();
 newGame();
