@@ -11,8 +11,6 @@
   /* classic wood board */
   --sqLight: #f0d9b5;
   --sqDark:  #b58863;
-
-  --coordText: rgba(35, 22, 12, 0.70);
 }
 
 *{box-sizing:border-box}
@@ -62,35 +60,70 @@ a{color:inherit; text-decoration:none}
 }
 
 .boardWrap{display:flex; gap:14px; flex-wrap:wrap}
+.boardCol{display:flex; flex-direction:column; gap:10px}
+
+/* ===== always-visible player clock ===== */
+.clockBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border-radius: 14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  box-shadow: 0 10px 26px rgba(0,0,0,.25);
+}
+.clockLabel{
+  font-size:12px;
+  color: rgba(234,240,255,0.75);
+  font-weight:700;
+}
+.clockValue{
+  font-variant-numeric: tabular-nums;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing: .4px;
+  color: rgba(234,240,255,0.96);
+}
 
 /* ===== Board frame with coordinates ===== */
 .boardFrame{
   display:grid;
-  grid-template-columns: 18px auto 18px;
-  grid-template-rows: 18px auto 18px;
+  grid-template-columns: 26px auto 26px;
+  grid-template-rows: 26px auto 26px;
   align-items:stretch;
   justify-items:stretch;
   gap:0;
 }
-
-.corner{width:18px; height:18px}
+.corner{width:26px; height:26px}
 
 .coords{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  color: var(--coordText);
-  font-size: 11px;
-  font-weight: 700;
+
+  /* MORE VISIBLE */
+  color: rgba(234,240,255,0.92);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .4px;
   user-select:none;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.35);
-  pointer-events:none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+
+  /* subtle background strip */
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-.coords.files{padding:0 8px}
+.coords.files{
+  padding:0 10px;
+  border-radius: 10px;
+}
 .coords.ranks{
   flex-direction:column;
-  padding:8px 0;
+  padding:10px 0;
+  border-radius: 10px;
 }
 
 /* ===== Actual board ===== */
@@ -100,7 +133,7 @@ a{color:inherit; text-decoration:none}
   border-radius: 14px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
-  box-shadow: var(--shadow);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
   background: transparent;
 }
 @media (max-width:420px){
@@ -114,7 +147,7 @@ a{color:inherit; text-decoration:none}
   align-items:center;
   justify-content:center;
 
-  /* IMPORTANT: prefer text symbols over emoji */
+  /* prefer symbols */
   font-family: "Segoe UI Symbol", "Noto Sans Symbols2", "Apple Symbols", system-ui, sans-serif;
   font-size: 28px;
   line-height: 1;
@@ -128,11 +161,19 @@ a{color:inherit; text-decoration:none}
 .square.light{background: var(--sqLight)}
 .square.dark{background: var(--sqDark)}
 
-/* Selected piece highlight (clear) */
+/* Selected piece highlight */
 .square.sel{
   box-shadow:
     inset 0 0 0 3px rgba(79,209,255,.95),
     inset 0 0 18px rgba(79,209,255,.22);
+}
+
+/* Last move highlight (helps see AI move) */
+.square.last-from{
+  box-shadow: inset 0 0 0 3px rgba(167,139,250,.70);
+}
+.square.last-to{
+  box-shadow: inset 0 0 0 3px rgba(79,209,255,.70);
 }
 
 /* Move hints: dot / ring */
@@ -180,4 +221,3 @@ a{color:inherit; text-decoration:none}
 }
 label{font-size:12px; color:var(--muted)}
 hr{border:none; height:1px; background: var(--border); margin:16px 0}
-
