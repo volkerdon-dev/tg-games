@@ -68,6 +68,27 @@ function clonePiece(p){ return p ? { c: p.c, t: p.t } : null; }
 // -------------------- engine state --------------------
 let game = null;
 
+// -------------------- AI presets (named) --------------------
+const AI_PRESETS = {
+  beginner: { limitStrength:true,  elo:800,  skill:0,  movetime:80,   blunder:0.30 },
+  easy:     { limitStrength:true,  elo:1000, skill:2,  movetime:120,  blunder:0.18 },
+  casual:   { limitStrength:true,  elo:1200, skill:4,  movetime:200,  blunder:0.10 },
+  club:     { limitStrength:true,  elo:1500, skill:7,  movetime:350,  blunder:0.05 },
+  strong:   { limitStrength:true,  elo:1800, skill:10, movetime:500,  blunder:0.02 },
+  expert:   { limitStrength:true,  elo:2100, skill:13, movetime:800,  blunder:0.00 },
+  master:   { limitStrength:true,  elo:2400, skill:16, movetime:1100, blunder:0.00 },
+  im:       { limitStrength:true,  elo:2600, skill:18, movetime:1400, blunder:0.00 },
+  gm:       { limitStrength:true,  elo:2800, skill:20, movetime:1700, blunder:0.00 },
+  supergm:  { limitStrength:false, elo:null, skill:20, movetime:2200, blunder:0.00 }
+};
+
+function getAiPreset() {
+  const key = String(levelEl?.value || "casual").toLowerCase();
+  return AI_PRESETS[key] ? { key, ...AI_PRESETS[key] } : { key: "casual", ...AI_PRESETS.casual };
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 function createEmptyBoard() {
   return new Array(128).fill(null);
 }
@@ -624,7 +645,7 @@ function finalizeIfGameOver() {
 }
 
 // -------------------- AI --------------------
-function evaluateMove(move, level) {
+function evaluateMove(move, preset, { deterministic = false } = {}) {
   let score = 0;
   if (move.capture) score += VALUE[move.capture.t] * 10;
   if (move.promotion) score += 90;
@@ -635,46 +656,357 @@ function evaluateMove(move, level) {
   revertMove(undo);
   if (givesCheck) score += 6;
 
-  const noiseFactor = (11 - level);
-  score += Math.random() * noiseFactor * 3;
+  if (!deterministic) {
+    // Fallback AI: weaker presets = more randomness
+    const skill = Math.max(0, Math.min(20, Number(preset?.skill ?? 4)));
+    const noiseFactor = (22 - skill); // 2..22
+    score += Math.random() * noiseFactor * 3;
+  }
   return score;
 }
 
-function aiMoveIfNeeded() {
+// ---- Stockfish WASM (UCI) via WebWorker ----
+let sf = {
+  worker: null,
+  initPromise: null,
+  ready: false,
+  readyWaiter: null,
+  currentJob: null, // { resolve, reject, bestMovePending }
+};
+
+const STOCKFISH_LOCAL_URL = "./engine/stockfish.worker.js";
+const STOCKFISH_CDN_URL = "https://cdn.jsdelivr.net/npm/stockfish.wasm@0.10.0/stockfish.worker.js";
+
+function sfPost(cmd) {
+  try { sf.worker?.postMessage(cmd); } catch { /* ignore */ }
+}
+
+function sfStop() {
+  if (!sf.worker) return;
+  sfPost("stop");
+}
+
+function sfTerminate() {
+  try { sf.worker?.terminate(); } catch { /* ignore */ }
+  sf.worker = null;
+  sf.ready = false;
+  if (sf.currentJob) {
+    try { sf.currentJob.reject(new Error("Stockfish terminated")); } catch { /* ignore */ }
+  }
+  sf.currentJob = null;
+  sf.initPromise = null;
+}
+
+function createStockfishWorker(url) {
+  return new Promise((resolve, reject) => {
+    let worker;
+    try {
+      worker = new Worker(url);
+    } catch (e) {
+      reject(e);
+      return;
+    }
+
+    const onError = (e) => {
+      cleanup();
+      try { worker.terminate(); } catch { /* ignore */ }
+      reject(e?.error || new Error("Stockfish worker error"));
+    };
+
+    let gotUciOk = false;
+    const onMessage = (ev) => {
+      const line = String(ev?.data ?? "");
+      if (!line) return;
+      if (line.includes("uciok")) gotUciOk = true;
+      if (gotUciOk) {
+        cleanup();
+        resolve(worker);
+      }
+    };
+
+    const cleanup = () => {
+      clearTimeout(tid);
+      worker.removeEventListener("error", onError);
+      worker.removeEventListener("message", onMessage);
+    };
+
+    worker.addEventListener("error", onError);
+    worker.addEventListener("message", onMessage);
+    try { worker.postMessage("uci"); } catch { /* ignore */ }
+
+    const tid = setTimeout(() => {
+      cleanup();
+      try { worker.terminate(); } catch { /* ignore */ }
+      reject(new Error("Stockfish init timeout"));
+    }, 2500);
+  });
+}
+
+async function initStockfish() {
+  if (sf.ready && sf.worker) return true;
+  if (sf.initPromise) return sf.initPromise;
+
+  sf.initPromise = (async () => {
+    try {
+      sf.worker = await createStockfishWorker(STOCKFISH_LOCAL_URL);
+    } catch {
+      sf.worker = await createStockfishWorker(STOCKFISH_CDN_URL);
+    }
+
+    sf.worker.onmessage = (ev) => {
+      const line = String(ev?.data ?? "").trim();
+      if (!line) return;
+
+      if (line === "readyok") {
+        if (sf.readyWaiter) {
+          const r = sf.readyWaiter;
+          sf.readyWaiter = null;
+          try { r(); } catch { /* ignore */ }
+        }
+        return;
+      }
+
+      if (line.startsWith("bestmove ")) {
+        const parts = line.split(/\s+/);
+        const bm = parts[1] || "(none)";
+        if (sf.currentJob) {
+          const { resolve } = sf.currentJob;
+          sf.currentJob = null;
+          resolve(bm === "(none)" ? null : bm);
+        }
+        return;
+      }
+    };
+
+    // Ping engine
+    sfPost("uci");
+    sfPost("isready");
+
+    sf.ready = true;
+    return true;
+  })().catch((e) => {
+    sfTerminate();
+    throw e;
+  });
+
+  return sf.initPromise;
+}
+
+function sfIsReady() {
+  return new Promise((resolve, reject) => {
+    if (!sf.worker) return reject(new Error("No Stockfish worker"));
+    sf.readyWaiter = () => resolve();
+    sfPost("isready");
+    // Some builds are chatty/odd; don't block forever.
+    setTimeout(() => {
+      if (sf.readyWaiter) sf.readyWaiter = null;
+      resolve();
+    }, 1200);
+  });
+}
+
+async function sfBestMoveFromFEN(fen, preset) {
+  const ok = await initStockfish().catch(() => false);
+  if (!ok || !sf.worker || !sf.ready) return null;
+
+  // Only one outstanding search at a time
+  if (sf.currentJob?.bestMovePending) return null;
+
+  await sfIsReady().catch(() => {});
+
+  sfPost("ucinewgame");
+  sfPost(`setoption name Skill Level value ${Number(preset.skill)}`);
+  sfPost(`setoption name UCI_LimitStrength value ${preset.limitStrength ? "true" : "false"}`);
+  if (preset.limitStrength && preset.elo != null) sfPost(`setoption name UCI_Elo value ${Number(preset.elo)}`);
+
+  await sfIsReady().catch(() => {});
+
+  sfPost(`position fen ${fen}`);
+
+  const bestMovePromise = new Promise((resolve, reject) => {
+    sf.currentJob = { resolve, reject, bestMovePending: true };
+  });
+
+  sfPost(`go movetime ${Number(preset.movetime)}`);
+
+  // Safety timeout so we can fall back to heuristic.
+  const bestMove = await Promise.race([
+    bestMovePromise,
+    sleep(Math.max(1200, Number(preset.movetime) + 800)).then(() => null)
+  ]).catch(() => null);
+
+  // If we timed out, clear the pending job so future searches still work.
+  if (bestMove == null && sf.currentJob?.bestMovePending) {
+    sfStop();
+    sf.currentJob = null;
+  }
+
+  return bestMove;
+}
+
+// ---- FEN export from 0x88 board ----
+function toFEN() {
+  const rows = [];
+  for (let rank = 0; rank < 8; rank++) {
+    let empty = 0;
+    let row = "";
+    for (let file = 0; file < 8; file++) {
+      const sq = sqOf(rank, file);
+      const p = pieceAt(sq);
+      if (!p) { empty++; continue; }
+      if (empty) { row += String(empty); empty = 0; }
+      const letter = p.t.toLowerCase();
+      row += (p.c === WHITE) ? letter.toUpperCase() : letter;
+    }
+    if (empty) row += String(empty);
+    rows.push(row);
+  }
+
+  const side = (game.turn === WHITE) ? "w" : "b";
+
+  let castling = "";
+  if (game.castling.wK) castling += "K";
+  if (game.castling.wQ) castling += "Q";
+  if (game.castling.bK) castling += "k";
+  if (game.castling.bQ) castling += "q";
+  if (!castling) castling = "-";
+
+  const ep = (game.ep >= 0) ? algebraic(game.ep) : "-";
+  const halfmove = "0";
+  const fullmove = String(1 + Math.floor(game.plies / 2));
+
+  return `${rows.join("/")} ${side} ${castling} ${ep} ${halfmove} ${fullmove}`;
+}
+
+function sqFromAlg(a) {
+  if (!a || a.length !== 2) return -1;
+  const file = "abcdefgh".indexOf(a[0]);
+  const rankNum = parseInt(a[1], 10);
+  if (file < 0 || rankNum < 1 || rankNum > 8) return -1;
+  const rank = 8 - rankNum;
+  return sqOf(rank, file);
+}
+
+function uciToLegalMove(uci, legalMoves) {
+  if (!uci || uci.length < 4) return null;
+  const from = sqFromAlg(uci.slice(0, 2));
+  const to = sqFromAlg(uci.slice(2, 4));
+  if (from < 0 || to < 0) return null;
+
+  const candidates = legalMoves.filter(m => m.from === from && m.to === to);
+  if (!candidates.length) return null;
+
+  const promoChar = uci.length >= 5 ? String(uci[4]).toLowerCase() : "";
+  const promoMap = { q:"Q", r:"R", b:"B", n:"N" };
+  const promo = promoMap[promoChar] || null;
+
+  if (promo) {
+    const exact = candidates.find(m => m.promotion === promo);
+    if (exact) return exact;
+  }
+
+  // If engine omitted promotion but the legal move requires one, default to Queen.
+  const queen = candidates.find(m => m.promotion === "Q");
+  if (queen) return queen;
+
+  return candidates[0];
+}
+
+let aiRequestSeq = 0;
+function cancelPendingAi({ stopEngine = true } = {}) {
+  aiRequestSeq += 1;
+  if (stopEngine) {
+    sfStop();
+    // Avoid getting stuck in a "busy" state if a bestmove never arrives.
+    if (sf.currentJob?.bestMovePending) {
+      try { sf.currentJob.reject(new Error("AI cancelled")); } catch { /* ignore */ }
+      sf.currentJob = null;
+    }
+    sf.readyWaiter = null;
+  }
+  if (game) game.aiThinking = false;
+}
+
+function chooseHeuristicBestMove(legalMoves, preset) {
+  let best = legalMoves[0];
+  let bestScore = -Infinity;
+  for (const m of legalMoves) {
+    const s = evaluateMove(m, preset);
+    if (s > bestScore) { bestScore = s; best = m; }
+  }
+  return best;
+}
+
+function chooseBlunderMove(legalMoves, preset) {
+  if (legalMoves.length <= 2) return legalMoves[Math.floor(Math.random() * legalMoves.length)];
+  const scored = legalMoves.map(m => ({ m, s: evaluateMove(m, preset, { deterministic: true }) }));
+  scored.sort((a, b) => a.s - b.s);
+  const cutoff = Math.max(1, Math.ceil(scored.length / 3));
+  const pool = scored.slice(0, cutoff).map(x => x.m);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+async function aiMoveIfNeeded() {
   if (game.gameOver) return;
   if (game.turn !== game.aiColor) return;
 
-  const level = Number(levelEl.value) || 4;
-  const moves = genLegalMoves(game.turn);
-  if (!moves.length) {
+  const preset = getAiPreset();
+
+  const legalMoves = genLegalMoves(game.turn);
+  if (!legalMoves.length) {
     finalizeIfGameOver();
     render();
     return;
   }
 
-  let best = moves[0];
-  let bestScore = -Infinity;
-  for (const m of moves) {
-    const s = evaluateMove(m, level);
-    if (s > bestScore) { bestScore = s; best = m; }
-  }
+  const mySeq = ++aiRequestSeq;
+  const myGame = game;
 
   game.aiThinking = true;
   render();
 
-  // SLOWER AI: 2 seconds
-  setTimeout(() => {
-    game.aiThinking = false;
-    if (game.gameOver) return;
-    if (game.turn !== game.aiColor) return;
+  const started = performance.now();
 
-    applyMove(best, { recordUndo: true });
-    clearSelection();
+  let chosenMove = null;
 
-    finalizeIfGameOver();
-    render();
-    if (game.gameOver) onGameFinished();
-  }, 2000);
+  // Try Stockfish first
+  try {
+    const fen = toFEN();
+    const bestUci = await sfBestMoveFromFEN(fen, preset);
+    if (game !== myGame || mySeq !== aiRequestSeq) return;
+    if (!game.gameOver && game.turn === game.aiColor && bestUci) {
+      const mapped = uciToLegalMove(bestUci, legalMoves);
+      if (mapped) chosenMove = mapped;
+    }
+  } catch {
+    // fall back below
+  }
+
+  if (!chosenMove) {
+    chosenMove = chooseHeuristicBestMove(legalMoves, preset);
+  }
+
+  // Weak-level blunders
+  if (preset.blunder > 0 && Math.random() < preset.blunder) {
+    chosenMove = chooseBlunderMove(legalMoves, preset);
+  }
+
+  // Enforce minimum visual thinking time
+  const elapsed = performance.now() - started;
+  if (elapsed < 2000) await sleep(2000 - elapsed);
+
+  if (game !== myGame || mySeq !== aiRequestSeq) return;
+
+  game.aiThinking = false;
+  if (game.gameOver) return;
+  if (game.turn !== game.aiColor) return;
+
+  applyMove(chosenMove, { recordUndo: true });
+  clearSelection();
+
+  finalizeIfGameOver();
+  render();
+  if (game.gameOver) onGameFinished();
 }
 
 // -------------------- selection helpers --------------------
@@ -832,10 +1164,12 @@ function updateStatsAndSend(result) {
   touch(state);
   saveState(state);
 
+  const preset = getAiPreset();
   sendEvent({
     type: "game_result",
-    mode: "vs_ai_legal",
-    level: Number(levelEl.value) || 4,
+    mode: "vs_ai_stockfish",
+    level: String(levelEl.value || preset.key),
+    elo: preset.elo ?? null,
     side: game.playerColor === WHITE ? "white" : "black",
     result,
     plies: game.plies
@@ -852,6 +1186,7 @@ function onGameFinished() {
 
 // -------------------- controls --------------------
 function newGame() {
+  cancelPendingAi({ stopEngine: true });
   stopClock();
 
   const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
@@ -868,6 +1203,7 @@ function newGame() {
 
 function undo() {
   if (!game.undoStack.length) return;
+  cancelPendingAi({ stopEngine: true });
 
   // undo last move
   revertMove(game.undoStack.pop());
@@ -877,7 +1213,6 @@ function undo() {
     revertMove(game.undoStack.pop());
   }
 
-  game.aiThinking = false;
   clearSelection();
   game.lastMove = null;
 
@@ -897,10 +1232,10 @@ function hint() {
   const moves = genLegalMoves(game.turn);
   if (!moves.length) { hintTextEl.textContent = "No legal moves."; return; }
 
-  const level = Math.max(6, Number(levelEl.value) || 6);
+  const preset = getAiPreset();
   let best = moves[0], bestScore = -Infinity;
   for (const m of moves) {
-    const s = evaluateMove(m, level);
+    const s = evaluateMove(m, { ...preset, skill: Math.max(preset.skill, 12) }, { deterministic: true });
     if (s > bestScore) { bestScore = s; best = m; }
   }
   hintTextEl.textContent = `Hint: ${algebraic(best.from)} → ${algebraic(best.to)}${best.promotion ? ` = ${best.promotion}` : ""}`;
@@ -908,6 +1243,7 @@ function hint() {
 
 function resign() {
   if (game.gameOver) return;
+  cancelPendingAi({ stopEngine: true });
   const winner = opponent(game.playerColor);
   game.gameOver = true;
   game.result = { type: "resign", winner };
