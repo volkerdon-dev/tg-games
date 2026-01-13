@@ -11,6 +11,8 @@ touch(state);
 const boardEl = document.getElementById("board");
 const sideEl = document.getElementById("side");
 const levelEl = document.getElementById("level");
+const thinkTimeEl = document.getElementById("thinkTime");
+const engineBadgeEl = document.getElementById("engineBadge");
 
 const timeControlEl = document.getElementById("timeControl");
 const customTimeWrap = document.getElementById("customTimeWrap");
@@ -68,23 +70,54 @@ function clonePiece(p){ return p ? { c: p.c, t: p.t } : null; }
 // -------------------- engine state --------------------
 let game = null;
 
+// -------------------- Engine mode (visible) --------------------
+let engineMode = "fallback"; // "stockfish" | "fallback"
+
+function updateEngineBadge() {
+  if (!engineBadgeEl) return;
+  const isSf = engineMode === "stockfish";
+  engineBadgeEl.classList.toggle("stockfish", isSf);
+  engineBadgeEl.classList.toggle("fallback", !isSf);
+  engineBadgeEl.textContent = isSf ? "Engine: Stockfish" : "Engine: Fallback";
+}
+
 // -------------------- AI presets (named) --------------------
 const AI_PRESETS = {
-  beginner: { limitStrength:true,  elo:800,  skill:0,  movetime:80,   blunder:0.30 },
-  easy:     { limitStrength:true,  elo:1000, skill:2,  movetime:120,  blunder:0.18 },
-  casual:   { limitStrength:true,  elo:1200, skill:4,  movetime:200,  blunder:0.10 },
-  club:     { limitStrength:true,  elo:1500, skill:7,  movetime:350,  blunder:0.05 },
-  strong:   { limitStrength:true,  elo:1800, skill:10, movetime:500,  blunder:0.02 },
-  expert:   { limitStrength:true,  elo:2100, skill:13, movetime:800,  blunder:0.00 },
-  master:   { limitStrength:true,  elo:2400, skill:16, movetime:1100, blunder:0.00 },
-  im:       { limitStrength:true,  elo:2600, skill:18, movetime:1400, blunder:0.00 },
-  gm:       { limitStrength:true,  elo:2800, skill:20, movetime:1700, blunder:0.00 },
-  supergm:  { limitStrength:false, elo:null, skill:20, movetime:2200, blunder:0.00 }
+  // Strength tiers MUST stay as keys:
+  // beginner, easy, casual, club, strong, expert, master, im, gm, supergm
+  //
+  // Two axes:
+  // - UCI_LimitStrength / UCI_Elo / Skill Level
+  // - movetime (ms) (can be overridden by Think time control)
+  //
+  // NOTE: UI enforces a minimum 2s visual delay, so very low movetime still *looks* clear.
+  beginner: { limitStrength:true,  elo:700,  skill:1,  movetime:150,   blunder:0.32 },
+  easy:     { limitStrength:true,  elo:1000, skill:4,  movetime:250,   blunder:0.18 },
+  casual:   { limitStrength:true,  elo:1350, skill:7,  movetime:450,   blunder:0.10 },
+  club:     { limitStrength:true,  elo:1650, skill:10, movetime:800,   blunder:0.05 },
+  strong:   { limitStrength:true,  elo:1950, skill:13, movetime:1200,  blunder:0.02 },
+  expert:   { limitStrength:true,  elo:2250, skill:16, movetime:2200,  blunder:0.00 },
+  master:   { limitStrength:true,  elo:2500, skill:17, movetime:4000,  blunder:0.00 },
+  im:       { limitStrength:true,  elo:2700, skill:18, movetime:6500,  blunder:0.00 },
+  gm:       { limitStrength:true,  elo:2900, skill:20, movetime:8500,  blunder:0.00 },
+  // Brutal: no strength limit, long think time (10–15s).
+  supergm:  { limitStrength:false, elo:null, skill:20, movetime:12000, blunder:0.00 }
 };
+
+function readThinkTimeOverrideMs() {
+  const v = String(thinkTimeEl?.value ?? "auto").trim().toLowerCase();
+  if (!v || v === "auto") return null;
+  const seconds = Number(v);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return Math.round(seconds * 1000);
+}
 
 function getAiPreset() {
   const key = String(levelEl?.value || "casual").toLowerCase();
-  return AI_PRESETS[key] ? { key, ...AI_PRESETS[key] } : { key: "casual", ...AI_PRESETS.casual };
+  const base = AI_PRESETS[key] ? { key, ...AI_PRESETS[key] } : { key: "casual", ...AI_PRESETS.casual };
+  const override = readThinkTimeOverrideMs();
+  const movetime = override != null ? override : base.movetime;
+  return { ...base, movetime, thinkTimeOverrideMs: override };
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -670,12 +703,17 @@ let sf = {
   worker: null,
   initPromise: null,
   ready: false,
-  readyWaiter: null,
-  currentJob: null, // { resolve, reject, bestMovePending }
+  pendingReadies: [],
+  currentJob: null, // { resolve, reject, bestMovePending, token }
+  lastMultiPv: [],
+  lastInitAttemptMs: 0,
+  hasLoggedStartup: false,
 };
 
 const STOCKFISH_LOCAL_URL = "./engine/stockfish.worker.js";
 const STOCKFISH_CDN_URL = "https://cdn.jsdelivr.net/npm/stockfish.wasm@0.10.0/stockfish.worker.js";
+const STOCKFISH_INIT_TIMEOUT_MS = 2000;
+const STOCKFISH_RETRY_COOLDOWN_MS = 5000;
 
 function sfPost(cmd) {
   try { sf.worker?.postMessage(cmd); } catch { /* ignore */ }
@@ -690,14 +728,17 @@ function sfTerminate() {
   try { sf.worker?.terminate(); } catch { /* ignore */ }
   sf.worker = null;
   sf.ready = false;
+  sf.pendingReadies = [];
   if (sf.currentJob) {
     try { sf.currentJob.reject(new Error("Stockfish terminated")); } catch { /* ignore */ }
   }
   sf.currentJob = null;
   sf.initPromise = null;
+  engineMode = "fallback";
+  updateEngineBadge();
 }
 
-function createStockfishWorker(url) {
+function createStockfishWorker(url, { timeoutMs = STOCKFISH_INIT_TIMEOUT_MS } = {}) {
   return new Promise((resolve, reject) => {
     let worker;
     try {
@@ -714,11 +755,17 @@ function createStockfishWorker(url) {
     };
 
     let gotUciOk = false;
+    let gotReadyOk = false;
     const onMessage = (ev) => {
       const line = String(ev?.data ?? "");
       if (!line) return;
-      if (line.includes("uciok")) gotUciOk = true;
-      if (gotUciOk) {
+      if (line.includes("uciok")) {
+        gotUciOk = true;
+        try { worker.postMessage("isready"); } catch { /* ignore */ }
+        return;
+      }
+      if (line.includes("readyok")) gotReadyOk = true;
+      if (gotUciOk && gotReadyOk) {
         cleanup();
         resolve(worker);
       }
@@ -738,76 +785,112 @@ function createStockfishWorker(url) {
       cleanup();
       try { worker.terminate(); } catch { /* ignore */ }
       reject(new Error("Stockfish init timeout"));
-    }, 2500);
+    }, Math.max(500, timeoutMs));
   });
 }
 
-async function initStockfish() {
+function sfHandleLine(lineRaw) {
+  const line = String(lineRaw ?? "").trim();
+  if (!line) return;
+
+  if (line === "readyok") {
+    const r = sf.pendingReadies.shift();
+    if (r) {
+      try { r(); } catch { /* ignore */ }
+    }
+    return;
+  }
+
+  if (line.startsWith("bestmove ")) {
+    const parts = line.split(/\s+/);
+    const bm = parts[1] || "(none)";
+    if (sf.currentJob) {
+      const { resolve } = sf.currentJob;
+      sf.currentJob = null;
+      resolve(bm === "(none)" ? null : bm);
+    }
+    return;
+  }
+
+  // Optional: capture MultiPV lines for coaching later
+  // Example: "info depth 14 seldepth 22 multipv 2 score cp 23 pv e2e4 e7e5 ..."
+  if (line.startsWith("info ") && line.includes(" multipv ") && line.includes(" pv ")) {
+    const m = line.match(/\bmultipv\s+(\d+)\b/);
+    const pvIdx = m ? Number(m[1]) : 0;
+    if (pvIdx > 0) {
+      sf.lastMultiPv[pvIdx - 1] = line;
+    }
+  }
+}
+
+async function initStockfish({ timeoutMs = STOCKFISH_INIT_TIMEOUT_MS } = {}) {
   if (sf.ready && sf.worker) return true;
   if (sf.initPromise) return sf.initPromise;
 
   sf.initPromise = (async () => {
+    sf.lastInitAttemptMs = Date.now();
     try {
-      sf.worker = await createStockfishWorker(STOCKFISH_LOCAL_URL);
+      sf.worker = await createStockfishWorker(STOCKFISH_LOCAL_URL, { timeoutMs });
     } catch {
-      sf.worker = await createStockfishWorker(STOCKFISH_CDN_URL);
+      sf.worker = await createStockfishWorker(STOCKFISH_CDN_URL, { timeoutMs });
     }
 
-    sf.worker.onmessage = (ev) => {
-      const line = String(ev?.data ?? "").trim();
-      if (!line) return;
+    sf.worker.onmessage = (ev) => sfHandleLine(ev?.data);
+    sf.worker.onerror = () => sfTerminate();
 
-      if (line === "readyok") {
-        if (sf.readyWaiter) {
-          const r = sf.readyWaiter;
-          sf.readyWaiter = null;
-          try { r(); } catch { /* ignore */ }
-        }
-        return;
-      }
-
-      if (line.startsWith("bestmove ")) {
-        const parts = line.split(/\s+/);
-        const bm = parts[1] || "(none)";
-        if (sf.currentJob) {
-          const { resolve } = sf.currentJob;
-          sf.currentJob = null;
-          resolve(bm === "(none)" ? null : bm);
-        }
-        return;
-      }
-    };
-
-    // Ping engine
-    sfPost("uci");
-    sfPost("isready");
-
+    // Now we can confidently call it ready (uci+ready handshake already completed).
     sf.ready = true;
+
+    engineMode = "stockfish";
+    updateEngineBadge();
+
+    if (!sf.hasLoggedStartup) {
+      sf.hasLoggedStartup = true;
+      console.info("Stockfish ready");
+    }
     return true;
   })().catch((e) => {
     sfTerminate();
+    if (!sf.hasLoggedStartup) {
+      sf.hasLoggedStartup = true;
+      console.warn("Stockfish failed -> fallback");
+    }
     throw e;
   });
 
   return sf.initPromise;
 }
 
-function sfIsReady() {
+function sfIsReady({ timeoutMs = 1200 } = {}) {
   return new Promise((resolve, reject) => {
     if (!sf.worker) return reject(new Error("No Stockfish worker"));
-    sf.readyWaiter = () => resolve();
+    const done = () => resolve();
+    sf.pendingReadies.push(done);
     sfPost("isready");
-    // Some builds are chatty/odd; don't block forever.
     setTimeout(() => {
-      if (sf.readyWaiter) sf.readyWaiter = null;
+      // Don't block forever; if we didn't get readyok, proceed (and allow fallback later).
+      const idx = sf.pendingReadies.indexOf(done);
+      if (idx >= 0) sf.pendingReadies.splice(idx, 1);
       resolve();
-    }, 1200);
+    }, Math.max(200, timeoutMs));
   });
 }
 
 async function sfBestMoveFromFEN(fen, preset) {
-  const ok = await initStockfish().catch(() => false);
-  if (!ok || !sf.worker || !sf.ready) return null;
+  // Avoid hammering init attempts if the environment blocks workers/CDN.
+  const now = Date.now();
+  if (!sf.ready && (now - (sf.lastInitAttemptMs || 0)) < STOCKFISH_RETRY_COOLDOWN_MS) {
+    engineMode = "fallback";
+    updateEngineBadge();
+    return null;
+  }
+
+  const ok = await initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => false);
+  if (!ok || !sf.worker || !sf.ready) {
+    engineMode = "fallback";
+    updateEngineBadge();
+    return null;
+  }
 
   // Only one outstanding search at a time
   if (sf.currentJob?.bestMovePending) return null;
@@ -815,6 +898,9 @@ async function sfBestMoveFromFEN(fen, preset) {
   await sfIsReady().catch(() => {});
 
   sfPost("ucinewgame");
+  sfPost("setoption name Threads value 1");
+  sfPost("setoption name Hash value 64");
+  sfPost("setoption name MultiPV value 3");
   sfPost(`setoption name Skill Level value ${Number(preset.skill)}`);
   sfPost(`setoption name UCI_LimitStrength value ${preset.limitStrength ? "true" : "false"}`);
   if (preset.limitStrength && preset.elo != null) sfPost(`setoption name UCI_Elo value ${Number(preset.elo)}`);
@@ -832,7 +918,7 @@ async function sfBestMoveFromFEN(fen, preset) {
   // Safety timeout so we can fall back to heuristic.
   const bestMove = await Promise.race([
     bestMovePromise,
-    sleep(Math.max(1200, Number(preset.movetime) + 800)).then(() => null)
+    sleep(Math.max(1500, Number(preset.movetime) + 1200)).then(() => null)
   ]).catch(() => null);
 
   // If we timed out, clear the pending job so future searches still work.
@@ -922,7 +1008,7 @@ function cancelPendingAi({ stopEngine = true } = {}) {
       try { sf.currentJob.reject(new Error("AI cancelled")); } catch { /* ignore */ }
       sf.currentJob = null;
     }
-    sf.readyWaiter = null;
+    sf.pendingReadies = [];
   }
   if (game) game.aiThinking = false;
 }
@@ -991,9 +1077,11 @@ async function aiMoveIfNeeded() {
     chosenMove = chooseBlunderMove(legalMoves, preset);
   }
 
-  // Enforce minimum visual thinking time
+  // Enforce minimum visual thinking time (always >= 2s).
+  // For high levels (or user-selected Think time), allow longer delays.
+  const minDelayMs = Math.max(2000, Number(preset.movetime) || 0);
   const elapsed = performance.now() - started;
-  if (elapsed < 2000) await sleep(2000 - elapsed);
+  if (elapsed < minDelayMs) await sleep(minDelayMs - elapsed);
 
   if (game !== myGame || mySeq !== aiRequestSeq) return;
 
@@ -1260,6 +1348,24 @@ function onTimeControlUIChange() {
   }
 }
 
+function logAiDiagnostics(reason = "") {
+  const p = getAiPreset();
+  console.info(
+    `[AI] ${reason ? reason + " — " : ""}engine=${engineMode} level=${p.key} ` +
+    `limitStrength=${Boolean(p.limitStrength)} elo=${p.elo ?? "-"} skill=${p.skill} ` +
+    `movetime=${p.movetime}ms${p.thinkTimeOverrideMs != null ? " (override)" : ""}`
+  );
+}
+
+function onAiSettingsChanged() {
+  // If the user changes strength/speed mid-search, cancel so we never apply a move from old settings.
+  cancelPendingAi({ stopEngine: true });
+  if (!game) return;
+  render();
+  logAiDiagnostics("settings changed");
+  aiMoveIfNeeded();
+}
+
 // bind
 newGameBtn.addEventListener("click", newGame);
 resetBtn.addEventListener("click", newGame);
@@ -1268,8 +1374,20 @@ hintBtn.addEventListener("click", hint);
 resignBtn.addEventListener("click", resign);
 
 sideEl.addEventListener("change", () => newGame());
+levelEl.addEventListener("change", onAiSettingsChanged);
+thinkTimeEl?.addEventListener("change", onAiSettingsChanged);
 timeControlEl.addEventListener("change", onTimeControlUIChange);
 
 // init
+updateEngineBadge();
+// Kick off engine init early so we don't silently fall back.
+initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => {
+  engineMode = "fallback";
+  updateEngineBadge();
+});
+
+// Diagnostics helper (optional)
+window.showAiDiagnostics = () => logAiDiagnostics("manual");
+
 onTimeControlUIChange();
 newGame();
