@@ -35,6 +35,11 @@ const undoBtn = document.getElementById("undo");
 const hintBtn = document.getElementById("hint");
 const resetBtn = document.getElementById("reset");
 
+// Promotion modal
+const promoModalEl = document.getElementById("promoModal");
+const promoTitleEl = document.getElementById("promoTitle");
+const promoBtns = Array.from(document.querySelectorAll(".promoBtn"));
+
 // -------------------- pieces --------------------
 // Use filled glyphs and color them for solid look.
 const GLYPH = { K:"♚", Q:"♛", R:"♜", B:"♝", N:"♞", P:"♟" };
@@ -69,6 +74,11 @@ function clonePiece(p){ return p ? { c: p.c, t: p.t } : null; }
 
 // -------------------- engine state --------------------
 let game = null;
+
+let gameSeq = 0;
+
+let pendingPromotion = null;
+let promoSeq = 0;
 
 // -------------------- Engine mode (visible) --------------------
 let engineMode = "fallback"; // "stockfish" | "fallback"
@@ -141,6 +151,7 @@ function initialGame(playerColor) {
   put(7,4,WHITE,"K"); put(7,5,WHITE,"B"); put(7,6,WHITE,"N"); put(7,7,WHITE,"R");
 
   return {
+    id: ++gameSeq,
     board,
     playerColor,
     aiColor: opponent(playerColor),
@@ -1142,6 +1153,37 @@ function applyPieceColorStyles(el, piece) {
   }
 }
 
+function isPromotionPieceLetter(x) {
+  return x === "Q" || x === "R" || x === "B" || x === "N";
+}
+
+function closePromotionModal() {
+  if (!promoModalEl) return;
+  promoModalEl.classList.add("hidden");
+  promoModalEl.setAttribute("aria-hidden", "true");
+}
+
+function cancelPendingPromotion() {
+  pendingPromotion = null;
+  closePromotionModal();
+}
+
+function openPromotionModal({ color } = {}) {
+  if (!promoModalEl) return;
+  const pieceColor = color || game?.turn || WHITE;
+
+  if (promoTitleEl) promoTitleEl.textContent = "Choose promotion";
+
+  for (const btn of promoBtns) {
+    const promo = String(btn.dataset.promo || "").toUpperCase();
+    btn.textContent = GLYPH[promo] || "";
+    applyPieceColorStyles(btn, { c: pieceColor, t: promo });
+  }
+
+  promoModalEl.classList.remove("hidden");
+  promoModalEl.setAttribute("aria-hidden", "false");
+}
+
 function render() {
   boardEl.innerHTML = "";
   boardEl.style.display = "flex";
@@ -1189,6 +1231,7 @@ function render() {
 function onSquareClick(e) {
   if (game.gameOver) return;
   if (game.aiThinking) return;
+  if (pendingPromotion) return;
   if (game.turn !== game.playerColor) return;
 
   const r = Number(e.currentTarget.dataset.r);
@@ -1218,14 +1261,24 @@ function onSquareClick(e) {
 
   const moveType = game.hintMap.get(sq);
   if (moveType) {
-    let chosen = game.selectedMoves.find(m => m.to === sq);
-    if (!chosen) return;
+    const candidates = game.selectedMoves.filter(m => m.to === sq);
+    if (!candidates.length) return;
 
-    if (chosen.promotion) {
-      const q = game.selectedMoves.find(m => m.to === sq && m.promotion === "Q");
-      if (q) chosen = q;
+    const hasPromotion = candidates.some(m => m.promotion);
+    if (hasPromotion) {
+      pendingPromotion = {
+        id: ++promoSeq,
+        gameId: game.id,
+        from: game.selectedSq,
+        to: sq,
+        candidates,
+        color: game.turn,
+      };
+      openPromotionModal({ color: game.turn });
+      return;
     }
 
+    const chosen = candidates[0];
     applyMove(chosen, { recordUndo: true });
     clearSelection();
 
@@ -1275,6 +1328,7 @@ function onGameFinished() {
 // -------------------- controls --------------------
 function newGame() {
   cancelPendingAi({ stopEngine: true });
+  cancelPendingPromotion();
   stopClock();
 
   const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
@@ -1292,6 +1346,7 @@ function newGame() {
 function undo() {
   if (!game.undoStack.length) return;
   cancelPendingAi({ stopEngine: true });
+  cancelPendingPromotion();
 
   // undo last move
   revertMove(game.undoStack.pop());
@@ -1332,6 +1387,7 @@ function hint() {
 function resign() {
   if (game.gameOver) return;
   cancelPendingAi({ stopEngine: true });
+  cancelPendingPromotion();
   const winner = opponent(game.playerColor);
   game.gameOver = true;
   game.result = { type: "resign", winner };
@@ -1372,6 +1428,31 @@ resetBtn.addEventListener("click", newGame);
 undoBtn.addEventListener("click", undo);
 hintBtn.addEventListener("click", hint);
 resignBtn.addEventListener("click", resign);
+
+for (const btn of promoBtns) {
+  btn.addEventListener("click", () => {
+    const promo = String(btn.dataset.promo || "").toUpperCase();
+    if (!isPromotionPieceLetter(promo)) return;
+    if (!pendingPromotion) return;
+    if (!game || pendingPromotion.gameId !== game.id) return cancelPendingPromotion();
+    if (game.gameOver) return cancelPendingPromotion();
+    if (game.aiThinking) return cancelPendingPromotion();
+    if (game.turn !== game.playerColor) return cancelPendingPromotion();
+
+    const chosen = pendingPromotion.candidates.find(m => m.promotion === promo);
+    cancelPendingPromotion();
+    if (!chosen) return;
+
+    applyMove(chosen, { recordUndo: true });
+    clearSelection();
+
+    finalizeIfGameOver();
+    render();
+
+    if (game.gameOver) onGameFinished();
+    else aiMoveIfNeeded();
+  });
+}
 
 sideEl.addEventListener("change", () => newGame());
 levelEl.addEventListener("change", onAiSettingsChanged);

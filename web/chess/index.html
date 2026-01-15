@@ -106,6 +106,20 @@
           <div class="corner"></div>
           <div class="coords files bottom" id="filesBottom"></div>
           <div class="corner"></div>
+
+          <!-- Promotion modal (board overlay; hidden by default) -->
+          <div id="promoModal" class="promoModal hidden" aria-hidden="true">
+            <div class="promoBackdrop" aria-hidden="true"></div>
+            <div class="promoCard" role="dialog" aria-modal="true" aria-label="Choose promotion">
+              <div class="promoTitle" id="promoTitle">Choose promotion</div>
+              <div class="promoRow">
+                <button type="button" data-promo="Q" class="promoBtn" aria-label="Promote to Queen"></button>
+                <button type="button" data-promo="R" class="promoBtn" aria-label="Promote to Rook"></button>
+                <button type="button" data-promo="B" class="promoBtn" aria-label="Promote to Bishop"></button>
+                <button type="button" data-promo="N" class="promoBtn" aria-label="Promote to Knight"></button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
