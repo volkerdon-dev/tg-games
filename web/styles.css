@@ -26,6 +26,7 @@ body{
 }
 
 a{color:inherit; text-decoration:none}
+.hidden{display:none !important}
 .container{max-width:980px; margin:0 auto; padding:18px}
 .header{
   display:flex; align-items:center; justify-content:space-between;
@@ -120,6 +121,7 @@ a{color:inherit; text-decoration:none}
   align-items:stretch;
   justify-items:stretch;
   gap:0;
+  position:relative;
 }
 .corner{width:26px; height:26px}
 
@@ -246,3 +248,70 @@ a{color:inherit; text-decoration:none}
 }
 label{font-size:12px; color:var(--muted)}
 hr{border:none; height:1px; background: var(--border); margin:16px 0}
+
+/* ===== Promotion modal ===== */
+.promoModal{
+  position:absolute;
+  inset:0;
+  z-index: 9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.promoBackdrop{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.promoCard{
+  position:relative;
+  width:min(420px, calc(100vw - 36px));
+  background: rgba(15,23,42,0.92);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding:14px;
+}
+.promoTitle{
+  font-weight:900;
+  letter-spacing:.2px;
+  margin:2px 2px 12px 2px;
+  color: rgba(234,240,255,0.96);
+}
+.promoRow{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+.promoBtn{
+  height:64px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family: "Segoe UI Symbol", "Noto Sans Symbols2", "Apple Symbols", system-ui, sans-serif;
+  font-size: 34px;
+  line-height: 1;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+  transition: transform .08s ease, background .12s ease, border-color .12s ease;
+}
+.promoBtn:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.22);
+}
+.promoBtn:active{
+  transform: translateY(0px) scale(0.99);
+}
+@media (max-width:420px){
+  .promoBtn{height:72px; font-size: 38px}
+}
