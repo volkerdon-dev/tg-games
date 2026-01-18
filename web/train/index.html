@@ -7,50 +7,62 @@
   <link rel="stylesheet" href="../styles.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="brand">
-        <h1>🎯 Train</h1>
-        <p>Puzzles & tactics streak (MVP)</p>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1 class="app-title">🎯 Train</h1>
+        <p class="app-subtitle">Tactical modes to build sharper instincts</p>
       </div>
-      <div class="row">
-        <a class="btn ghost" href="../index.html">← Home</a>
+      <div class="app-actions">
+        <a class="icon-btn" href="../index.html">🏠 Home</a>
       </div>
-    </div>
+    </header>
 
-    <div class="panel">
-      <div class="row" style="justify-content:space-between; align-items:flex-end">
-        <div>
-          <div class="small">Theme</div>
-          <select id="theme">
-            <option value="all">All</option>
-            <option value="mate-in-1">Mate in 1</option>
-            <option value="fork">Fork</option>
-            <option value="pin">Pin</option>
-          </select>
-        </div>
-        <button class="btn" id="next">Next puzzle</button>
+    <main class="app-content">
+      <div class="container">
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Modes</h2>
+              <p class="section-subtitle">Choose a training mode for today</p>
+            </div>
+          </div>
+          <div class="card-grid">
+            <div class="card">
+              <h3>☀️ Daily plan</h3>
+              <p>One puzzle, one lesson, one quick game.</p>
+              <div class="row" style="margin-top:12px">
+                <a class="btn" href="./daily.html">Open mode</a>
+                <span class="badge soon">Coming soon</span>
+              </div>
+            </div>
+            <div class="card">
+              <h3>🎯 Themes</h3>
+              <p>Solve focused puzzles with instant feedback.</p>
+              <div class="row" style="margin-top:12px">
+                <a class="btn" href="./themes.html">Open mode</a>
+                <span class="badge">Live</span>
+              </div>
+            </div>
+            <div class="card">
+              <h3>🎮 Mini-games</h3>
+              <p>Fast drills to train instincts under time pressure.</p>
+              <div class="row" style="margin-top:12px">
+                <a class="btn" href="./minigames.html">Open mode</a>
+                <span class="badge soon">Coming soon</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
+    </main>
 
-      <hr />
-
-      <div class="panel">
-        <div class="kv">
-          <div>Puzzle</div><div id="puzzleId">—</div>
-          <div>FEN</div><div id="fen">—</div>
-          <div>Expected</div><div id="expected">—</div>
-        </div>
-
-        <div class="row" style="margin-top:12px">
-          <input class="input" id="answer" placeholder='Type best move e.g. "Qg2#"' style="flex:1; min-width:240px" />
-          <button class="btn secondary" id="check">Check</button>
-        </div>
-
-        <p class="small" id="feedback" style="margin-top:12px"></p>
-      </div>
-    </div>
+    <nav class="bottom-nav">
+      <a class="nav-item" href="../chess/index.html">♟️<span>Play</span></a>
+      <a class="nav-item" href="../learn/index.html">📚<span>Learn</span></a>
+      <a class="nav-item active" href="./index.html">🎯<span>Train</span></a>
+      <a class="nav-item" href="../progress/index.html">📈<span>Progress</span></a>
+    </nav>
   </div>
-
-  <script type="module" src="./train.js"></script>
 </body>
 </html>

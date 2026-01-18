@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Train Themes — TG Chess</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1 class="app-title">🎯 Themes</h1>
+        <p class="app-subtitle">Solve tactics puzzles by theme</p>
+      </div>
+      <div class="app-actions">
+        <a class="icon-btn" href="./index.html">← Train</a>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <div class="container">
+        <section class="section">
+          <div class="card">
+            <div class="row" style="justify-content:space-between; align-items:flex-end">
+              <div class="control-group" style="min-width:200px">
+                <label for="theme">Theme</label>
+                <select id="theme">
+                  <option value="all">All</option>
+                  <option value="mate-in-1">Mate in 1</option>
+                  <option value="fork">Fork</option>
+                  <option value="pin">Pin</option>
+                </select>
+              </div>
+              <button class="btn" id="next">Next puzzle</button>
+            </div>
+
+            <hr />
+
+            <div class="panel">
+              <div class="kv">
+                <div>Puzzle</div><div id="puzzleId">—</div>
+                <div>FEN</div><div id="fen">—</div>
+                <div>Expected</div><div id="expected">—</div>
+              </div>
+
+              <div class="row" style="margin-top:12px">
+                <input class="input" id="answer" placeholder='Type best move e.g. "Qg2#"' style="flex:1; min-width:240px" />
+                <button class="btn secondary" id="check">Check</button>
+              </div>
+
+              <p class="small" id="feedback" style="margin-top:12px"></p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <nav class="bottom-nav">
+      <a class="nav-item" href="../chess/index.html">♟️<span>Play</span></a>
+      <a class="nav-item" href="../learn/index.html">📚<span>Learn</span></a>
+      <a class="nav-item active" href="./index.html">🎯<span>Train</span></a>
+      <a class="nav-item" href="../progress/index.html">📈<span>Progress</span></a>
+    </nav>
+  </div>
+
+  <script type="module" src="./train.js"></script>
+</body>
+</html>

@@ -7,52 +7,104 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="brand">
-        <h1>♟️ TG Chess</h1>
-        <p>Play, learn, train — chess only</p>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1 class="app-title">♟️ TG Chess</h1>
+        <p class="app-subtitle">Play, learn, train — your daily chess studio</p>
       </div>
-      <div class="pill">
-        <span>⚡</span>
-        <span id="pillInfo">MVP</span>
+      <div class="app-actions">
+        <span class="badge">⚡ <span id="pillInfo">MVP</span></span>
       </div>
-    </div>
+    </header>
 
-    <div class="grid">
-      <a class="card" href="./chess/index.html">
-        <h2>♟️ Play</h2>
-        <p>Play vs AI (MVP) — move pieces by tap/click</p>
-      </a>
+    <main class="app-content">
+      <div class="container">
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Today</h2>
+              <p class="section-subtitle">Jump back in with focused actions</p>
+            </div>
+            <span class="badge">✨ Daily focus</span>
+          </div>
+          <div class="quick-actions">
+            <a class="card" href="./chess/index.html">
+              <h3>▶️ Continue</h3>
+              <p>Resume a quick AI game from the Play room.</p>
+            </a>
+            <a class="card" href="./train/themes.html">
+              <h3>🎯 Daily puzzle</h3>
+              <p>Sharpen tactics with one themed puzzle.</p>
+            </a>
+            <a class="card" href="./learn/beginner.html">
+              <h3>📚 Next lesson</h3>
+              <p>Keep your streak with a short lesson.</p>
+            </a>
+          </div>
+        </section>
 
-      <a class="card" href="./learn/index.html">
-        <h2>📚 Learn</h2>
-        <p>Short lessons + mini quiz</p>
-      </a>
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Explore</h2>
+              <p class="section-subtitle">Four ways to improve your chess</p>
+            </div>
+          </div>
+          <div class="card-grid">
+            <a class="card" href="./chess/index.html">
+              <h3>♟️ Play</h3>
+              <p>Friendly AI match with clock + hints.</p>
+            </a>
+            <a class="card" href="./learn/index.html">
+              <h3>📚 Learn</h3>
+              <p>Guided tracks and quick lessons.</p>
+            </a>
+            <a class="card" href="./train/index.html">
+              <h3>🎯 Train</h3>
+              <p>Tactical puzzles and mini-games.</p>
+            </a>
+            <a class="card" href="./progress/index.html">
+              <h3>📈 Progress</h3>
+              <p>Stats, streaks, and skill focus.</p>
+            </a>
+          </div>
+        </section>
 
-      <a class="card" href="./train/index.html">
-        <h2>🎯 Train</h2>
-        <p>Puzzles, streak, tactics themes</p>
-      </a>
-
-      <a class="card" href="./progress/index.html">
-        <h2>📈 Progress</h2>
-        <p>Stats, streak, achievements (MVP)</p>
-      </a>
-    </div>
-
-    <hr />
-
-    <div class="panel">
-      <div class="kv">
-        <div>Today’s streak</div><div id="streak">—</div>
-        <div>Lessons completed</div><div id="lessons">—</div>
-        <div>Puzzles solved</div><div id="puzzles">—</div>
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Today’s progress</h2>
+              <p class="section-subtitle">Mini stats from your local progress</p>
+            </div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-label">Streak</div>
+              <div class="stat-value" id="streak">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Lessons completed</div>
+              <div class="stat-value" id="lessons">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Puzzles solved</div>
+              <div class="stat-value" id="puzzles">—</div>
+            </div>
+          </div>
+          <p class="small" style="margin-top:12px">
+            Tip: solve a quick puzzle and a lesson daily to keep your improvement loop active.
+          </p>
+        </section>
       </div>
-      <p class="small" style="margin:12px 0 0">
-        Tip: open <b>Train</b> and solve 5 puzzles daily — that’s the fastest improvement loop.
-      </p>
-    </div>
+    </main>
+
+    <nav class="bottom-nav">
+      <a class="nav-item" href="./chess/index.html">♟️<span>Play</span></a>
+      <a class="nav-item" href="./learn/index.html">📚<span>Learn</span></a>
+      <a class="nav-item" href="./train/index.html">🎯<span>Train</span></a>
+      <a class="nav-item" href="./progress/index.html">📈<span>Progress</span></a>
+    </nav>
   </div>
 
   <script type="module">
