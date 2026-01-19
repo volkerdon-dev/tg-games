@@ -25,13 +25,15 @@ function getIp(req) {
   return req.socket?.remoteAddress || "unknown";
 }
 
-function rateLimit(ip) {
+function rateLimitWithConfig(
+  ip,
+  { windowMs = 60 * 1000, limit = 10, keyPrefix = "default" } = {}
+) {
   const now = Date.now();
-  const windowMs = 60 * 1000;
-  const limit = 10;
-  const entry = rateLimits.get(ip);
+  const key = `${keyPrefix}:${ip || "unknown"}`;
+  const entry = rateLimits.get(key);
   if (!entry || now > entry.resetAt) {
-    rateLimits.set(ip, { count: 1, resetAt: now + windowMs });
+    rateLimits.set(key, { count: 1, resetAt: now + windowMs });
     return { allowed: true };
   }
   entry.count += 1;
@@ -42,6 +44,10 @@ function rateLimit(ip) {
     };
   }
   return { allowed: true };
+}
+
+function rateLimit(ip) {
+  return rateLimitWithConfig(ip, { windowMs: 60 * 1000, limit: 10, keyPrefix: "admin" });
 }
 
 function cacheGet(key) {
@@ -61,6 +67,12 @@ function cacheSet(key, value) {
   cacheStore.set(key, { value, expiresAt: Date.now() + ttlMs });
 }
 
+function cacheSetWithTtl(key, value, ttlMs) {
+  const ttl = Number(ttlMs);
+  const safeTtl = Number.isFinite(ttl) && ttl > 0 ? ttl : 10 * 60 * 1000;
+  cacheStore.set(key, { value, expiresAt: Date.now() + safeTtl });
+}
+
 function createCacheKey(endpoint, body) {
   return crypto.createHash("sha256").update(`${endpoint}:${body}`).digest("hex");
 }
@@ -69,7 +81,9 @@ module.exports = {
   verifyAdmin,
   getIp,
   rateLimit,
+  rateLimitWithConfig,
   cacheGet,
   cacheSet,
+  cacheSetWithTtl,
   createCacheKey,
 };

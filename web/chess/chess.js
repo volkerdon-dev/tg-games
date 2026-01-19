@@ -35,6 +35,14 @@ const resignBtn = document.getElementById("endGame");
 const undoBtn = document.getElementById("undo");
 const hintBtn = document.getElementById("hint");
 const resetBtn = document.getElementById("reset");
+const coachBtn = document.getElementById("coachBtn");
+const coachModalEl = document.getElementById("coachModal");
+const coachCloseBtn = document.getElementById("coachClose");
+const coachContentEl = document.getElementById("coachContent");
+const coachStatusEl = document.getElementById("coachStatus");
+const coachCopyBtn = document.getElementById("coachCopy");
+const coachRetryBtn = document.getElementById("coachRetry");
+const coachDisclaimerEl = document.getElementById("coachDisclaimer");
 
 // Promotion modal
 const promoModalEl = document.getElementById("promoModal");
@@ -70,6 +78,17 @@ const algebraic = (sq) => {
   return file + rank;
 };
 
+function moveToUci(move) {
+  const from = algebraic(move.from);
+  const to = algebraic(move.to);
+  const promo = move.promotion ? String(move.promotion).toLowerCase() : "";
+  return `${from}${to}${promo}`;
+}
+
+function popMoveUci() {
+  if (gameMovesUci.length) gameMovesUci.pop();
+}
+
 function opponent(color){ return color === WHITE ? BLACK : WHITE; }
 function clonePiece(p){ return p ? { c: p.c, t: p.t } : null; }
 
@@ -80,6 +99,13 @@ let gameSeq = 0;
 
 let pendingPromotion = null;
 let promoSeq = 0;
+
+let startFen = "";
+let gameMovesUci = [];
+
+let coachAbort = null;
+let coachRequestSeq = 0;
+let coachData = null;
 
 // -------------------- Engine mode (visible) --------------------
 const engineStatus = {
@@ -633,6 +659,7 @@ function applyMove(move, { recordUndo = false } = {}) {
   if (recordUndo) {
     game.undoStack.push(prev);
     game.lastMove = { from: move.from, to: move.to };
+    gameMovesUci.push(moveToUci(move));
     if (game.clock.enabled) game.clock.lastTs = performance.now();
   }
 
@@ -1345,6 +1372,7 @@ function render() {
   setText("selected", game.selectedSq >= 0 ? algebraic(game.selectedSq) : "—");
 
   renderPlayerClock();
+  setCoachButtonState();
 
   for (let r=0; r<8; r++) {
     for (let c=0; c<8; c++) {
@@ -1473,14 +1501,199 @@ function onGameFinished() {
   if (game.result.type === "resign") return updateStatsAndSend("loss");
 }
 
+// -------------------- coach review --------------------
+function setCoachButtonState() {
+  if (!coachBtn) return;
+  coachBtn.disabled = !game?.gameOver;
+}
+
+function openCoachModal() {
+  if (!coachModalEl) return;
+  coachModalEl.classList.remove("hidden");
+  coachModalEl.setAttribute("aria-hidden", "false");
+}
+
+function closeCoachModal() {
+  if (!coachModalEl) return;
+  coachModalEl.classList.add("hidden");
+  coachModalEl.setAttribute("aria-hidden", "true");
+}
+
+function resetCoachDisplay() {
+  if (coachStatusEl) coachStatusEl.textContent = "";
+  if (coachContentEl) coachContentEl.innerHTML = "";
+  if (coachDisclaimerEl) coachDisclaimerEl.textContent = "";
+  if (coachCopyBtn) coachCopyBtn.disabled = true;
+  if (coachRetryBtn) coachRetryBtn.disabled = true;
+}
+
+function abortCoachRequest({ closeModal = false, bumpSeq = true } = {}) {
+  if (coachAbort) {
+    coachAbort.abort();
+    coachAbort = null;
+  }
+  if (bumpSeq) coachRequestSeq += 1;
+  coachData = null;
+  if (closeModal) {
+    closeCoachModal();
+    resetCoachDisplay();
+  }
+}
+
+function getGameResultInfo() {
+  if (!game?.gameOver || !game.result) return null;
+  let result = "1/2-1/2";
+  if (game.result.winner === WHITE) result = "1-0";
+  if (game.result.winner === BLACK) result = "0-1";
+  const reason = ["checkmate", "stalemate", "timeout", "resign"].includes(game.result.type)
+    ? game.result.type
+    : "other";
+  return { result, reason };
+}
+
+function getDifficultyLabel() {
+  const option = levelEl?.options?.[levelEl.selectedIndex];
+  return option?.textContent?.trim() || String(levelEl?.value || "casual");
+}
+
+function renderCoachResult(data) {
+  if (!coachContentEl) return;
+  coachContentEl.innerHTML = "";
+
+  const sections = [];
+  if (data.summary) sections.push(createCoachSection("Summary", data.summary));
+  sections.push(
+    createCoachSection(
+      "Key moments",
+      Array.isArray(data.keyMoments) && data.keyMoments.length
+        ? data.keyMoments.map(item =>
+            `Move ${item.moveIndex}: ${item.title} — ${item.whatHappened} Better idea: ${item.betterIdea}`
+          )
+        : ["No key moments flagged."]
+    )
+  );
+  sections.push(
+    createCoachSection(
+      "Mistakes",
+      Array.isArray(data.mistakes) && data.mistakes.length
+        ? data.mistakes.map(item =>
+            `Move ${item.moveIndex} (${item.side}): ${item.mistake} Why: ${item.why} Better: ${item.better}`
+          )
+        : ["No major mistakes flagged."]
+    )
+  );
+  if (data.oneTip) sections.push(createCoachSection("One tip", data.oneTip));
+  sections.push(
+    createCoachSection(
+      "Drills",
+      Array.isArray(data.suggestedDrills) && data.suggestedDrills.length
+        ? data.suggestedDrills
+        : ["No drills suggested."]
+    )
+  );
+
+  for (const section of sections) {
+    coachContentEl.appendChild(section);
+  }
+
+  if (coachDisclaimerEl) coachDisclaimerEl.textContent = data.disclaimer || "";
+}
+
+function createCoachSection(title, content) {
+  const section = document.createElement("div");
+  section.className = "coachSection";
+  const heading = document.createElement("h4");
+  heading.textContent = title;
+  section.appendChild(heading);
+
+  if (Array.isArray(content)) {
+    const list = document.createElement("ul");
+    list.className = "coachList";
+    content.forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      list.appendChild(li);
+    });
+    section.appendChild(list);
+  } else {
+    const body = document.createElement("p");
+    body.textContent = content || "—";
+    section.appendChild(body);
+  }
+
+  return section;
+}
+
+async function requestCoachReview() {
+  if (!game?.gameOver) return;
+  const resultInfo = getGameResultInfo();
+  if (!resultInfo) return;
+
+  abortCoachRequest({ bumpSeq: false });
+  const mySeq = ++coachRequestSeq;
+  coachAbort = new AbortController();
+
+  openCoachModal();
+  resetCoachDisplay();
+  if (coachStatusEl) coachStatusEl.textContent = "Loading coach review…";
+  if (coachRetryBtn) coachRetryBtn.disabled = true;
+
+  const payload = {
+    startFen,
+    movesUci: gameMovesUci.slice(),
+    finalFen: toFEN(),
+    result: resultInfo.result,
+    reason: resultInfo.reason,
+    playerSide: game.playerColor,
+    difficulty: getDifficultyLabel(),
+    engine: engineStatus.mode === "stockfish" ? "stockfish" : "fallback",
+  };
+
+  try {
+    const response = await fetch("/api/coachGameReview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: coachAbort.signal,
+    });
+
+    if (mySeq !== coachRequestSeq) return;
+
+    if (!response.ok) {
+      const errorText = response.status === 429
+        ? "Rate limit reached. Please wait and try again."
+        : "Coach review failed. Please retry.";
+      if (coachStatusEl) coachStatusEl.textContent = errorText;
+      if (coachRetryBtn) coachRetryBtn.disabled = false;
+      return;
+    }
+
+    const data = await response.json();
+    if (mySeq !== coachRequestSeq) return;
+    coachData = data;
+    if (coachStatusEl) coachStatusEl.textContent = "Coach review ready.";
+    renderCoachResult(data);
+    if (coachCopyBtn) coachCopyBtn.disabled = false;
+    if (coachRetryBtn) coachRetryBtn.disabled = false;
+  } catch (error) {
+    if (mySeq !== coachRequestSeq) return;
+    if (error?.name === "AbortError") return;
+    if (coachStatusEl) coachStatusEl.textContent = "Coach review failed. Please retry.";
+    if (coachRetryBtn) coachRetryBtn.disabled = false;
+  }
+}
+
 // -------------------- controls --------------------
 function newGame() {
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
   stopClock();
+  abortCoachRequest({ closeModal: true });
 
   const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
   game = initialGame(playerColor);
+  startFen = toFEN();
+  gameMovesUci = [];
 
   initClockFromUI();
   clearSelection();
@@ -1495,13 +1708,16 @@ function undo() {
   if (!game.undoStack.length) return;
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
+  abortCoachRequest({ closeModal: true });
 
   // undo last move
   revertMove(game.undoStack.pop());
+  popMoveUci();
 
   // if still not player's turn, undo one more (AI move)
   if (game.undoStack.length && game.turn !== game.playerColor) {
     revertMove(game.undoStack.pop());
+    popMoveUci();
   }
 
   clearSelection();
@@ -1589,6 +1805,27 @@ undoBtn.addEventListener("click", undo);
 hintBtn.addEventListener("click", hint);
 resignBtn.addEventListener("click", resign);
 engineRetryEl?.addEventListener("click", retryEngineInit);
+coachBtn?.addEventListener("click", requestCoachReview);
+coachCloseBtn?.addEventListener("click", () => abortCoachRequest({ closeModal: true }));
+coachRetryBtn?.addEventListener("click", requestCoachReview);
+coachCopyBtn?.addEventListener("click", async () => {
+  if (!coachData) return;
+  const text = JSON.stringify(coachData, null, 2);
+  try {
+    await navigator.clipboard?.writeText(text);
+    if (coachStatusEl) coachStatusEl.textContent = "Coach review copied.";
+  } catch {
+    if (coachStatusEl) coachStatusEl.textContent = "Copy failed. Please try again.";
+  }
+});
+
+coachModalEl?.addEventListener("click", (event) => {
+  if (event.target?.matches?.(".modalBackdrop")) {
+    abortCoachRequest({ closeModal: true });
+  }
+});
+
+window.addEventListener("beforeunload", () => abortCoachRequest({ closeModal: true }));
 
 for (const btn of promoBtns) {
   btn.addEventListener("click", () => {

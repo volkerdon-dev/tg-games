@@ -166,6 +166,7 @@
               <div class="row">
                 <button class="btn ghost" id="undo">Undo</button>
                 <button class="btn ghost" id="hint">Hint</button>
+                <button class="btn ghost" id="coachBtn" type="button" disabled>Coach review</button>
                 <button class="btn ghost" id="reset">Reset Position</button>
               </div>
 
@@ -179,6 +180,26 @@
         </p>
       </div>
     </main>
+
+    <div id="coachModal" class="modal hidden" aria-hidden="true">
+      <div class="modalBackdrop" data-close="true"></div>
+      <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="coachTitle">
+        <div class="modalHeader">
+          <div>
+            <h3 class="modalTitle" id="coachTitle">Coach review</h3>
+            <p class="modalSubtitle">Short analysis after your game</p>
+          </div>
+        </div>
+        <div id="coachStatus" class="small"></div>
+        <div id="coachContent" class="coachContent"></div>
+        <div class="row modalActions">
+          <button class="btn ghost" id="coachClose" type="button">Close</button>
+          <button class="btn secondary" id="coachCopy" type="button">Copy</button>
+          <button class="btn" id="coachRetry" type="button">Retry</button>
+        </div>
+        <div class="small coachDisclaimer" id="coachDisclaimer"></div>
+      </div>
+    </div>
 
     <nav class="bottom-nav">
       <a class="nav-item active" href="./index.html">♟️<span>Play</span></a>
