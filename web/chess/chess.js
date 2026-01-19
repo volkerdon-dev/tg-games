@@ -13,6 +13,7 @@ const sideEl = document.getElementById("side");
 const levelEl = document.getElementById("level");
 const thinkTimeEl = document.getElementById("thinkTime");
 const engineBadgeEl = document.getElementById("engineBadge");
+const engineRetryEl = document.getElementById("engineRetry");
 
 const timeControlEl = document.getElementById("timeControl");
 const customTimeWrap = document.getElementById("customTimeWrap");
@@ -81,14 +82,35 @@ let pendingPromotion = null;
 let promoSeq = 0;
 
 // -------------------- Engine mode (visible) --------------------
-let engineMode = "fallback"; // "stockfish" | "fallback"
+const engineStatus = {
+  mode: "fallback", // "stockfish" | "fallback" | "loading"
+  reason: "",
+  source: null, // "local" | "cdn"
+};
+
+function setEngineStatus(mode, { reason = "", source = null } = {}) {
+  engineStatus.mode = mode;
+  engineStatus.reason = reason;
+  engineStatus.source = source;
+  updateEngineBadge();
+}
 
 function updateEngineBadge() {
   if (!engineBadgeEl) return;
-  const isSf = engineMode === "stockfish";
+  const isSf = engineStatus.mode === "stockfish";
+  const isLoading = engineStatus.mode === "loading";
   engineBadgeEl.classList.toggle("stockfish", isSf);
   engineBadgeEl.classList.toggle("fallback", !isSf);
-  engineBadgeEl.textContent = isSf ? "Engine: Stockfish" : "Engine: Fallback";
+  let text = "Engine: Fallback";
+  if (isLoading) text = "Engine: Loading…";
+  if (isSf) text = "Engine: Stockfish";
+  if (!isSf && engineStatus.reason) text += ` (${engineStatus.reason})`;
+  engineBadgeEl.textContent = text;
+  if (engineRetryEl) {
+    const canRetry = !isSf;
+    engineRetryEl.disabled = !canRetry || isLoading;
+    engineRetryEl.style.display = canRetry ? "inline-flex" : "none";
+  }
 }
 
 // -------------------- AI presets (named) --------------------
@@ -101,17 +123,17 @@ const AI_PRESETS = {
   // - movetime (ms) (can be overridden by Think time control)
   //
   // NOTE: UI enforces a minimum 2s visual delay, so very low movetime still *looks* clear.
-  beginner: { limitStrength:true,  elo:700,  skill:1,  movetime:150,   blunder:0.32 },
-  easy:     { limitStrength:true,  elo:1000, skill:4,  movetime:250,   blunder:0.18 },
-  casual:   { limitStrength:true,  elo:1350, skill:7,  movetime:450,   blunder:0.10 },
-  club:     { limitStrength:true,  elo:1650, skill:10, movetime:800,   blunder:0.05 },
-  strong:   { limitStrength:true,  elo:1950, skill:13, movetime:1200,  blunder:0.02 },
-  expert:   { limitStrength:true,  elo:2250, skill:16, movetime:2200,  blunder:0.00 },
-  master:   { limitStrength:true,  elo:2500, skill:17, movetime:4000,  blunder:0.00 },
-  im:       { limitStrength:true,  elo:2700, skill:18, movetime:6500,  blunder:0.00 },
-  gm:       { limitStrength:true,  elo:2900, skill:20, movetime:8500,  blunder:0.00 },
-  // Brutal: no strength limit, long think time (10–15s).
-  supergm:  { limitStrength:false, elo:null, skill:20, movetime:12000, blunder:0.00 }
+  beginner: { limitStrength:true,  elo:800,  skill:1,  movetime:180,   mistakeRate:0.35, pickFromTopN:3, multiPv:3 },
+  easy:     { limitStrength:true,  elo:1000, skill:4,  movetime:260,   mistakeRate:0.22, pickFromTopN:3, multiPv:3 },
+  casual:   { limitStrength:true,  elo:1300, skill:7,  movetime:420,   mistakeRate:0.12, pickFromTopN:3, multiPv:3 },
+  club:     { limitStrength:true,  elo:1600, skill:10, movetime:800,   mistakeRate:0.06, pickFromTopN:2, multiPv:2 },
+  strong:   { limitStrength:true,  elo:1900, skill:13, movetime:1200,  mistakeRate:0.02, pickFromTopN:2, multiPv:1 },
+  expert:   { limitStrength:true,  elo:2200, skill:16, movetime:2200,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
+  master:   { limitStrength:false, elo:null, skill:20, movetime:3500,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
+  im:       { limitStrength:false, elo:null, skill:20, movetime:5500,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
+  gm:       { limitStrength:false, elo:null, skill:20, movetime:9000,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
+  // Brutal: no strength limit, long think time (12–15s).
+  supergm:  { limitStrength:false, elo:null, skill:20, movetime:13000, mistakeRate:0.00, pickFromTopN:1, multiPv:1 }
 };
 
 function readThinkTimeOverrideMs() {
@@ -717,13 +739,16 @@ let sf = {
   pendingReadies: [],
   currentJob: null, // { resolve, reject, bestMovePending, token }
   lastMultiPv: [],
+  uciEloRange: null,
+  version: null,
+  lastErrorReason: "",
   lastInitAttemptMs: 0,
   hasLoggedStartup: false,
 };
 
 const STOCKFISH_LOCAL_URL = "./engine/stockfish.worker.js";
 const STOCKFISH_CDN_URL = "https://cdn.jsdelivr.net/npm/stockfish.wasm@0.10.0/stockfish.worker.js";
-const STOCKFISH_INIT_TIMEOUT_MS = 2000;
+const STOCKFISH_INIT_TIMEOUT_MS = 12000;
 const STOCKFISH_RETRY_COOLDOWN_MS = 5000;
 
 function sfPost(cmd) {
@@ -735,7 +760,19 @@ function sfStop() {
   sfPost("stop");
 }
 
-function sfTerminate() {
+function classifyEngineError(err) {
+  const msg = String(err?.message || err || "").toLowerCase();
+  if (!msg) return "Unknown error";
+  if (msg.includes("timeout")) return "Timeout";
+  if (msg.includes("worker") && msg.includes("blocked")) return "Worker blocked";
+  if (msg.includes("security")) return "Worker blocked";
+  if (msg.includes("cors") || msg.includes("cross-origin") || msg.includes("origin")) return "CORS blocked";
+  if (msg.includes("failed to load") || msg.includes("not found") || msg.includes("404")) return "Missing engine file";
+  if (msg.includes("wasm")) return "WASM load error";
+  return "Worker error";
+}
+
+function sfTerminate({ reason = "" } = {}) {
   try { sf.worker?.terminate(); } catch { /* ignore */ }
   sf.worker = null;
   sf.ready = false;
@@ -745,11 +782,12 @@ function sfTerminate() {
   }
   sf.currentJob = null;
   sf.initPromise = null;
-  engineMode = "fallback";
-  updateEngineBadge();
+  sf.lastErrorReason = reason;
+  setEngineStatus("fallback", { reason: reason || "Unavailable" });
 }
 
 function createStockfishWorker(url, { timeoutMs = STOCKFISH_INIT_TIMEOUT_MS } = {}) {
+  const startedAt = performance.now();
   return new Promise((resolve, reject) => {
     let worker;
     try {
@@ -762,7 +800,8 @@ function createStockfishWorker(url, { timeoutMs = STOCKFISH_INIT_TIMEOUT_MS } = 
     const onError = (e) => {
       cleanup();
       try { worker.terminate(); } catch { /* ignore */ }
-      reject(e?.error || new Error("Stockfish worker error"));
+      const err = e?.error || new Error("Stockfish worker error");
+      reject(err);
     };
 
     let gotUciOk = false;
@@ -778,7 +817,7 @@ function createStockfishWorker(url, { timeoutMs = STOCKFISH_INIT_TIMEOUT_MS } = 
       if (line.includes("readyok")) gotReadyOk = true;
       if (gotUciOk && gotReadyOk) {
         cleanup();
-        resolve(worker);
+        resolve({ worker, initMs: performance.now() - startedAt });
       }
     };
 
@@ -804,6 +843,22 @@ function sfHandleLine(lineRaw) {
   const line = String(lineRaw ?? "").trim();
   if (!line) return;
 
+  if (line.startsWith("id name")) {
+    sf.version = line.replace(/^id name\s+/i, "").trim();
+    return;
+  }
+
+  if (line.startsWith("option name UCI_Elo")) {
+    const minMatch = line.match(/\bmin\s+(\d+)/i);
+    const maxMatch = line.match(/\bmax\s+(\d+)/i);
+    const min = minMatch ? Number(minMatch[1]) : null;
+    const max = maxMatch ? Number(maxMatch[1]) : null;
+    if (Number.isFinite(min) && Number.isFinite(max)) {
+      sf.uciEloRange = { min, max };
+    }
+    return;
+  }
+
   if (line === "readyok") {
     const r = sf.pendingReadies.shift();
     if (r) {
@@ -816,6 +871,10 @@ function sfHandleLine(lineRaw) {
     const parts = line.split(/\s+/);
     const bm = parts[1] || "(none)";
     if (sf.currentJob) {
+      if (sf.currentJob.token !== aiRequestSeq) {
+        sf.currentJob = null;
+        return;
+      }
       const { resolve } = sf.currentJob;
       sf.currentJob = null;
       resolve(bm === "(none)" ? null : bm);
@@ -828,43 +887,69 @@ function sfHandleLine(lineRaw) {
   if (line.startsWith("info ") && line.includes(" multipv ") && line.includes(" pv ")) {
     const m = line.match(/\bmultipv\s+(\d+)\b/);
     const pvIdx = m ? Number(m[1]) : 0;
-    if (pvIdx > 0) {
-      sf.lastMultiPv[pvIdx - 1] = line;
+    const pvMatch = line.match(/\bpv\s+([a-h][1-8][a-h][1-8][qrbn]?)/i);
+    if (pvIdx > 0 && pvMatch) {
+      const scoreMate = line.match(/\bscore\s+mate\s+(-?\d+)/i);
+      const scoreCp = line.match(/\bscore\s+cp\s+(-?\d+)/i);
+      sf.lastMultiPv[pvIdx - 1] = {
+        index: pvIdx,
+        move: pvMatch[1],
+        scoreMate: scoreMate ? Number(scoreMate[1]) : null,
+        scoreCp: scoreCp ? Number(scoreCp[1]) : null,
+      };
     }
   }
 }
 
-async function initStockfish({ timeoutMs = STOCKFISH_INIT_TIMEOUT_MS } = {}) {
+async function initStockfish({ timeoutMs = STOCKFISH_INIT_TIMEOUT_MS, force = false } = {}) {
   if (sf.ready && sf.worker) return true;
   if (sf.initPromise) return sf.initPromise;
 
   sf.initPromise = (async () => {
     sf.lastInitAttemptMs = Date.now();
+    setEngineStatus("loading");
+    const start = performance.now();
     try {
-      sf.worker = await createStockfishWorker(STOCKFISH_LOCAL_URL, { timeoutMs });
-    } catch {
-      sf.worker = await createStockfishWorker(STOCKFISH_CDN_URL, { timeoutMs });
+      const local = await createStockfishWorker(STOCKFISH_LOCAL_URL, { timeoutMs });
+      sf.worker = local.worker;
+      engineStatus.source = "local";
+      console.info(`[Stockfish] Loaded local worker in ${local.initMs.toFixed(0)}ms (${STOCKFISH_LOCAL_URL})`);
+    } catch (err) {
+      const reason = classifyEngineError(err);
+      console.warn(`[Stockfish] Local worker failed (${STOCKFISH_LOCAL_URL}): ${reason}`);
+      try {
+        const cdn = await createStockfishWorker(STOCKFISH_CDN_URL, { timeoutMs });
+        sf.worker = cdn.worker;
+        engineStatus.source = "cdn";
+        console.info(`[Stockfish] Loaded CDN worker in ${cdn.initMs.toFixed(0)}ms (${STOCKFISH_CDN_URL})`);
+      } catch (cdnErr) {
+        const cdnReason = classifyEngineError(cdnErr);
+        throw new Error(cdnReason);
+      }
     }
 
     sf.worker.onmessage = (ev) => sfHandleLine(ev?.data);
-    sf.worker.onerror = () => sfTerminate();
+    sf.worker.onerror = (e) => sfTerminate({ reason: classifyEngineError(e?.message || e?.error || e) });
 
     // Now we can confidently call it ready (uci+ready handshake already completed).
     sf.ready = true;
+    sfPost("uci");
+    sfPost("isready");
 
-    engineMode = "stockfish";
-    updateEngineBadge();
+    setEngineStatus("stockfish", { source: engineStatus.source });
 
     if (!sf.hasLoggedStartup) {
       sf.hasLoggedStartup = true;
-      console.info("Stockfish ready");
+      const tookMs = performance.now() - start;
+      console.info(`[Stockfish] Ready in ${tookMs.toFixed(0)}ms${sf.version ? ` (${sf.version})` : ""}`);
     }
     return true;
   })().catch((e) => {
-    sfTerminate();
+    const reason = classifyEngineError(e);
+    sfTerminate({ reason });
     if (!sf.hasLoggedStartup) {
       sf.hasLoggedStartup = true;
-      console.warn("Stockfish failed -> fallback");
+      console.warn(`[Stockfish] Failed -> fallback (${reason})`);
     }
     throw e;
   });
@@ -887,19 +972,49 @@ function sfIsReady({ timeoutMs = 1200 } = {}) {
   });
 }
 
-async function sfBestMoveFromFEN(fen, preset) {
+function clampElo(elo) {
+  if (!Number.isFinite(elo)) return null;
+  if (sf.uciEloRange) {
+    return Math.max(sf.uciEloRange.min, Math.min(sf.uciEloRange.max, elo));
+  }
+  return elo;
+}
+
+function shouldAllowMistakes(preset, bestLine) {
+  if (!preset || preset.mistakeRate <= 0) return false;
+  if (!bestLine) return true;
+  if (bestLine.scoreMate != null) return false;
+  if (Number.isFinite(bestLine.scoreCp) && bestLine.scoreCp >= 900) return false;
+  return true;
+}
+
+function pickMoveFromMultiPv(preset, bestMoveUci) {
+  const lines = sf.lastMultiPv.filter((entry) => entry?.move);
+  if (!lines.length) return bestMoveUci;
+  const ordered = lines.sort((a, b) => a.index - b.index);
+  const bestLine = ordered[0];
+  if (!shouldAllowMistakes(preset, bestLine)) return bestMoveUci;
+  if (preset.mistakeRate <= 0) return bestMoveUci;
+  if (Math.random() >= preset.mistakeRate) return bestMoveUci;
+
+  const pickCount = Math.max(1, Math.min(preset.pickFromTopN || 1, ordered.length));
+  const options = ordered.slice(0, pickCount).map((entry) => entry.move).filter(Boolean);
+  if (options.length <= 1) return bestMoveUci;
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+async function sfBestMoveFromFEN(fen, preset, token) {
+  if (token !== aiRequestSeq) return null;
   // Avoid hammering init attempts if the environment blocks workers/CDN.
   const now = Date.now();
   if (!sf.ready && (now - (sf.lastInitAttemptMs || 0)) < STOCKFISH_RETRY_COOLDOWN_MS) {
-    engineMode = "fallback";
-    updateEngineBadge();
+    setEngineStatus("fallback", { reason: sf.lastErrorReason || "Init cooldown" });
     return null;
   }
 
   const ok = await initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => false);
   if (!ok || !sf.worker || !sf.ready) {
-    engineMode = "fallback";
-    updateEngineBadge();
+    setEngineStatus("fallback", { reason: sf.lastErrorReason || "Unavailable" });
     return null;
   }
 
@@ -908,20 +1023,24 @@ async function sfBestMoveFromFEN(fen, preset) {
 
   await sfIsReady().catch(() => {});
 
+  sf.lastMultiPv = [];
+  const multiPv = Math.max(1, Number(preset.multiPv) || 1);
+  const elo = preset.limitStrength && preset.elo != null ? clampElo(Number(preset.elo)) : null;
+
   sfPost("ucinewgame");
   sfPost("setoption name Threads value 1");
   sfPost("setoption name Hash value 64");
-  sfPost("setoption name MultiPV value 3");
-  sfPost(`setoption name Skill Level value ${Number(preset.skill)}`);
+  sfPost(`setoption name MultiPV value ${multiPv}`);
   sfPost(`setoption name UCI_LimitStrength value ${preset.limitStrength ? "true" : "false"}`);
-  if (preset.limitStrength && preset.elo != null) sfPost(`setoption name UCI_Elo value ${Number(preset.elo)}`);
+  if (elo != null) sfPost(`setoption name UCI_Elo value ${elo}`);
+  sfPost(`setoption name Skill Level value ${Number(preset.skill)}`);
 
   await sfIsReady().catch(() => {});
 
   sfPost(`position fen ${fen}`);
 
   const bestMovePromise = new Promise((resolve, reject) => {
-    sf.currentJob = { resolve, reject, bestMovePending: true };
+    sf.currentJob = { resolve, reject, bestMovePending: true, token };
   });
 
   sfPost(`go movetime ${Number(preset.movetime)}`);
@@ -938,7 +1057,8 @@ async function sfBestMoveFromFEN(fen, preset) {
     sf.currentJob = null;
   }
 
-  return bestMove;
+  if (bestMove == null) return null;
+  return pickMoveFromMultiPv(preset, bestMove);
 }
 
 // ---- FEN export from 0x88 board ----
@@ -1034,6 +1154,29 @@ function chooseHeuristicBestMove(legalMoves, preset) {
   return best;
 }
 
+function moveLeadsToCheckmate(move, colorToPlay) {
+  const undo = applyMove(move, { recordUndo: false });
+  const legal = genLegalMoves(opponent(colorToPlay));
+  const isMate = legal.length === 0 && inCheck(opponent(colorToPlay));
+  revertMove(undo);
+  return isMate;
+}
+
+function allowsOpponentMateInOne(move, colorToPlay) {
+  const undo = applyMove(move, { recordUndo: false });
+  const opp = opponent(colorToPlay);
+  const oppMoves = genLegalMoves(opp);
+  let mateInOne = false;
+  for (const oppMove of oppMoves) {
+    if (moveLeadsToCheckmate(oppMove, opp)) {
+      mateInOne = true;
+      break;
+    }
+  }
+  revertMove(undo);
+  return mateInOne;
+}
+
 function chooseBlunderMove(legalMoves, preset) {
   if (legalMoves.length <= 2) return legalMoves[Math.floor(Math.random() * legalMoves.length)];
   const scored = legalMoves.map(m => ({ m, s: evaluateMove(m, preset, { deterministic: true }) }));
@@ -1069,7 +1212,7 @@ async function aiMoveIfNeeded() {
   // Try Stockfish first
   try {
     const fen = toFEN();
-    const bestUci = await sfBestMoveFromFEN(fen, preset);
+    const bestUci = await sfBestMoveFromFEN(fen, preset, mySeq);
     if (game !== myGame || mySeq !== aiRequestSeq) return;
     if (!game.gameOver && game.turn === game.aiColor && bestUci) {
       const mapped = uciToLegalMove(bestUci, legalMoves);
@@ -1080,12 +1223,17 @@ async function aiMoveIfNeeded() {
   }
 
   if (!chosenMove) {
-    chosenMove = chooseHeuristicBestMove(legalMoves, preset);
-  }
-
-  // Weak-level blunders
-  if (preset.blunder > 0 && Math.random() < preset.blunder) {
-    chosenMove = chooseBlunderMove(legalMoves, preset);
+    const mateMove = legalMoves.find((move) => moveLeadsToCheckmate(move, game.turn));
+    if (mateMove) {
+      chosenMove = mateMove;
+    } else {
+      const safeMoves = legalMoves.filter((move) => !allowsOpponentMateInOne(move, game.turn));
+      const candidateMoves = safeMoves.length ? safeMoves : legalMoves;
+      chosenMove = chooseHeuristicBestMove(candidateMoves, preset);
+      if (preset.mistakeRate > 0 && Math.random() < preset.mistakeRate) {
+        chosenMove = chooseBlunderMove(candidateMoves, preset);
+      }
+    }
   }
 
   // Enforce minimum visual thinking time (always >= 2s).
@@ -1407,9 +1555,10 @@ function onTimeControlUIChange() {
 function logAiDiagnostics(reason = "") {
   const p = getAiPreset();
   console.info(
-    `[AI] ${reason ? reason + " — " : ""}engine=${engineMode} level=${p.key} ` +
+    `[AI] ${reason ? reason + " — " : ""}engine=${engineStatus.mode} level=${p.key} ` +
     `limitStrength=${Boolean(p.limitStrength)} elo=${p.elo ?? "-"} skill=${p.skill} ` +
-    `movetime=${p.movetime}ms${p.thinkTimeOverrideMs != null ? " (override)" : ""}`
+    `movetime=${p.movetime}ms multipv=${p.multiPv} mistakes=${p.mistakeRate ?? 0} ` +
+    `${p.thinkTimeOverrideMs != null ? " (override)" : ""}`
   );
 }
 
@@ -1422,12 +1571,24 @@ function onAiSettingsChanged() {
   aiMoveIfNeeded();
 }
 
+function retryEngineInit() {
+  cancelPendingAi({ stopEngine: true });
+  sfTerminate({ reason: "" });
+  sf.lastInitAttemptMs = 0;
+  setEngineStatus("loading");
+  initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS, force: true }).catch((err) => {
+    const reason = classifyEngineError(err);
+    setEngineStatus("fallback", { reason });
+  });
+}
+
 // bind
 newGameBtn.addEventListener("click", newGame);
 resetBtn.addEventListener("click", newGame);
 undoBtn.addEventListener("click", undo);
 hintBtn.addEventListener("click", hint);
 resignBtn.addEventListener("click", resign);
+engineRetryEl?.addEventListener("click", retryEngineInit);
 
 for (const btn of promoBtns) {
   btn.addEventListener("click", () => {
@@ -1463,8 +1624,7 @@ timeControlEl.addEventListener("change", onTimeControlUIChange);
 updateEngineBadge();
 // Kick off engine init early so we don't silently fall back.
 initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => {
-  engineMode = "fallback";
-  updateEngineBadge();
+  setEngineStatus("fallback", { reason: sf.lastErrorReason || "Unavailable" });
 });
 
 // Diagnostics helper (optional)
