@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TG Chess Admin</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1 class="app-title">♟️ TG Chess Admin</h1>
+        <p class="app-subtitle">Generate lesson outlines and content for the learning tracks.</p>
+      </div>
+      <div class="app-actions">
+        <span class="badge">Admin only</span>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <div class="container">
+        <section class="section card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Outline generator</h2>
+              <p class="section-subtitle">Create a module outline and lesson list.</p>
+            </div>
+          </div>
+          <div class="controls-grid">
+            <div class="control-group">
+              <label for="adminToken">Admin token</label>
+              <input id="adminToken" class="input" type="password" placeholder="Enter ADMIN_TOKEN" />
+            </div>
+            <div class="control-group">
+              <label for="trackSelect">Track</label>
+              <select id="trackSelect">
+                <option value="beginner">Beginner</option>
+                <option value="tactics">Tactics</option>
+                <option value="strategy">Strategy</option>
+                <option value="endgames">Endgames</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="levelSelect">Level</label>
+              <select id="levelSelect">
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="lessonsCount">Lessons count</label>
+              <input id="lessonsCount" class="input" type="number" min="4" max="20" value="8" />
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <button id="generateOutline" class="btn">Generate outline</button>
+            <span id="outlineStatus" class="small"></span>
+          </div>
+          <div class="control-group" style="margin-top:12px;">
+            <label for="outlineOutput">Outline JSON</label>
+            <textarea id="outlineOutput" class="input" rows="10" placeholder="Outline JSON will appear here..."></textarea>
+            <button id="copyOutline" class="btn ghost" type="button">Copy outline</button>
+          </div>
+        </section>
+
+        <section class="section" style="margin-top:16px;">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Lessons generator</h2>
+              <p class="section-subtitle">Generate individual lessons or all at once.</p>
+            </div>
+            <button id="generateAll" class="btn secondary" type="button">Generate all</button>
+          </div>
+          <div id="lessonList" class="card-grid"></div>
+        </section>
+
+        <section class="section card" style="margin-top:16px;">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Lessons JSON output</h2>
+              <p class="section-subtitle">Скопируй JSON и вставь в web/data/lessons.json, затем задеплой.</p>
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="lessonsOutput">lessons.json (array items)</label>
+            <textarea id="lessonsOutput" class="input" rows="12" placeholder="Generated lessons will appear here..."></textarea>
+            <button id="copyLessons" class="btn ghost" type="button">Copy lessons</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="./admin.js"></script>
+</body>
+</html>
