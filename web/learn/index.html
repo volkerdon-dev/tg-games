@@ -21,6 +21,21 @@
     <main class="app-content">
       <div class="container">
         <section class="section">
+          <div class="card">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Continue learning</h2>
+                <p class="section-subtitle" id="continueSubtitle">Beginner: 0/0 completed</p>
+              </div>
+              <a class="btn" id="nextLessonBtn" href="./beginner.html">Next lesson</a>
+            </div>
+            <div class="progress-bar" id="beginnerProgressBar">
+              <span style="width:0%"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
           <div class="section-header">
             <div>
               <h2 class="section-title">Tracks</h2>
@@ -31,6 +46,10 @@
             <div class="card track-card">
               <h3>🌱 Beginner fundamentals</h3>
               <p>Core rules, mating patterns, and clean openings.</p>
+              <div class="progress-bar track-progress" style="margin-top:12px">
+                <span id="beginnerTrackProgress" style="width:0%"></span>
+              </div>
+              <div class="small" id="beginnerProgressText" style="margin-top:6px">Progress: 0/0</div>
               <div class="row" style="margin-top:12px">
                 <a class="btn" href="./beginner.html">Open track</a>
                 <span class="badge">Recommended</span>
@@ -72,5 +91,7 @@
       <a class="nav-item" href="../progress/index.html">📈<span>Progress</span></a>
     </nav>
   </div>
+
+  <script type="module" src="./learn.js"></script>
 </body>
 </html>

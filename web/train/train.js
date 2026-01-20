@@ -21,6 +21,14 @@ async function loadPuzzles() {
   return await res.json();
 }
 
+function getRequestedTheme() {
+  const params = new URLSearchParams(window.location.search);
+  const theme = params.get("theme");
+  if (!theme) return null;
+  const exists = Array.from(themeEl.options).some((option) => option.value === theme);
+  return exists ? theme : null;
+}
+
 function pickPuzzle() {
   const theme = themeEl.value;
   const list = theme === "all" ? puzzles : puzzles.filter(p => p.theme === theme);
@@ -75,6 +83,9 @@ function checkAnswer() {
 
 async function init() {
   puzzles = await loadPuzzles();
+  const requestedTheme = getRequestedTheme();
+  if (requestedTheme) themeEl.value = requestedTheme;
+
   const p = pickPuzzle();
   if (!p) {
     feedbackEl.textContent = "No puzzles for this theme yet.";
