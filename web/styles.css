@@ -551,6 +551,47 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
 
 .list{display:flex; flex-direction:column; gap:12px}
 
+.track-progress{height:6px}
+
+.lesson-detail h2{margin:0 0 6px; font-size:20px}
+.lesson-content p{margin:0 0 10px}
+.badge-group{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.badge.badge-tag{
+  background: rgba(79,209,255,.12);
+  border-color: rgba(79,209,255,.25);
+  color: rgba(220,244,255,.95);
+}
+.badge.badge-meta{
+  background: rgba(167,139,250,.16);
+  border-color: rgba(167,139,250,.35);
+  color: rgba(236,230,255,.95);
+}
+.tryit-card{
+  margin-top:16px;
+  padding:14px;
+  border-radius: var(--radius-sm);
+  border:1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.tryit-card h4{margin:0; font-size:14px}
+.tryit-card p{margin:4px 0 0; color:var(--muted); font-size:13px}
+.cta-row{
+  margin-top:18px;
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.cta-row .btn{
+  flex:1;
+  min-width:160px;
+  justify-content:center;
+}
+
 /* ===== Promotion modal ===== */
 .promoModal{
   position:absolute;

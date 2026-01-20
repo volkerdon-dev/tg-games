@@ -236,6 +236,74 @@ function initialGame(playerColor) {
   };
 }
 
+function parseFen(fen) {
+  if (!fen || typeof fen !== "string") throw new Error("Empty FEN");
+  const parts = fen.trim().split(/\s+/);
+  if (parts.length < 2) throw new Error("Invalid FEN fields");
+
+  const [boardPart, turnPart, castlingPart = "-", epPart = "-", halfmovePart = "0"] = parts;
+  const rows = boardPart.split("/");
+  if (rows.length !== 8) throw new Error("Invalid FEN board");
+
+  const board = createEmptyBoard();
+  let whiteKing = -1;
+  let blackKing = -1;
+
+  rows.forEach((row, r) => {
+    let file = 0;
+    for (const char of row) {
+      if (/[1-8]/.test(char)) {
+        file += Number.parseInt(char, 10);
+        continue;
+      }
+      const piece = char.toUpperCase();
+      if (!"KQRBNP".includes(piece)) throw new Error("Invalid piece");
+      const color = char === char.toUpperCase() ? WHITE : BLACK;
+      if (file > 7) throw new Error("Invalid file");
+      const square = sqOf(r, file);
+      board[square] = { c: color, t: piece };
+      if (piece === "K") {
+        if (color === WHITE) whiteKing = square;
+        else blackKing = square;
+      }
+      file += 1;
+    }
+    if (file !== 8) throw new Error("Invalid row width");
+  });
+
+  if (whiteKing === -1 || blackKing === -1) throw new Error("Missing king");
+  const turn = turnPart === WHITE || turnPart === BLACK ? turnPart : null;
+  if (!turn) throw new Error("Invalid turn");
+
+  const castling = { wK: false, wQ: false, bK: false, bQ: false };
+  if (castlingPart !== "-") {
+    if (/[^KQkq]/.test(castlingPart)) throw new Error("Invalid castling");
+    castling.wK = castlingPart.includes("K");
+    castling.wQ = castlingPart.includes("Q");
+    castling.bK = castlingPart.includes("k");
+    castling.bQ = castlingPart.includes("q");
+  }
+
+  let ep = -1;
+  if (epPart !== "-") {
+    if (!/^[a-h][36]$/.test(epPart)) throw new Error("Invalid en passant");
+    const file = "abcdefgh".indexOf(epPart[0]);
+    const rank = 8 - Number.parseInt(epPart[1], 10);
+    ep = sqOf(rank, file);
+  }
+
+  const halfmove = Number.parseInt(halfmovePart, 10);
+
+  return {
+    board,
+    turn,
+    castling,
+    ep,
+    kingSq: { w: whiteKing, b: blackKing },
+    halfmove: Number.isFinite(halfmove) ? halfmove : 0,
+  };
+}
+
 function pieceAt(sq){ return game.board[sq]; }
 function setPiece(sq, p){ game.board[sq] = p; }
 
@@ -1684,14 +1752,26 @@ async function requestCoachReview() {
 }
 
 // -------------------- controls --------------------
-function newGame() {
+function resetGame({ fen } = {}) {
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
   stopClock();
   abortCoachRequest({ closeModal: true });
 
   const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
-  game = initialGame(playerColor);
+  if (fen) {
+    const parsed = parseFen(fen);
+    const seeded = initialGame(playerColor);
+    seeded.board = parsed.board;
+    seeded.turn = parsed.turn;
+    seeded.castling = parsed.castling;
+    seeded.ep = parsed.ep;
+    seeded.plies = 0;
+    seeded.kingSq = parsed.kingSq;
+    game = seeded;
+  } else {
+    game = initialGame(playerColor);
+  }
   startFen = toFEN();
   gameMovesUci = [];
 
@@ -1702,6 +1782,10 @@ function newGame() {
   finalizeIfGameOver();
   render();
   aiMoveIfNeeded();
+}
+
+function newGame() {
+  resetGame();
 }
 
 function undo() {
@@ -1798,6 +1882,23 @@ function retryEngineInit() {
   });
 }
 
+function initFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const fen = params.get("fen");
+  if (fen) {
+    try {
+      resetGame({ fen });
+    } catch (error) {
+      resetGame();
+      if (hintTextEl) {
+        hintTextEl.textContent = "Invalid FEN provided. Loaded the standard position.";
+      }
+    }
+    return;
+  }
+  resetGame();
+}
+
 // bind
 newGameBtn.addEventListener("click", newGame);
 resetBtn.addEventListener("click", newGame);
@@ -1868,4 +1969,4 @@ initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => {
 window.showAiDiagnostics = () => logAiDiagnostics("manual");
 
 onTimeControlUIChange();
-newGame();
+initFromQuery();

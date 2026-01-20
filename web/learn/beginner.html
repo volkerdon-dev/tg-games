@@ -6,7 +6,7 @@
   <title>Beginner Track — TG Chess</title>
   <link rel="stylesheet" href="../styles.css" />
 </head>
-<body>
+<body data-track="Beginner">
   <div class="app-shell">
     <header class="app-header">
       <div>
@@ -25,15 +25,15 @@
             <div class="section-header" style="margin-bottom:8px">
               <div>
                 <h2 class="section-title">Track overview</h2>
-                <p class="section-subtitle">8 guided lessons • Estimated 40 min</p>
+                <p class="section-subtitle"><span id="trackLessonCount">0</span> guided lessons • Estimated <span id="trackEstimated">—</span> min</p>
               </div>
               <span class="badge">Active</span>
             </div>
             <p class="small">Master the rules, key checkmates, and the opening basics before moving to tactics.</p>
-            <div class="progress-bar" style="margin-top:12px">
-              <span style="width:35%"></span>
+            <div class="progress-bar" id="trackProgressBar" style="margin-top:12px">
+              <span style="width:0%"></span>
             </div>
-            <div class="small" style="margin-top:6px">Progress: 3/8 lessons completed</div>
+            <div class="small" id="trackProgressText" style="margin-top:6px">Progress: 0/0 lessons completed</div>
           </div>
         </section>
 
@@ -47,6 +47,10 @@
           <div class="panel">
             <div id="lessonsList" class="list"></div>
           </div>
+        </section>
+
+        <section class="section">
+          <div id="lessonDetail" class="card lesson-detail hidden"></div>
         </section>
       </div>
     </main>
