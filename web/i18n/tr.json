@@ -1,0 +1,410 @@
+{
+  "nav": {
+    "play": "Oyna",
+    "learn": "Öğren",
+    "train": "Antrenman",
+    "progress": "İlerleme",
+    "home": "Ana Sayfa",
+    "settings": "Ayarlar"
+  },
+  "common": {
+    "close": "Kapat",
+    "copy": "Kopyala",
+    "retry": "Tekrar dene",
+    "minutes": "dk",
+    "minutesShort": "dk",
+    "dash": "—",
+    "comingSoon": "Yakında",
+    "live": "Canlı",
+    "white": "Beyaz",
+    "black": "Siyah"
+  },
+  "home": {
+    "title": "♟️ TG Chess",
+    "subtitle": "Oyna, öğren, antrenman yap — günlük satranç stüdyon",
+    "pillInfo": "Sadece satranç",
+    "today": {
+      "title": "Bugün",
+      "subtitle": "Odaklı adımlarla geri dön",
+      "badge": "✨ Günün odağı"
+    },
+    "quick": {
+      "continue": {
+        "title": "▶️ Devam et",
+        "desc": "Play odasında hızlı bir yapay zeka oyununa devam et."
+      },
+      "puzzle": {
+        "title": "🎯 Günün bulmacası",
+        "desc": "Temalı bir bulmacayla taktiğini keskinleştir."
+      },
+      "lesson": {
+        "title": "📚 Sonraki ders",
+        "desc": "Kısa bir dersle serini koru."
+      }
+    },
+    "explore": {
+      "title": "Keşfet",
+      "subtitle": "Satrançta gelişmenin dört yolu",
+      "play": {
+        "title": "♟️ Oyna",
+        "desc": "Saat + ipuçlarıyla dostça bir yapay zeka maçı."
+      },
+      "learn": {
+        "title": "📚 Öğren",
+        "desc": "Rehberli parkurlar ve kısa dersler."
+      },
+      "train": {
+        "title": "🎯 Antrenman",
+        "desc": "Taktik bulmacalar ve mini oyunlar."
+      },
+      "progress": {
+        "title": "📈 İlerleme",
+        "desc": "İstatistikler, seriler ve beceri odağı."
+      }
+    },
+    "progress": {
+      "title": "Bugünün ilerlemesi",
+      "subtitle": "Yerel ilerlemeden mini istatistikler"
+    },
+    "stats": {
+      "streak": "Seri",
+      "lessons": "Tamamlanan dersler",
+      "puzzles": "Çözülen bulmacalar",
+      "streakValue": "{count} gün"
+    },
+    "tip": "İpucu: gelişim döngünü aktif tutmak için her gün hızlı bir bulmaca ve ders çöz."
+  },
+  "learn": {
+    "title": "📚 Öğren",
+    "subtitle": "Her seviye için yapılandırılmış parkurlar",
+    "continueTitle": "Öğrenmeye devam et",
+    "continueSubtitle": "{track}: {completed}/{total} tamamlandı",
+    "nextLesson": "Sonraki ders",
+    "nextLessonWithTitle": "Sonraki ders: {title}",
+    "tracksTitle": "Parkurlar",
+    "tracksSubtitle": "Bir parkur seç ve yolu takip et",
+    "backToLearn": "← Öğren",
+    "backToLearnBtn": "Öğrenmeye dön",
+    "progressTrack": "İlerleme: {completed}/{total} ders tamamlandı",
+    "progressShort": "İlerleme: {completed}/{total}",
+    "track": {
+      "beginnerShort": "Başlangıç",
+      "beginnerTitle": "🌱 Başlangıç temelleri",
+      "beginnerDesc": "Temel kurallar, mat kalıpları ve temiz açılışlar.",
+      "tacticsTitle": "⚡ Taktik araç seti",
+      "tacticsDesc": "Çatal, bağlama, şiş ve hızlı taktik kazanımlar.",
+      "strategyTitle": "🧠 Strateji ve planlar",
+      "strategyDesc": "Uzun vadeli fikirler: alan, zayıf kareler ve planlama.",
+      "endgamesTitle": "🏁 Oyun sonları",
+      "endgamesDesc": "Avantajları güvenli oyun sonlarıyla çevir.",
+      "openTrack": "Parkuru aç",
+      "recommended": "Önerilen",
+      "beginnerHeader": "🌱 Başlangıç parkuru",
+      "beginnerSubtitle": "Sağlam bir satranç temeli için başlangıç",
+      "overviewTitle": "Parkur özeti",
+      "lessonCountLabel": "rehberli ders",
+      "estimatedLabel": "Tahmini",
+      "active": "Aktif",
+      "beginnerSummary": "Kuralları, temel matları ve açılışları öğren, sonra taktiğe geç.",
+      "lessonsTitle": "Dersler",
+      "lessonsSubtitle": "Başlamak veya tekrar etmek için bir derse dokun",
+      "tacticsHeader": "⚡ Taktik parkuru",
+      "tacticsSubtitle": "Taktik kazanımlar için örüntü tanıma",
+      "roadmapTitle": "Parkur yol haritası",
+      "tacticsRoadmapSubtitle": "Yakında — hızlı taktik refleksler",
+      "tacticsRoadmap": {
+        "item1": "Tek hamlede çatal",
+        "item2": "Bağlama ve şiş temelleri",
+        "item3": "Açığa çıkan saldırılar",
+        "item4": "Savunucuyu kaldırma",
+        "item5": "Arka sıra matları",
+        "item6": "Yem ve saptırma",
+        "item7": "Taktik sayma",
+        "item8": "2 hamlede mat kalıpları",
+        "item9": "Orta seviye taktik kombinasyonlar",
+        "item10": "Blunder kontrolü"
+      },
+      "strategyHeader": "🧠 Strateji parkuru",
+      "strategySubtitle": "Planlar, yapı ve konumsal oyun",
+      "strategyRoadmapSubtitle": "Yakında — kazandıran planları kurmayı öğren",
+      "strategyRoadmap": {
+        "item1": "Piyon yapısı temelleri",
+        "item2": "Zayıf kareler ve ileri karakollar",
+        "item3": "Açık hatlar ve kale aktivitesi",
+        "item4": "Şah güvenliği planları",
+        "item5": "Taş koordinasyonu",
+        "item6": "Hedef oluşturma",
+        "item7": "Hafif taş dengesizlikleri",
+        "item8": "Oyun sonuna geçiş",
+        "item9": "Stratejik fedalar",
+        "item10": "Konumsal değerlendirme kontrol listesi"
+      },
+      "endgamesHeader": "🏁 Oyun sonları parkuru",
+      "endgamesSubtitle": "Avantajı temiz teknikle çevir",
+      "endgamesRoadmapSubtitle": "Yakında — temel oyun sonu kalıpları",
+      "endgamesRoadmap": {
+        "item1": "Temel matlar",
+        "item2": "Muhalefet ve piyon yarışları",
+        "item3": "Şah aktivitesi ilkeleri",
+        "item4": "Kale oyun sonu temelleri",
+        "item5": "Hafif taş oyun sonları",
+        "item6": "Lucena ve Philidor fikirleri",
+        "item7": "Dış geçer piyonlar",
+        "item8": "Savunma beraberlik teknikleri",
+        "item9": "Pratik oyun sonu dönüşümleri",
+        "item10": "Oyun sonu çalışma koleksiyonu"
+      }
+    },
+    "tryIt": {
+      "title": "Dene",
+      "defaultPrompt": "Bu konumu tahtada çalış.",
+      "openBoard": "Tahtada aç"
+    },
+    "cta": {
+      "trainTheme": "Bu temayı çalış",
+      "practiceGame": "Pratik oyun"
+    },
+    "lesson": {
+      "level": "Seviye",
+      "anyLevel": "Herhangi",
+      "completed": "Tamamlandı",
+      "open": "Aç",
+      "markDone": "Tamamlandı olarak işaretle"
+    }
+  },
+  "train": {
+    "title": "🎯 Antrenman",
+    "subtitle": "Daha keskin içgüdüler için taktik modlar",
+    "modesTitle": "Modlar",
+    "modesSubtitle": "Bugün için bir antrenman modu seç",
+    "openMode": "Modu aç",
+    "backToTrain": "← Antrenman",
+    "backToTrainBtn": "Antrenmana dön",
+    "modes": {
+      "daily": {
+        "title": "☀️ Günlük plan",
+        "desc": "Bir bulmaca, bir ders, bir hızlı oyun."
+      },
+      "themes": {
+        "title": "🎯 Temalar",
+        "desc": "Anında geri bildirimle temalı bulmacalar çöz."
+      },
+      "minigames": {
+        "title": "🎮 Mini oyunlar",
+        "desc": "Zaman baskısı altında hızlı alıştırmalar."
+      }
+    },
+    "themes": {
+      "title": "🎯 Temalar",
+      "subtitle": "Temaya göre taktik bulmacalar çöz",
+      "label": "Tema",
+      "all": "Tümü",
+      "mateIn1": "1 hamlede mat",
+      "fork": "Çatal",
+      "pin": "Bağlama",
+      "next": "Sonraki bulmaca",
+      "puzzleLabel": "Bulmaca",
+      "fenLabel": "FEN",
+      "expectedLabel": "Beklenen",
+      "answerPlaceholder": "En iyi hamleyi yaz, örn. \"Qg2#\"",
+      "check": "Kontrol et"
+    },
+    "daily": {
+      "title": "☀️ Günlük plan",
+      "subtitle": "Odaklı 10 dakikalık satranç rutini",
+      "routineTitle": "Bugünün rutini",
+      "routineSubtitle": "Momentum için her adımı tamamla",
+      "step1Title": "🎯 1 bulmaca",
+      "step1Desc": "2 dakikadan kısa sürede temalı bir taktik çöz.",
+      "step2Title": "📚 1 ders",
+      "step2Desc": "Başlangıç parkurundan bir dersi gözden geçir.",
+      "step3Title": "♟️ 1 hızlı oyun",
+      "step3Desc": "5–10 dakikalık bir yapay zeka maçı oyna.",
+      "goThemes": "Temalara git",
+      "openLesson": "Dersi aç",
+      "startGame": "Oyunu başlat"
+    },
+    "minigames": {
+      "title": "🎮 Mini oyunlar",
+      "subtitle": "İçgüdüleri hızlıca eğiten alıştırmalar",
+      "catalogTitle": "Mini oyun kataloğu",
+      "catalogSubtitle": "Hızlı tempolu alıştırmalar yakında",
+      "item1Title": "⚡ 1 hamlede mat sprint",
+      "item1Desc": "Bir hamlede matı mümkün olduğunca hızlı bul.",
+      "item2Title": "⏱️ En iyi hamle (30sn)",
+      "item2Desc": "Zaman baskısı altında en güçlü hamleyi seç.",
+      "item3Title": "🧯 Blunder kontrolü",
+      "item3Desc": "Rakibinden önce hatayı yakala.",
+      "item4Title": "🛡️ Tek savunma hamlesi",
+      "item4Desc": "Kesin savunma kaynağını bul.",
+      "item5Title": "📖 Açılış alıştırması",
+      "item5Desc": "Popüler hatlardan açılış hamlelerini çalış."
+    },
+    "expectedHidden": "{theme} (kontrolden önce gizli)",
+    "solvePrompt": "Çöz: JSON'daki en iyi hamleyi basit notasyonla gir (örn. Qg2#).",
+    "correct": "✅ Doğru!",
+    "incorrect": "❌ Yanlış. Beklenen: {move}",
+    "noPuzzles": "Bu tema için henüz bulmaca yok."
+  },
+  "progress": {
+    "title": "📈 İlerleme",
+    "subtitle": "Gelişim panelin",
+    "stats": {
+      "title": "İstatistikler",
+      "subtitle": "Şu ana kadarki ilerlemenin özeti",
+      "streak": "Seri",
+      "gamesPlayed": "Oynanan oyun",
+      "wins": "Galibiyet",
+      "losses": "Mağlubiyet",
+      "draws": "Beraberlik",
+      "totalMoves": "Toplam hamle",
+      "lessonsCompleted": "Tamamlanan dersler",
+      "puzzlesSolved": "Çözülen bulmacalar",
+      "puzzlesFailed": "Başarısız bulmacalar"
+    },
+    "streakValue": "{count} gün",
+    "goals": {
+      "title": "Hedefler ve seri",
+      "subtitle": "Günlük momentumunu koru",
+      "currentStreakTitle": "🔥 Mevcut seri",
+      "currentStreakDesc": "Serini sürdürmek için aktif kal.",
+      "currentStreakValue": "Yukarıdaki istatistiklere bak",
+      "weeklyTitle": "🎯 Haftalık hedef",
+      "weeklyDesc": "Bu hafta 5 bulmaca ve 2 ders tamamla.",
+      "weeklyProgress": "2 / 5 bulmaca tamamlandı"
+    },
+    "skills": {
+      "title": "Tema bazlı beceriler",
+      "subtitle": "Güç özeti (yakında)",
+      "mateIn1": "1 hamlede mat",
+      "forks": "Çatallar",
+      "pins": "Bağlamalar"
+    },
+    "history": {
+      "title": "Geçmiş",
+      "subtitle": "Yakında: oyun incelemesi + bulmaca geçmişi",
+      "desc": "Oyunlarının ve bulmaca denemelerinin ayrıntılı geçmişi yakında."
+    },
+    "reset": {
+      "title": "Yerel veriyi sıfırla",
+      "desc": "Yerel istatistikleri temizle ve yeniden başla.",
+      "button": "Sıfırla"
+    },
+    "resetConfirm": "Yerel ilerleme sıfırlansın mı?"
+  },
+  "chess": {
+    "title": "♟ Oyun odası",
+    "subtitle": "Yalnızca yasal hamlelerle akıllı yapay zeka",
+    "settings": {
+      "title": "Oyun ayarları",
+      "subtitle": "Taraf, güç ve zaman kontrolünü seç",
+      "side": "Taraf",
+      "strength": "Güç",
+      "thinkTime": "Düşünme süresi",
+      "thinkTimeAuto": "Otomatik (güce göre)",
+      "timeControl": "Süre",
+      "custom": "Özel",
+      "customLabel": "Özel (dk:sn)"
+    },
+    "engine": {
+      "fallback": "Motor: Yedek",
+      "loading": "Motor: Yükleniyor…",
+      "stockfish": "Motor: Stockfish",
+      "unavailable": "Kullanılamıyor",
+      "initCooldown": "Başlatma beklemesi"
+    },
+    "strength": {
+      "beginner": "🍼 Başlangıç",
+      "easy": "🙂 Kolay",
+      "casual": "🎯 Rahat",
+      "club": "♟ Kulüp",
+      "strong": "🔥 Güçlü",
+      "expert": "🧠 Uzman",
+      "master": "🏆 Usta",
+      "im": "🥇 IM",
+      "gm": "👑 GM",
+      "supergm": "🐉 Süper GM (Magnus modu)"
+    },
+    "actions": {
+      "newGame": "Yeni oyun",
+      "resign": "Terk et",
+      "undo": "Geri al",
+      "hint": "İpucu",
+      "coachReview": "Koç değerlendirmesi",
+      "resetPosition": "Pozisyonu sıfırla"
+    },
+    "clock": {
+      "off": "Saat yok",
+      "labelPlain": "Zamanın",
+      "label": "Zamanın ({side})"
+    },
+    "promo": {
+      "title": "Terfiyi seç",
+      "queen": "Vezire terfi",
+      "rook": "Kaleye terfi",
+      "bishop": "Fille terfi",
+      "knight": "Ata terfi"
+    },
+    "status": {
+      "title": "Maç durumu",
+      "subtitle": "Motordan canlı güncellemeler",
+      "labels": {
+        "status": "Durum",
+        "turn": "Sıra",
+        "moves": "Hamle",
+        "selected": "Seçili"
+      },
+      "aiThinking": "Yapay zeka düşünüyor…",
+      "checkmate": "ŞAH MAT — {winner} kazandı",
+      "stalemate": "PAT — Berabere",
+      "resign": "TERK — {winner} kazandı",
+      "timeout": "SÜRE — {winner} kazandı",
+      "check": "ŞAH",
+      "playing": "Oyun sürüyor"
+    },
+    "hint": {
+      "legalMoves": "Yasal hamleler: {moves}",
+      "noLegalMoves": "Bu taş için yasal hamle yok.",
+      "gameOver": "Oyun bitti. Yeni oyun başlat veya geri al.",
+      "aiThinking": "Yapay zeka düşünüyor…",
+      "waitAi": "Yapay zeka hamlesi bekleniyor…",
+      "noMoves": "Yasal hamle yok.",
+      "bestMove": "İpucu: {move}",
+      "invalidFen": "Geçersiz FEN verildi. Standart pozisyon yüklendi."
+    },
+    "tip": "İpucu: yasal hamleleri görmek için bir taşa dokun. Şah zorunludur; oyun şah mat, pat veya süreyle biter.",
+    "coach": {
+      "title": "Koç değerlendirmesi",
+      "subtitle": "Oyun sonrası kısa analiz",
+      "summary": "Özet",
+      "keyMoments": "Kilit anlar",
+      "mistakes": "Hatalar",
+      "oneTip": "Tek ipucu",
+      "drills": "Antrenmanlar",
+      "noKeyMoments": "Kilit an bulunamadı.",
+      "noMistakes": "Büyük hata bulunamadı.",
+      "noDrills": "Önerilen antrenman yok.",
+      "loading": "Koç değerlendirmesi yükleniyor…",
+      "rateLimit": "Çok fazla istek. Lütfen bekleyip tekrar deneyin.",
+      "failed": "Koç değerlendirmesi başarısız. Tekrar deneyin.",
+      "ready": "Koç değerlendirmesi hazır.",
+      "copied": "Koç değerlendirmesi kopyalandı.",
+      "copyFailed": "Kopyalama başarısız. Lütfen tekrar deneyin."
+    }
+  },
+  "settings": {
+    "title": "⚙️ Ayarlar",
+    "subtitle": "Deneyimini özelleştir",
+    "language": {
+      "title": "Dil",
+      "subtitle": "TG Chess için arayüz dilini seç",
+      "label": "Arayüz dili",
+      "note": "Dil seçimi bu cihazda saklanır.",
+      "english": "English",
+      "russian": "Русский",
+      "turkish": "Türkçe",
+      "german": "Deutsch",
+      "french": "Français"
+    }
+  }
+}

@@ -1,4 +1,5 @@
 const adminTokenInput = document.getElementById("adminToken");
+const rememberTokenInput = document.getElementById("rememberToken");
 const trackSelect = document.getElementById("trackSelect");
 const levelSelect = document.getElementById("levelSelect");
 const lessonsCountInput = document.getElementById("lessonsCount");
@@ -10,20 +11,39 @@ const generateAllBtn = document.getElementById("generateAll");
 const lessonsOutput = document.getElementById("lessonsOutput");
 const copyOutlineBtn = document.getElementById("copyOutline");
 const copyLessonsBtn = document.getElementById("copyLessons");
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabPanels = document.querySelectorAll(".tab-panel");
+const translateTypeSelect = document.getElementById("translateType");
+const sourceLangSelect = document.getElementById("sourceLang");
+const targetLangSelect = document.getElementById("targetLang");
+const translateSource = document.getElementById("translateSource");
+const translateResult = document.getElementById("translateResult");
+const translateBtn = document.getElementById("translateBtn");
+const translateStatus = document.getElementById("translateStatus");
+const translateHint = document.getElementById("translateHint");
+const copyTranslateBtn = document.getElementById("copyTranslate");
 
 let currentOutline = null;
 let currentLessons = [];
 
 const tokenStorageKey = "tg_admin_token";
+const rememberStorageKey = "tg_admin_token_remember";
 
 function loadToken() {
+  const remember = window.localStorage.getItem(rememberStorageKey) === "true";
+  if (rememberTokenInput) rememberTokenInput.checked = remember;
+  if (!remember) return;
   const stored = window.localStorage.getItem(tokenStorageKey);
-  if (stored) {
-    adminTokenInput.value = stored;
-  }
+  if (stored && adminTokenInput) adminTokenInput.value = stored;
 }
 
 function saveToken() {
+  const shouldRemember = Boolean(rememberTokenInput?.checked);
+  window.localStorage.setItem(rememberStorageKey, shouldRemember ? "true" : "false");
+  if (!shouldRemember) {
+    window.localStorage.removeItem(tokenStorageKey);
+    return;
+  }
   if (adminTokenInput.value.trim()) {
     window.localStorage.setItem(tokenStorageKey, adminTokenInput.value.trim());
   }
@@ -32,6 +52,20 @@ function saveToken() {
 function setStatus(message, isError = false) {
   outlineStatus.textContent = message;
   outlineStatus.style.color = isError ? "#fca5a5" : "";
+}
+
+function setTranslateStatus(message, isError = false) {
+  translateStatus.textContent = message;
+  translateStatus.style.color = isError ? "#fca5a5" : "";
+}
+
+function setActiveTab(tab) {
+  tabButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+  tabPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.tabPanel === tab);
+  });
 }
 
 async function postJson(url, body) {
@@ -187,9 +221,60 @@ function copyToClipboard(textarea) {
   navigator.clipboard.writeText(textarea.value || "");
 }
 
+function updateTranslateHint() {
+  if (!translateHint) return;
+  if (translateTypeSelect.value === "lessons") {
+    translateHint.textContent = "Для Lessons: вставь lessons.en.json, получишь lessons.ru.json.";
+  } else {
+    translateHint.textContent = "Для UI: вставь en.json, получишь ru.json.";
+  }
+}
+
+async function translateJson() {
+  setTranslateStatus("Translating...");
+  translateResult.value = "";
+  let parsed;
+  try {
+    parsed = JSON.parse(translateSource.value || "{}");
+  } catch (error) {
+    setTranslateStatus("Invalid JSON in source.", true);
+    return;
+  }
+
+  const payload = {
+    sourceLang: sourceLangSelect.value,
+    targetLang: targetLangSelect.value,
+  };
+
+  let endpoint = "/api/translateUiStrings";
+  if (translateTypeSelect.value === "lessons") {
+    payload.lessons = parsed;
+    endpoint = "/api/translateLessons";
+  } else {
+    payload.json = parsed;
+  }
+
+  try {
+    const data = await postJson(endpoint, payload);
+    const output = translateTypeSelect.value === "lessons" ? data.lessons : data.json;
+    translateResult.value = JSON.stringify(output, null, 2);
+    setTranslateStatus("Translation ready.");
+  } catch (error) {
+    setTranslateStatus(`Error: ${error.message}`, true);
+  }
+}
+
 copyOutlineBtn.addEventListener("click", () => copyToClipboard(outlineOutput));
 copyLessonsBtn.addEventListener("click", () => copyToClipboard(lessonsOutput));
+copyTranslateBtn.addEventListener("click", () => copyToClipboard(translateResult));
 generateOutlineBtn.addEventListener("click", generateOutline);
 generateAllBtn.addEventListener("click", generateAll);
+translateBtn.addEventListener("click", translateJson);
+translateTypeSelect.addEventListener("change", updateTranslateHint);
+rememberTokenInput?.addEventListener("change", saveToken);
+tabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+});
 
 loadToken();
+updateTranslateHint();

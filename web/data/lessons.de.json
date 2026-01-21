@@ -1,0 +1,252 @@
+[
+  {
+    "id": "basics-1",
+    "title": "Schach, Schachmatt, Patt",
+    "level": "Beginner",
+    "description": "Verstehe die wichtigsten Endbedingungen.",
+    "content": [
+      "Schach: Dein König ist angegriffen — du musst sofort reagieren.",
+      "Schachmatt: König steht im Schach und hat keinen legalen Ausweg — Partie endet.",
+      "Patt: Keine legalen Züge, aber der König steht NICHT im Schach — Remis."
+    ],
+    "tags": ["rules", "checkmate"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5Q2/6K1/8/8/8/8/8",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Setze mit der Dame Schachmatt."
+    }
+  },
+  {
+    "id": "basics-2",
+    "title": "Grundlagen der Figurenbewegung",
+    "level": "Beginner",
+    "description": "Lerne, wie jede Figur zieht und schlägt.",
+    "content": [
+      "Bauern ziehen vorwärts, schlagen aber diagonal.",
+      "Springer springen in L-Form und können über Figuren springen.",
+      "Läufer ziehen diagonal, Türme gerade, die Dame kombiniert beides."
+    ],
+    "tags": ["rules", "movement"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/4p3/4P3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Schlage den Bauern mit dem König."
+    }
+  },
+  {
+    "id": "basics-3",
+    "title": "Figurenwerte",
+    "level": "Beginner",
+    "description": "Wisse, welche Tausche meistens gut sind.",
+    "content": [
+      "Typische Werte: Bauer=1, Springer/Läufer=3, Turm=5, Dame=9.",
+      "Eine Dame für einen Springer zu gewinnen ist fast immer gut.",
+      "Nutze Werte als Orientierung, nicht als starre Regeln."
+    ],
+    "tags": ["values", "trade"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "8/8/8/3q4/4N3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Kann der Springer die Dame schlagen?"
+    }
+  },
+  {
+    "id": "basics-4",
+    "title": "Rochade & Königssicherheit",
+    "level": "Beginner",
+    "description": "Aktiviere den Turm und bringe den König in Sicherheit.",
+    "content": [
+      "Rochieren geht nur, wenn König und Turm nicht gezogen haben.",
+      "Die Felder dazwischen müssen frei sein, und der König darf nicht durchs Schach ziehen.",
+      "Die Rochade ist meist der schnellste Weg, den König zu sichern."
+    ],
+    "tags": ["king-safety", "castling"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "r3k2r/8/8/8/8/8/8/R3K2R",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Rochiere zur Königssicherheit."
+    }
+  },
+  {
+    "id": "opening-1",
+    "title": "Eröffnungsprinzipien",
+    "level": "Beginner",
+    "description": "Entwickle Figuren und beanspruche früh Raum.",
+    "content": [
+      "Entwickle Springer und Läufer auf aktive Felder.",
+      "Bewege in der Eröffnung nicht dieselbe Figur zu oft.",
+      "Rochiere früh, wenn möglich."
+    ],
+    "tags": ["opening", "development"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Entwickle eine Figur zum Zentrum."
+    }
+  },
+  {
+    "id": "opening-2",
+    "title": "Kontrolliere das Zentrum",
+    "level": "Beginner",
+    "description": "Kämpfe um die zentralen Felder e4, d4, e5, d5.",
+    "content": [
+      "Zentrumskontrolle gibt deinen Figuren mehr Freiheit.",
+      "Du kannst das Zentrum mit Bauern oder Figuren kontrollieren.",
+      "Greife das Zentrum deines Gegners früh an."
+    ],
+    "tags": ["opening", "center"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR",
+      "sideToMove": "b",
+      "prompt": "Schwarz am Zug: Stelle den weißen Zentrumsbauern infrage."
+    }
+  },
+  {
+    "id": "endgame-1",
+    "title": "König + Bauer Endspiel",
+    "level": "Beginner",
+    "description": "Lerne, wie du einen Bauern zur Umwandlung bringst.",
+    "content": [
+      "Nutze deinen König, um den Bauern zu unterstützen.",
+      "Die Opposition hilft dir, Schlüsselfelder zu gewinnen.",
+      "Rücke vorsichtig vor, um Patt zu vermeiden."
+    ],
+    "tags": ["endgame", "pawns"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/3k4/8/4K3/3P4/8",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Schiebe den Bauern und begleite ihn vorwärts."
+    }
+  },
+  {
+    "id": "endgame-2",
+    "title": "Turm-Schachmatt",
+    "level": "Beginner",
+    "description": "Setze mit Turm + König ein Grundmatt.",
+    "content": [
+      "Schneide den gegnerischen König mit dem Turm ab.",
+      "Bringe deinen König näher, um das Matt zu unterstützen.",
+      "Setze den letzten Schach, indem du zum Rand drückst."
+    ],
+    "tags": ["endgame", "checkmate"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "6k1/8/8/8/8/6K1/8/6R1",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Starte die Turm-Mattführung."
+    }
+  },
+  {
+    "id": "tactics-1",
+    "title": "Gabel",
+    "level": "Beginner",
+    "description": "Eine Figur greift zwei Ziele gleichzeitig an.",
+    "content": [
+      "Springer sind berühmt für Gabeln wegen ihres L-Zugs.",
+      "Ziel: König + Dame/Turm angreifen oder Material gewinnen."
+    ],
+    "tags": ["fork", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/3N4/8/8/8/4K3",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Erzeuge eine Springergabel."
+    }
+  },
+  {
+    "id": "tactics-2",
+    "title": "Fesselung",
+    "level": "Beginner",
+    "description": "Eine Figur kann nicht ziehen, weil sie etwas Wertvolles freigibt.",
+    "content": [
+      "Absolute Fesselung: Ein Zug legt den König offen (illegal).",
+      "Relative Fesselung: Ein Zug verliert Dame/Turm, meist schlecht."
+    ],
+    "tags": ["pin", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/8/4B3/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Fessle den Verteidiger des Königs."
+    }
+  },
+  {
+    "id": "tactics-3",
+    "title": "Spieß",
+    "level": "Tactics",
+    "description": "Zwinge eine Figur zum Zug und gewinne das Dahinterliegende.",
+    "content": [
+      "Spieße ähneln einer Fesselung, aber die wertvollere Figur steht vorne.",
+      "Schachs führen oft zu starken Spießen.",
+      "Suche nach Linienfiguren (Turm, Läufer, Dame)."
+    ],
+    "tags": ["skewer", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k2r/8/8/8/8/8/4Q3/4K2R",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Spieße König und Turm."
+    }
+  },
+  {
+    "id": "tactics-4",
+    "title": "Abzugsangriff",
+    "level": "Tactics",
+    "description": "Bewege eine Figur, um den Angriff einer anderen zu enthüllen.",
+    "content": [
+      "Ein Abzugsangriff gewinnt oft Tempo.",
+      "Wenn der Abzugsangriff Schach ist, ist er noch stärker.",
+      "Meist greifen Linienfiguren an."
+    ],
+    "tags": ["discovered-attack", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3B4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Decke einen Turmangriff mit dem Läufer auf."
+    }
+  },
+  {
+    "id": "tactics-5",
+    "title": "Grundreihenmatt",
+    "level": "Tactics",
+    "description": "Matte einen eingesperrten König auf der Grundreihe.",
+    "content": [
+      "Suche nach einem König, der von eigenen Bauern eingesperrt ist.",
+      "Ein Turm oder eine Dame auf der Grundreihe entscheidet schnell.",
+      "Achte immer auf Fluchtfelder."
+    ],
+    "tags": ["mate", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/6KR",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Finde die Grundreihen-Idee."
+    }
+  },
+  {
+    "id": "tactics-6",
+    "title": "Ablenkung",
+    "level": "Tactics",
+    "description": "Locke einen Verteidiger von seiner Aufgabe weg.",
+    "content": [
+      "Ein wichtiger Verteidiger kann durch ein Opfer gezwungen werden.",
+      "Ablenkung öffnet Linien oder entfernt Schutz.",
+      "Kombiniere mit Schachs, um es forciert zu machen."
+    ],
+    "tags": ["deflection", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3Q4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Weiß am Zug: Lenke den Verteidiger ab."
+    }
+  }
+]

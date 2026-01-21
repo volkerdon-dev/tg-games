@@ -1,0 +1,252 @@
+[
+  {
+    "id": "basics-1",
+    "title": "Échec, Échec et mat, Pat",
+    "level": "Beginner",
+    "description": "Comprendre les fins de partie clés.",
+    "content": [
+      "Échec : votre roi est attaqué — vous devez répondre immédiatement.",
+      "Échec et mat : le roi est en échec et n'a aucun échappatoire — la partie se termine.",
+      "Pat : aucun coup légal mais le roi n'est PAS en échec — nulle."
+    ],
+    "tags": ["rules", "checkmate"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5Q2/6K1/8/8/8/8/8",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : faites échec et mat avec la dame."
+    }
+  },
+  {
+    "id": "basics-2",
+    "title": "Bases des déplacements des pièces",
+    "level": "Beginner",
+    "description": "Apprenez comment chaque pièce se déplace et capture.",
+    "content": [
+      "Les pions avancent mais capturent en diagonale.",
+      "Les cavaliers sautent en L et peuvent passer par-dessus des pièces.",
+      "Les fous se déplacent en diagonale, les tours en ligne droite, la dame combine les deux."
+    ],
+    "tags": ["rules", "movement"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/4p3/4P3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : capturez le pion avec le roi."
+    }
+  },
+  {
+    "id": "basics-3",
+    "title": "Valeur des pièces",
+    "level": "Beginner",
+    "description": "Sachez quels échanges sont généralement bons.",
+    "content": [
+      "Valeurs typiques : Pion=1, Cavalier/Fou=3, Tour=5, Dame=9.",
+      "Gagner une dame contre un cavalier est presque toujours bon.",
+      "Utilisez les valeurs comme guide, pas comme règles absolues."
+    ],
+    "tags": ["values", "trade"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "8/8/8/3q4/4N3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : le cavalier peut-il capturer la dame ?"
+    }
+  },
+  {
+    "id": "basics-4",
+    "title": "Roque et sécurité du roi",
+    "level": "Beginner",
+    "description": "Activez la tour et mettez le roi à l'abri.",
+    "content": [
+      "Vous pouvez roquer seulement si le roi et la tour n'ont pas bougé.",
+      "Les cases entre eux doivent être vides et le roi ne peut pas traverser un échec.",
+      "Le roque est souvent la façon la plus rapide de sécuriser le roi."
+    ],
+    "tags": ["king-safety", "castling"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "r3k2r/8/8/8/8/8/8/R3K2R",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : roquez pour améliorer la sécurité du roi."
+    }
+  },
+  {
+    "id": "opening-1",
+    "title": "Principes d'ouverture",
+    "level": "Beginner",
+    "description": "Développez les pièces et prenez de l'espace tôt.",
+    "content": [
+      "Développez les cavaliers et les fous vers des cases actives.",
+      "Évitez de jouer plusieurs fois la même pièce en ouverture.",
+      "Roquez tôt quand c'est possible."
+    ],
+    "tags": ["opening", "development"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : développez une pièce vers le centre."
+    }
+  },
+  {
+    "id": "opening-2",
+    "title": "Contrôler le centre",
+    "level": "Beginner",
+    "description": "Luttez pour les cases centrales e4, d4, e5, d5.",
+    "content": [
+      "Le contrôle du centre donne plus de liberté à vos pièces.",
+      "Vous pouvez contrôler le centre avec des pions ou des pièces.",
+      "Contestez tôt le centre de l'adversaire."
+    ],
+    "tags": ["opening", "center"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR",
+      "sideToMove": "b",
+      "prompt": "Aux noirs : contestez le pion central des blancs."
+    }
+  },
+  {
+    "id": "endgame-1",
+    "title": "Finale Roi + Pion",
+    "level": "Beginner",
+    "description": "Apprenez à escorter un pion jusqu'à la promotion.",
+    "content": [
+      "Utilisez votre roi pour soutenir le pion.",
+      "L'opposition peut vous aider à gagner les cases clés.",
+      "Avancez prudemment pour éviter le pat."
+    ],
+    "tags": ["endgame", "pawns"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/3k4/8/4K3/3P4/8",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : poussez le pion et accompagnez-le."
+    }
+  },
+  {
+    "id": "endgame-2",
+    "title": "Mat à la tour",
+    "level": "Beginner",
+    "description": "Utilisez tour + roi pour mater simplement.",
+    "content": [
+      "Coupez le roi adverse avec la tour.",
+      "Approchez votre roi pour soutenir le mat.",
+      "Donnez l'échec final en poussant vers le bord."
+    ],
+    "tags": ["endgame", "checkmate"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "6k1/8/8/8/8/6K1/8/6R1",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : commencez la procédure de mat à la tour."
+    }
+  },
+  {
+    "id": "tactics-1",
+    "title": "Fourchette",
+    "level": "Beginner",
+    "description": "Une pièce attaque deux cibles en même temps.",
+    "content": [
+      "Les cavaliers sont célèbres pour les fourchettes grâce à leur saut en L.",
+      "Objectif : attaquer roi + dame/tour, ou gagner du matériel."
+    ],
+    "tags": ["fork", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/3N4/8/8/8/4K3",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : créez une fourchette de cavalier."
+    }
+  },
+  {
+    "id": "tactics-2",
+    "title": "Clouage",
+    "level": "Beginner",
+    "description": "Une pièce ne peut pas bouger car elle expose quelque chose d'important.",
+    "content": [
+      "Clouage absolu : bouger expose le roi (illégal).",
+      "Clouage relatif : bouger perd dame/tour, généralement mauvais."
+    ],
+    "tags": ["pin", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/8/4B3/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : clouez le défenseur du roi."
+    }
+  },
+  {
+    "id": "tactics-3",
+    "title": "Brochette",
+    "level": "Tactics",
+    "description": "Forcer une pièce à bouger et gagner ce qui est derrière.",
+    "content": [
+      "Les brochettes ressemblent aux clouages, mais la pièce la plus précieuse est devant.",
+      "Les échecs créent souvent de fortes brochettes.",
+      "Cherchez une pièce de ligne (tour, fou, dame)."
+    ],
+    "tags": ["skewer", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k2r/8/8/8/8/8/4Q3/4K2R",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : brochez le roi et la tour."
+    }
+  },
+  {
+    "id": "tactics-4",
+    "title": "Attaque découverte",
+    "level": "Tactics",
+    "description": "Bougez une pièce pour révéler l'attaque d'une autre.",
+    "content": [
+      "Une attaque découverte gagne souvent un tempo.",
+      "Si l'attaque découverte est un échec, c'est encore plus fort.",
+      "Les pièces de ligne sont les attaquantes habituelles."
+    ],
+    "tags": ["discovered-attack", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3B4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : révélez une attaque de tour avec le fou."
+    }
+  },
+  {
+    "id": "tactics-5",
+    "title": "Mat de la rangée du fond",
+    "level": "Tactics",
+    "description": "Mattez un roi enfermé sur la dernière rangée.",
+    "content": [
+      "Cherchez un roi coincé par ses propres pions.",
+      "Une tour ou une dame sur la rangée du fond peut décider vite.",
+      "Surveillez toujours les cases de fuite."
+    ],
+    "tags": ["mate", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/6KR",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : trouvez l'idée du mat de la rangée du fond."
+    }
+  },
+  {
+    "id": "tactics-6",
+    "title": "Déviation",
+    "level": "Tactics",
+    "description": "Éloignez un défenseur de sa mission.",
+    "content": [
+      "Un défenseur clé peut être forcé à bouger par un sacrifice.",
+      "La déviation ouvre des lignes ou supprime la protection.",
+      "Combinez avec des échecs pour rendre cela forçant."
+    ],
+    "tags": ["deflection", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3Q4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Aux blancs : déviez le défenseur."
+    }
+  }
+]

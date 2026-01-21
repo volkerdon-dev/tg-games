@@ -1,0 +1,252 @@
+[
+  {
+    "id": "basics-1",
+    "title": "Check, Checkmate, Stalemate",
+    "level": "Beginner",
+    "description": "Understand the key end conditions.",
+    "content": [
+      "Check: your king is attacked — you must respond immediately.",
+      "Checkmate: king is in check and has no legal escape — game ends.",
+      "Stalemate: no legal moves but king is NOT in check — draw."
+    ],
+    "tags": ["rules", "checkmate"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5Q2/6K1/8/8/8/8/8",
+      "sideToMove": "w",
+      "prompt": "White to move: deliver checkmate with the queen."
+    }
+  },
+  {
+    "id": "basics-2",
+    "title": "Piece Movement Basics",
+    "level": "Beginner",
+    "description": "Learn how each piece moves and captures.",
+    "content": [
+      "Pawns move forward but capture diagonally.",
+      "Knights jump in an L-shape and can hop over pieces.",
+      "Bishops move diagonally, rooks move straight, and queens combine both."
+    ],
+    "tags": ["rules", "movement"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/4p3/4P3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "White to move: capture the pawn with the king."
+    }
+  },
+  {
+    "id": "basics-3",
+    "title": "Piece Values",
+    "level": "Beginner",
+    "description": "Know which trades are usually good.",
+    "content": [
+      "Typical values: Pawn=1, Knight/Bishop=3, Rook=5, Queen=9.",
+      "Winning a queen for a knight is almost always good.",
+      "Use values as guidance, not absolute rules."
+    ],
+    "tags": ["values", "trade"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "8/8/8/3q4/4N3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "White to move: can the knight capture the queen?"
+    }
+  },
+  {
+    "id": "basics-4",
+    "title": "Castling & King Safety",
+    "level": "Beginner",
+    "description": "Activate your rook and tuck the king away.",
+    "content": [
+      "You can castle only if king and rook have not moved.",
+      "Squares between them must be empty, and the king can’t move through check.",
+      "Castling is usually the quickest way to make your king safe."
+    ],
+    "tags": ["king-safety", "castling"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "r3k2r/8/8/8/8/8/8/R3K2R",
+      "sideToMove": "w",
+      "prompt": "White to move: castle to improve king safety."
+    }
+  },
+  {
+    "id": "opening-1",
+    "title": "Opening Principles",
+    "level": "Beginner",
+    "description": "Develop pieces and claim space early.",
+    "content": [
+      "Develop knights and bishops to active squares.",
+      "Avoid moving the same piece many times in the opening.",
+      "Castle early when possible."
+    ],
+    "tags": ["opening", "development"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R",
+      "sideToMove": "w",
+      "prompt": "White to move: develop a piece toward the center."
+    }
+  },
+  {
+    "id": "opening-2",
+    "title": "Control the Center",
+    "level": "Beginner",
+    "description": "Fight for the central squares e4, d4, e5, d5.",
+    "content": [
+      "Central control gives your pieces more freedom.",
+      "You can control the center with pawns or pieces.",
+      "Challenge your opponent’s center early."
+    ],
+    "tags": ["opening", "center"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR",
+      "sideToMove": "b",
+      "prompt": "Black to move: challenge White’s center pawn."
+    }
+  },
+  {
+    "id": "endgame-1",
+    "title": "King + Pawn Endgame",
+    "level": "Beginner",
+    "description": "Learn how to escort a pawn to promotion.",
+    "content": [
+      "Use your king to support the pawn.",
+      "Opposition can help you gain key squares.",
+      "Advance carefully to avoid stalemate."
+    ],
+    "tags": ["endgame", "pawns"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/3k4/8/4K3/3P4/8",
+      "sideToMove": "w",
+      "prompt": "White to move: push the pawn and escort it forward."
+    }
+  },
+  {
+    "id": "endgame-2",
+    "title": "Rook Checkmate",
+    "level": "Beginner",
+    "description": "Use rook + king to deliver a basic mate.",
+    "content": [
+      "Cut off the enemy king with the rook.",
+      "Bring your king closer to support the mate.",
+      "Deliver the final check by squeezing to the edge."
+    ],
+    "tags": ["endgame", "checkmate"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "6k1/8/8/8/8/6K1/8/6R1",
+      "sideToMove": "w",
+      "prompt": "White to move: start the rook mate sequence."
+    }
+  },
+  {
+    "id": "tactics-1",
+    "title": "Fork",
+    "level": "Beginner",
+    "description": "One piece attacks two targets at once.",
+    "content": [
+      "Knights are famous for forks because of their L-move.",
+      "Goal: attack king + queen/rook, or win material."
+    ],
+    "tags": ["fork", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/3N4/8/8/8/4K3",
+      "sideToMove": "w",
+      "prompt": "White to move: create a knight fork."
+    }
+  },
+  {
+    "id": "tactics-2",
+    "title": "Pin",
+    "level": "Beginner",
+    "description": "A piece can’t move because it exposes something valuable.",
+    "content": [
+      "Absolute pin: moving exposes king (illegal).",
+      "Relative pin: moving loses queen/rook, still usually bad."
+    ],
+    "tags": ["pin", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/8/4B3/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "White to move: pin the king’s defender."
+    }
+  },
+  {
+    "id": "tactics-3",
+    "title": "Skewer",
+    "level": "Tactics",
+    "description": "Force a piece to move and win what’s behind it.",
+    "content": [
+      "Skewers are like a pin, but the more valuable piece is in front.",
+      "Checks often create strong skewers.",
+      "Look for a line piece (rook, bishop, queen)."
+    ],
+    "tags": ["skewer", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k2r/8/8/8/8/8/4Q3/4K2R",
+      "sideToMove": "w",
+      "prompt": "White to move: skewer the king and rook."
+    }
+  },
+  {
+    "id": "tactics-4",
+    "title": "Discovered Attack",
+    "level": "Tactics",
+    "description": "Move one piece to reveal an attack by another.",
+    "content": [
+      "A discovered attack often comes with tempo.",
+      "If the discovered attack is a check, it’s even stronger.",
+      "Line pieces are the usual attackers."
+    ],
+    "tags": ["discovered-attack", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3B4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "White to move: reveal a rook attack with the bishop."
+    }
+  },
+  {
+    "id": "tactics-5",
+    "title": "Back Rank Mate",
+    "level": "Tactics",
+    "description": "Mate a boxed-in king on the back rank.",
+    "content": [
+      "Look for a king trapped by its own pawns.",
+      "A rook or queen on the back rank can decide quickly.",
+      "Always watch for escape squares."
+    ],
+    "tags": ["mate", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/6KR",
+      "sideToMove": "w",
+      "prompt": "White to move: find the back-rank idea."
+    }
+  },
+  {
+    "id": "tactics-6",
+    "title": "Deflection",
+    "level": "Tactics",
+    "description": "Lure a defender away from its duty.",
+    "content": [
+      "A key defender can be forced to move with a sacrifice.",
+      "Deflection opens lines or removes protection.",
+      "Combine with checks to make it forcing."
+    ],
+    "tags": ["deflection", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3Q4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "White to move: deflect the defender."
+    }
+  }
+]

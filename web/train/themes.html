@@ -10,11 +10,11 @@
   <div class="app-shell">
     <header class="app-header">
       <div>
-        <h1 class="app-title">🎯 Themes</h1>
-        <p class="app-subtitle">Solve tactics puzzles by theme</p>
+        <h1 class="app-title" data-i18n="train.themes.title">🎯 Themes</h1>
+        <p class="app-subtitle" data-i18n="train.themes.subtitle">Solve tactics puzzles by theme</p>
       </div>
       <div class="app-actions">
-        <a class="icon-btn" href="./index.html">← Train</a>
+        <a class="icon-btn" href="./index.html" data-i18n="train.backToTrain">← Train</a>
       </div>
     </header>
 
@@ -24,29 +24,29 @@
           <div class="card">
             <div class="row" style="justify-content:space-between; align-items:flex-end">
               <div class="control-group" style="min-width:200px">
-                <label for="theme">Theme</label>
+                <label for="theme" data-i18n="train.themes.label">Theme</label>
                 <select id="theme">
-                  <option value="all">All</option>
-                  <option value="mate-in-1">Mate in 1</option>
-                  <option value="fork">Fork</option>
-                  <option value="pin">Pin</option>
+                  <option value="all" data-i18n="train.themes.all">All</option>
+                  <option value="mate-in-1" data-i18n="train.themes.mateIn1">Mate in 1</option>
+                  <option value="fork" data-i18n="train.themes.fork">Fork</option>
+                  <option value="pin" data-i18n="train.themes.pin">Pin</option>
                 </select>
               </div>
-              <button class="btn" id="next">Next puzzle</button>
+              <button class="btn" id="next" data-i18n="train.themes.next">Next puzzle</button>
             </div>
 
             <hr />
 
             <div class="panel">
               <div class="kv">
-                <div>Puzzle</div><div id="puzzleId">—</div>
-                <div>FEN</div><div id="fen">—</div>
-                <div>Expected</div><div id="expected">—</div>
+                <div data-i18n="train.themes.puzzleLabel">Puzzle</div><div id="puzzleId">—</div>
+                <div data-i18n="train.themes.fenLabel">FEN</div><div id="fen">—</div>
+                <div data-i18n="train.themes.expectedLabel">Expected</div><div id="expected">—</div>
               </div>
 
               <div class="row" style="margin-top:12px">
-                <input class="input" id="answer" placeholder='Type best move e.g. "Qg2#"' style="flex:1; min-width:240px" />
-                <button class="btn secondary" id="check">Check</button>
+                <input class="input" id="answer" data-i18n-placeholder="train.themes.answerPlaceholder" placeholder='Type best move e.g. "Qg2#"' style="flex:1; min-width:240px" />
+                <button class="btn secondary" id="check" data-i18n="train.themes.check">Check</button>
               </div>
 
               <p class="small" id="feedback" style="margin-top:12px"></p>
@@ -57,10 +57,10 @@
     </main>
 
     <nav class="bottom-nav">
-      <a class="nav-item" href="../chess/index.html">♟️<span>Play</span></a>
-      <a class="nav-item" href="../learn/index.html">📚<span>Learn</span></a>
-      <a class="nav-item active" href="./index.html">🎯<span>Train</span></a>
-      <a class="nav-item" href="../progress/index.html">📈<span>Progress</span></a>
+      <a class="nav-item" href="../chess/index.html">♟️<span data-i18n="nav.play">Play</span></a>
+      <a class="nav-item" href="../learn/index.html">📚<span data-i18n="nav.learn">Learn</span></a>
+      <a class="nav-item active" href="./index.html">🎯<span data-i18n="nav.train">Train</span></a>
+      <a class="nav-item" href="../progress/index.html">📈<span data-i18n="nav.progress">Progress</span></a>
     </nav>
   </div>
 

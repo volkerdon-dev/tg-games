@@ -1,0 +1,252 @@
+[
+  {
+    "id": "basics-1",
+    "title": "Şah, Şah Mat, Pat",
+    "level": "Beginner",
+    "description": "Oyunun temel bitişlerini öğren.",
+    "content": [
+      "Şah: şahın saldırı altında — hemen cevap vermelisin.",
+      "Şah mat: şah şahta ve kaçış yok — oyun biter.",
+      "Pat: hamle yok ama şah ŞAHTA değil — beraberlik."
+    ],
+    "tags": ["rules", "checkmate"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5Q2/6K1/8/8/8/8/8",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: vezirle şah mat yap."
+    }
+  },
+  {
+    "id": "basics-2",
+    "title": "Taşların Temel Hareketleri",
+    "level": "Beginner",
+    "description": "Her taşın nasıl hareket ettiğini ve aldığını öğren.",
+    "content": [
+      "Piyonlar ileri gider ama çapraz alır.",
+      "Atlar L şeklinde zıplar ve taşların üzerinden atlayabilir.",
+      "Filler çapraz, kaleler düz gider, vezir ikisini birleştirir."
+    ],
+    "tags": ["rules", "movement"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/4p3/4P3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: piyonu şah ile al."
+    }
+  },
+  {
+    "id": "basics-3",
+    "title": "Taş Değerleri",
+    "level": "Beginner",
+    "description": "Hangi takasların genellikle iyi olduğunu bil.",
+    "content": [
+      "Tipik değerler: Piyon=1, At/Fil=3, Kale=5, Vezir=9.",
+      "Bir at karşılığında vezir kazanmak neredeyse her zaman iyidir.",
+      "Değerleri kesin kural değil, rehber olarak kullan."
+    ],
+    "tags": ["values", "trade"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "8/8/8/3q4/4N3/4K3/8/6k1",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: at veziri alabilir mi?"
+    }
+  },
+  {
+    "id": "basics-4",
+    "title": "Rok ve Şah Güvenliği",
+    "level": "Beginner",
+    "description": "Kaleni etkinleştir ve şahı güvene al.",
+    "content": [
+      "Rok, şah ve kale daha önce oynamadıysa yapılır.",
+      "Aradaki kareler boş olmalı ve şah şahtan geçemez.",
+      "Rok genellikle şahı güvene almanın en hızlı yoludur."
+    ],
+    "tags": ["king-safety", "castling"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "r3k2r/8/8/8/8/8/8/R3K2R",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: şah güvenliği için rok yap."
+    }
+  },
+  {
+    "id": "opening-1",
+    "title": "Açılış İlkeleri",
+    "level": "Beginner",
+    "description": "Taşlarını geliştir ve alanı ele geçir.",
+    "content": [
+      "Atları ve filleri aktif karelere geliştir.",
+      "Açılışta aynı taşı defalarca oynama.",
+      "Mümkün olduğunda erken rok yap."
+    ],
+    "tags": ["opening", "development"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: bir taşı merkeze doğru geliştir."
+    }
+  },
+  {
+    "id": "opening-2",
+    "title": "Merkezi Kontrol Et",
+    "level": "Beginner",
+    "description": "Merkez kareler e4, d4, e5, d5 için savaş.",
+    "content": [
+      "Merkez kontrolü taşlarına daha fazla özgürlük verir.",
+      "Merkez piyonlarla veya taşlarla kontrol edilebilir.",
+      "Rakibin merkezine erken baskı yap."
+    ],
+    "tags": ["opening", "center"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR",
+      "sideToMove": "b",
+      "prompt": "Siyah oynar: Beyazın merkez piyonuna meydan oku."
+    }
+  },
+  {
+    "id": "endgame-1",
+    "title": "Şah + Piyon Finali",
+    "level": "Beginner",
+    "description": "Piyonu terfiye nasıl götüreceğini öğren.",
+    "content": [
+      "Piyonu desteklemek için şahını kullan.",
+      "Muhalefet, kritik kareleri kazanmanda yardımcı olur.",
+      "Pata düşmemek için dikkatli ilerle."
+    ],
+    "tags": ["endgame", "pawns"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "8/8/8/3k4/8/4K3/3P4/8",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: piyonu sür ve onu öne taşı."
+    }
+  },
+  {
+    "id": "endgame-2",
+    "title": "Kale Matı",
+    "level": "Beginner",
+    "description": "Şah + kale ile temel matı yap.",
+    "content": [
+      "Rakip şahı kaleyle sınırla.",
+      "Matı desteklemek için şahını yaklaştır.",
+      "Kenara sıkıştırarak son şahı çek."
+    ],
+    "tags": ["endgame", "checkmate"],
+    "estimatedMinutes": 5,
+    "tryIt": {
+      "fen": "6k1/8/8/8/8/6K1/8/6R1",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: kale matı dizisine başla."
+    }
+  },
+  {
+    "id": "tactics-1",
+    "title": "Çatal",
+    "level": "Beginner",
+    "description": "Bir taş aynı anda iki hedefi saldırır.",
+    "content": [
+      "Atlar L hareketi sayesinde çatallarda ünlüdür.",
+      "Amaç: şah + vezir/kale saldırısı veya materyal kazanımı."
+    ],
+    "tags": ["fork", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/3N4/8/8/8/4K3",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: bir at çatalı kur."
+    }
+  },
+  {
+    "id": "tactics-2",
+    "title": "Bağlama",
+    "level": "Beginner",
+    "description": "Bir taş hareket edemez çünkü değerli bir şeyi açığa çıkarır.",
+    "content": [
+      "Mutlak bağlama: hareket şahı açar (yasak).",
+      "Göreli bağlama: hareket vezir/kale kaybettirir, genelde kötü."
+    ],
+    "tags": ["pin", "tactics"],
+    "estimatedMinutes": 3,
+    "tryIt": {
+      "fen": "4k3/8/8/8/4B3/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: şahın savunucusunu bağla."
+    }
+  },
+  {
+    "id": "tactics-3",
+    "title": "Şiş",
+    "level": "Tactics",
+    "description": "Bir taşı oynatıp arkasındaki hedefi kazan.",
+    "content": [
+      "Şiş, bağlamaya benzer ama değerli taş öndedir.",
+      "Şahlar genellikle güçlü şişler yaratır.",
+      "Hat taşlarını ara (kale, fil, vezir)."
+    ],
+    "tags": ["skewer", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k2r/8/8/8/8/8/4Q3/4K2R",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: şahı ve kaleyi şişle."
+    }
+  },
+  {
+    "id": "tactics-4",
+    "title": "Açığa Çıkan Saldırı",
+    "level": "Tactics",
+    "description": "Bir taşı oynatarak diğerinin saldırısını açığa çıkar.",
+    "content": [
+      "Açığa çıkan saldırı genellikle tempo kazandırır.",
+      "Eğer açığa çıkan saldırı şah ise daha da güçlüdür.",
+      "Genellikle hat taşları saldırır."
+    ],
+    "tags": ["discovered-attack", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3B4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: fil ile kale saldırısını açığa çıkar."
+    }
+  },
+  {
+    "id": "tactics-5",
+    "title": "Arka Sıra Matı",
+    "level": "Tactics",
+    "description": "Arka sırada sıkışmış şahı mat et.",
+    "content": [
+      "Kendi piyonlarıyla sıkışmış şahı ara.",
+      "Arka sıradaki kale veya vezir hızlıca bitirebilir.",
+      "Kaçış karelerini her zaman kontrol et."
+    ],
+    "tags": ["mate", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/6KR",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: arka sıra matı fikrini bul."
+    }
+  },
+  {
+    "id": "tactics-6",
+    "title": "Saptırma",
+    "level": "Tactics",
+    "description": "Bir savunucuyu görevinden uzaklaştır.",
+    "content": [
+      "Kritik bir savunucu fedayla yerinden oynatılabilir.",
+      "Saptırma hatları açar veya korumayı kaldırır.",
+      "Şahlarla birleştirerek zorlayıcı hale getir."
+    ],
+    "tags": ["deflection", "tactics"],
+    "estimatedMinutes": 4,
+    "tryIt": {
+      "fen": "4k3/8/8/8/3Q4/8/4R3/4K3",
+      "sideToMove": "w",
+      "prompt": "Beyaz oynar: savunucuyu saptır."
+    }
+  }
+]

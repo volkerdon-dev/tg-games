@@ -10,11 +10,11 @@
   <div class="app-shell">
     <header class="app-header">
       <div>
-        <h1 class="app-title">🧠 Strategy track</h1>
-        <p class="app-subtitle">Plans, structure, and positional play</p>
+        <h1 class="app-title" data-i18n="learn.track.strategyHeader">🧠 Strategy track</h1>
+        <p class="app-subtitle" data-i18n="learn.track.strategySubtitle">Plans, structure, and positional play</p>
       </div>
       <div class="app-actions">
-        <a class="icon-btn" href="./index.html">← Learn</a>
+        <a class="icon-btn" href="./index.html" data-i18n="learn.backToLearn">← Learn</a>
       </div>
     </header>
 
@@ -24,25 +24,25 @@
           <div class="card">
             <div class="section-header">
               <div>
-                <h2 class="section-title">Track roadmap</h2>
-                <p class="section-subtitle">Coming soon — learn how to create winning plans</p>
+                <h2 class="section-title" data-i18n="learn.track.roadmapTitle">Track roadmap</h2>
+                <p class="section-subtitle" data-i18n="learn.track.strategyRoadmapSubtitle">Coming soon — learn how to create winning plans</p>
               </div>
-              <span class="badge soon">Coming soon</span>
+              <span class="badge soon" data-i18n="common.comingSoon">Coming soon</span>
             </div>
             <ul class="small" style="margin:0; padding-left:18px">
-              <li>Pawn structure basics</li>
-              <li>Weak squares & outposts</li>
-              <li>Open files & rook activity</li>
-              <li>King safety plans</li>
-              <li>Piece coordination</li>
-              <li>Creating targets</li>
-              <li>Minor piece imbalances</li>
-              <li>Transition to endgame</li>
-              <li>Strategic sacrifices</li>
-              <li>Positional evaluation checklist</li>
+              <li data-i18n="learn.track.strategyRoadmap.item1">Pawn structure basics</li>
+              <li data-i18n="learn.track.strategyRoadmap.item2">Weak squares & outposts</li>
+              <li data-i18n="learn.track.strategyRoadmap.item3">Open files & rook activity</li>
+              <li data-i18n="learn.track.strategyRoadmap.item4">King safety plans</li>
+              <li data-i18n="learn.track.strategyRoadmap.item5">Piece coordination</li>
+              <li data-i18n="learn.track.strategyRoadmap.item6">Creating targets</li>
+              <li data-i18n="learn.track.strategyRoadmap.item7">Minor piece imbalances</li>
+              <li data-i18n="learn.track.strategyRoadmap.item8">Transition to endgame</li>
+              <li data-i18n="learn.track.strategyRoadmap.item9">Strategic sacrifices</li>
+              <li data-i18n="learn.track.strategyRoadmap.item10">Positional evaluation checklist</li>
             </ul>
             <div class="row" style="margin-top:14px">
-              <a class="btn" href="./index.html">Back to Learn</a>
+              <a class="btn" href="./index.html" data-i18n="learn.backToLearnBtn">Back to Learn</a>
             </div>
           </div>
         </section>
@@ -50,11 +50,18 @@
     </main>
 
     <nav class="bottom-nav">
-      <a class="nav-item" href="../chess/index.html">♟️<span>Play</span></a>
-      <a class="nav-item active" href="./index.html">📚<span>Learn</span></a>
-      <a class="nav-item" href="../train/index.html">🎯<span>Train</span></a>
-      <a class="nav-item" href="../progress/index.html">📈<span>Progress</span></a>
+      <a class="nav-item" href="../chess/index.html">♟️<span data-i18n="nav.play">Play</span></a>
+      <a class="nav-item active" href="./index.html">📚<span data-i18n="nav.learn">Learn</span></a>
+      <a class="nav-item" href="../train/index.html">🎯<span data-i18n="nav.train">Train</span></a>
+      <a class="nav-item" href="../progress/index.html">📈<span data-i18n="nav.progress">Progress</span></a>
     </nav>
   </div>
+
+  <script type="module">
+    import { applyI18n, getLang, loadDict } from "../shared/i18n.js";
+
+    await loadDict(getLang());
+    await applyI18n();
+  </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import { initTelegram, sendEvent } from "../shared/telegram.js";
 import { loadState, saveState, touch } from "../shared/storage.js";
 import { setText } from "../shared/ui.js";
+import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
 
 initTelegram();
 
@@ -46,8 +47,8 @@ function showPuzzle(p) {
   current = p;
   setText("puzzleId", p.id);
   setText("fen", p.fen);
-  setText("expected", `${p.theme} (hidden until check)`);
-  feedbackEl.textContent = "Solve: enter best move in simple notation from JSON (e.g. Qg2#).";
+  setText("expected", t("train.expectedHidden", { theme: p.theme }));
+  feedbackEl.textContent = t("train.solvePrompt");
   answerEl.value = "";
   answerEl.focus();
 }
@@ -63,7 +64,7 @@ function checkAnswer() {
 
   const ok = user.toLowerCase() === right.toLowerCase();
   if (ok) {
-    feedbackEl.textContent = "✅ Correct!";
+    feedbackEl.textContent = t("train.correct");
     state.stats.puzzlesSolved += 1;
     state.puzzleHistory[current.id] = { ok: true, at: new Date().toISOString() };
     touch(state);
@@ -71,7 +72,7 @@ function checkAnswer() {
 
     sendEvent({ type: "puzzle_result", puzzleId: current.id, result: "solved", theme: current.theme });
   } else {
-    feedbackEl.textContent = `❌ Not correct. Expected: ${current.bestMove}`;
+    feedbackEl.textContent = t("train.incorrect", { move: current.bestMove });
     state.stats.puzzlesFailed += 1;
     state.puzzleHistory[current.id] = { ok: false, at: new Date().toISOString() };
     touch(state);
@@ -88,7 +89,7 @@ async function init() {
 
   const p = pickPuzzle();
   if (!p) {
-    feedbackEl.textContent = "No puzzles for this theme yet.";
+    feedbackEl.textContent = t("train.noPuzzles");
     return;
   }
   showPuzzle(p);
@@ -97,7 +98,7 @@ async function init() {
 nextBtn.addEventListener("click", () => {
   const p = pickPuzzle();
   if (!p) {
-    feedbackEl.textContent = "No puzzles for this theme yet.";
+    feedbackEl.textContent = t("train.noPuzzles");
     return;
   }
   showPuzzle(p);
@@ -111,10 +112,12 @@ answerEl.addEventListener("keydown", (e) => {
 themeEl.addEventListener("change", () => {
   const p = pickPuzzle();
   if (!p) {
-    feedbackEl.textContent = "No puzzles for this theme yet.";
+    feedbackEl.textContent = t("train.noPuzzles");
     return;
   }
   showPuzzle(p);
 });
 
+await loadDict(getLang());
+await applyI18n();
 init();
