@@ -10,11 +10,11 @@
   <div class="app-shell">
     <header class="app-header">
       <div>
-        <h1 class="app-title">🏁 Endgames track</h1>
-        <p class="app-subtitle">Convert advantages with clean technique</p>
+        <h1 class="app-title" data-i18n="learn.track.endgamesHeader">🏁 Endgames track</h1>
+        <p class="app-subtitle" data-i18n="learn.track.endgamesSubtitle">Convert advantages with clean technique</p>
       </div>
       <div class="app-actions">
-        <a class="icon-btn" href="./index.html">← Learn</a>
+        <a class="icon-btn" href="./index.html" data-i18n="learn.backToLearn">← Learn</a>
       </div>
     </header>
 
@@ -24,25 +24,25 @@
           <div class="card">
             <div class="section-header">
               <div>
-                <h2 class="section-title">Track roadmap</h2>
-                <p class="section-subtitle">Coming soon — learn key endgame patterns</p>
+                <h2 class="section-title" data-i18n="learn.track.roadmapTitle">Track roadmap</h2>
+                <p class="section-subtitle" data-i18n="learn.track.endgamesRoadmapSubtitle">Coming soon — learn key endgame patterns</p>
               </div>
-              <span class="badge soon">Coming soon</span>
+              <span class="badge soon" data-i18n="common.comingSoon">Coming soon</span>
             </div>
             <ul class="small" style="margin:0; padding-left:18px">
-              <li>Basic checkmates</li>
-              <li>Opposition and pawn races</li>
-              <li>King activity principles</li>
-              <li>Rook endgame basics</li>
-              <li>Minor piece endgames</li>
-              <li>Lucena & Philidor ideas</li>
-              <li>Outside passed pawns</li>
-              <li>Defensive drawing techniques</li>
-              <li>Practical endgame conversions</li>
-              <li>Endgame study collection</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item1">Basic checkmates</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item2">Opposition and pawn races</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item3">King activity principles</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item4">Rook endgame basics</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item5">Minor piece endgames</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item6">Lucena & Philidor ideas</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item7">Outside passed pawns</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item8">Defensive drawing techniques</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item9">Practical endgame conversions</li>
+              <li data-i18n="learn.track.endgamesRoadmap.item10">Endgame study collection</li>
             </ul>
             <div class="row" style="margin-top:14px">
-              <a class="btn" href="./index.html">Back to Learn</a>
+              <a class="btn" href="./index.html" data-i18n="learn.backToLearnBtn">Back to Learn</a>
             </div>
           </div>
         </section>
@@ -50,11 +50,18 @@
     </main>
 
     <nav class="bottom-nav">
-      <a class="nav-item" href="../chess/index.html">♟️<span>Play</span></a>
-      <a class="nav-item active" href="./index.html">📚<span>Learn</span></a>
-      <a class="nav-item" href="../train/index.html">🎯<span>Train</span></a>
-      <a class="nav-item" href="../progress/index.html">📈<span>Progress</span></a>
+      <a class="nav-item" href="../chess/index.html">♟️<span data-i18n="nav.play">Play</span></a>
+      <a class="nav-item active" href="./index.html">📚<span data-i18n="nav.learn">Learn</span></a>
+      <a class="nav-item" href="../train/index.html">🎯<span data-i18n="nav.train">Train</span></a>
+      <a class="nav-item" href="../progress/index.html">📈<span data-i18n="nav.progress">Progress</span></a>
     </nav>
   </div>
+
+  <script type="module">
+    import { applyI18n, getLang, loadDict } from "../shared/i18n.js";
+
+    await loadDict(getLang());
+    await applyI18n();
+  </script>
 </body>
 </html>

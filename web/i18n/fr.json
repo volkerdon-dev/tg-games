@@ -1,0 +1,410 @@
+{
+  "nav": {
+    "play": "Jouer",
+    "learn": "Apprendre",
+    "train": "S'entraîner",
+    "progress": "Progrès",
+    "home": "Accueil",
+    "settings": "Paramètres"
+  },
+  "common": {
+    "close": "Fermer",
+    "copy": "Copier",
+    "retry": "Réessayer",
+    "minutes": "min",
+    "minutesShort": "min",
+    "dash": "—",
+    "comingSoon": "Bientôt",
+    "live": "Actif",
+    "white": "Blancs",
+    "black": "Noirs"
+  },
+  "home": {
+    "title": "♟️ TG Chess",
+    "subtitle": "Jouer, apprendre, s'entraîner — votre studio d'échecs quotidien",
+    "pillInfo": "Échecs uniquement",
+    "today": {
+      "title": "Aujourd'hui",
+      "subtitle": "Reprenez avec des actions ciblées",
+      "badge": "✨ Focus du jour"
+    },
+    "quick": {
+      "continue": {
+        "title": "▶️ Continuer",
+        "desc": "Reprenez une partie rapide contre l'IA dans la salle Play."
+      },
+      "puzzle": {
+        "title": "🎯 Puzzle du jour",
+        "desc": "Affûtez la tactique avec un puzzle thématique."
+      },
+      "lesson": {
+        "title": "📚 Leçon suivante",
+        "desc": "Gardez votre série avec une leçon courte."
+      }
+    },
+    "explore": {
+      "title": "Explorer",
+      "subtitle": "Quatre façons d'améliorer vos échecs",
+      "play": {
+        "title": "♟️ Jouer",
+        "desc": "Partie amicale contre l'IA avec pendule + indices."
+      },
+      "learn": {
+        "title": "📚 Apprendre",
+        "desc": "Parcours guidés et leçons rapides."
+      },
+      "train": {
+        "title": "🎯 S'entraîner",
+        "desc": "Puzzles tactiques et mini-jeux."
+      },
+      "progress": {
+        "title": "📈 Progrès",
+        "desc": "Stats, séries et focus de compétences."
+      }
+    },
+    "progress": {
+      "title": "Progrès du jour",
+      "subtitle": "Mini-stats de votre progression locale"
+    },
+    "stats": {
+      "streak": "Série",
+      "lessons": "Leçons terminées",
+      "puzzles": "Puzzles résolus",
+      "streakValue": "{count} j"
+    },
+    "tip": "Astuce : résolvez un puzzle rapide et une leçon chaque jour pour garder votre boucle de progression active."
+  },
+  "learn": {
+    "title": "📚 Apprendre",
+    "subtitle": "Parcours structurés pour tous les niveaux",
+    "continueTitle": "Continuer à apprendre",
+    "continueSubtitle": "{track} : {completed}/{total} terminées",
+    "nextLesson": "Leçon suivante",
+    "nextLessonWithTitle": "Leçon suivante : {title}",
+    "tracksTitle": "Parcours",
+    "tracksSubtitle": "Choisissez un parcours et suivez le chemin",
+    "backToLearn": "← Apprendre",
+    "backToLearnBtn": "Retour à Apprendre",
+    "progressTrack": "Progrès : {completed}/{total} leçons terminées",
+    "progressShort": "Progrès : {completed}/{total}",
+    "track": {
+      "beginnerShort": "Débutant",
+      "beginnerTitle": "🌱 Bases débutant",
+      "beginnerDesc": "Règles, schémas de mat et ouvertures propres.",
+      "tacticsTitle": "⚡ Boîte à outils tactique",
+      "tacticsDesc": "Fourchettes, clouages, brochettes et gains rapides.",
+      "strategyTitle": "🧠 Stratégie & plans",
+      "strategyDesc": "Idées long terme : espace, faiblesses et planification.",
+      "endgamesTitle": "🏁 Finales",
+      "endgamesDesc": "Convertissez les avantages avec une finale solide.",
+      "openTrack": "Ouvrir le parcours",
+      "recommended": "Recommandé",
+      "beginnerHeader": "🌱 Parcours débutant",
+      "beginnerSubtitle": "Les bases pour une fondation d'échecs solide",
+      "overviewTitle": "Aperçu du parcours",
+      "lessonCountLabel": "leçons guidées",
+      "estimatedLabel": "Estimé",
+      "active": "Actif",
+      "beginnerSummary": "Maîtrisez les règles, les mats clés et les bases d'ouverture avant la tactique.",
+      "lessonsTitle": "Leçons",
+      "lessonsSubtitle": "Touchez une leçon pour commencer ou réviser",
+      "tacticsHeader": "⚡ Parcours tactique",
+      "tacticsSubtitle": "Reconnaissance de motifs pour les gains tactiques",
+      "roadmapTitle": "Feuille de route",
+      "tacticsRoadmapSubtitle": "Bientôt — réflexes tactiques rapides",
+      "tacticsRoadmap": {
+        "item1": "Fourchettes en un coup",
+        "item2": "Bases du clouage et de la brochette",
+        "item3": "Attaques découvertes",
+        "item4": "Éliminer le défenseur",
+        "item5": "Schémas de mat de fond de rangée",
+        "item6": "Leurre & déviation",
+        "item7": "Calcul tactique",
+        "item8": "Schémas de mat en 2",
+        "item9": "Combinaisons tactiques intermédiaires",
+        "item10": "Vérification des gaffes"
+      },
+      "strategyHeader": "🧠 Parcours stratégie",
+      "strategySubtitle": "Plans, structure et jeu positionnel",
+      "strategyRoadmapSubtitle": "Bientôt — apprendre à créer des plans gagnants",
+      "strategyRoadmap": {
+        "item1": "Bases de la structure de pions",
+        "item2": "Cases faibles & avant-postes",
+        "item3": "Colonnes ouvertes & activité des tours",
+        "item4": "Plans de sécurité du roi",
+        "item5": "Coordination des pièces",
+        "item6": "Créer des cibles",
+        "item7": "Déséquilibres de pièces mineures",
+        "item8": "Transition vers la finale",
+        "item9": "Sacrifices stratégiques",
+        "item10": "Checklist d'évaluation positionnelle"
+      },
+      "endgamesHeader": "🏁 Parcours finales",
+      "endgamesSubtitle": "Convertissez l'avantage avec une technique propre",
+      "endgamesRoadmapSubtitle": "Bientôt — motifs clés de finale",
+      "endgamesRoadmap": {
+        "item1": "Mats de base",
+        "item2": "Opposition et courses de pions",
+        "item3": "Principes d'activité du roi",
+        "item4": "Bases des finales de tours",
+        "item5": "Finales avec pièces mineures",
+        "item6": "Idées Lucena & Philidor",
+        "item7": "Pions passés éloignés",
+        "item8": "Techniques défensives de nulle",
+        "item9": "Conversions pratiques de finale",
+        "item10": "Collection d'études de finale"
+      }
+    },
+    "tryIt": {
+      "title": "À essayer",
+      "defaultPrompt": "Entraînez cette position sur l'échiquier.",
+      "openBoard": "Ouvrir sur l'échiquier"
+    },
+    "cta": {
+      "trainTheme": "S'entraîner à ce thème",
+      "practiceGame": "Partie d'entraînement"
+    },
+    "lesson": {
+      "level": "Niveau",
+      "anyLevel": "Tout",
+      "completed": "Terminé",
+      "open": "Ouvrir",
+      "markDone": "Marquer comme fait"
+    }
+  },
+  "train": {
+    "title": "🎯 S'entraîner",
+    "subtitle": "Modes tactiques pour des instincts plus aiguisés",
+    "modesTitle": "Modes",
+    "modesSubtitle": "Choisissez un mode d'entraînement pour aujourd'hui",
+    "openMode": "Ouvrir le mode",
+    "backToTrain": "← S'entraîner",
+    "backToTrainBtn": "Retour à l'entraînement",
+    "modes": {
+      "daily": {
+        "title": "☀️ Plan du jour",
+        "desc": "Un puzzle, une leçon, une partie rapide."
+      },
+      "themes": {
+        "title": "🎯 Thèmes",
+        "desc": "Résolvez des puzzles ciblés avec feedback instantané."
+      },
+      "minigames": {
+        "title": "🎮 Mini-jeux",
+        "desc": "Drills rapides pour entraîner les instincts sous pression."
+      }
+    },
+    "themes": {
+      "title": "🎯 Thèmes",
+      "subtitle": "Résolvez des puzzles tactiques par thème",
+      "label": "Thème",
+      "all": "Tous",
+      "mateIn1": "Mat en 1",
+      "fork": "Fourchette",
+      "pin": "Clouage",
+      "next": "Puzzle suivant",
+      "puzzleLabel": "Puzzle",
+      "fenLabel": "FEN",
+      "expectedLabel": "Attendu",
+      "answerPlaceholder": "Entrez le meilleur coup, ex. \"Qg2#\"",
+      "check": "Vérifier"
+    },
+    "daily": {
+      "title": "☀️ Plan du jour",
+      "subtitle": "Une routine d'échecs ciblée de 10 minutes",
+      "routineTitle": "Routine du jour",
+      "routineSubtitle": "Terminez chaque étape pour garder l'élan",
+      "step1Title": "🎯 1 puzzle",
+      "step1Desc": "Résolvez une tactique thématique en moins de 2 minutes.",
+      "step2Title": "📚 1 leçon",
+      "step2Desc": "Révisez une leçon de votre parcours débutant.",
+      "step3Title": "♟️ 1 partie rapide",
+      "step3Desc": "Jouez une partie IA de 5 à 10 minutes.",
+      "goThemes": "Aller aux thèmes",
+      "openLesson": "Ouvrir la leçon",
+      "startGame": "Démarrer la partie"
+    },
+    "minigames": {
+      "title": "🎮 Mini-jeux",
+      "subtitle": "Drills rapides pour affûter les instincts",
+      "catalogTitle": "Catalogue de mini-jeux",
+      "catalogSubtitle": "Drills rapides bientôt disponibles",
+      "item1Title": "⚡ Sprint mat en 1",
+      "item1Desc": "Trouvez un mat en un coup le plus vite possible.",
+      "item2Title": "⏱️ Meilleur coup (30s)",
+      "item2Desc": "Choisissez le coup le plus fort sous pression.",
+      "item3Title": "🧯 Vérification de gaffe",
+      "item3Desc": "Repérez l'erreur avant votre adversaire.",
+      "item4Title": "🛡️ Coup défensif unique",
+      "item4Desc": "Trouvez la ressource défensive précise.",
+      "item5Title": "📖 Drill d'ouverture",
+      "item5Desc": "Entraînez les coups d'ouverture des lignes populaires."
+    },
+    "expectedHidden": "{theme} (caché jusqu'à la vérification)",
+    "solvePrompt": "Résolvez : entrez le meilleur coup en notation simple depuis le JSON (ex. Qg2#).",
+    "correct": "✅ Correct !",
+    "incorrect": "❌ Incorrect. Attendu : {move}",
+    "noPuzzles": "Pas encore de puzzles pour ce thème."
+  },
+  "progress": {
+    "title": "📈 Progrès",
+    "subtitle": "Votre tableau d'amélioration",
+    "stats": {
+      "title": "Statistiques",
+      "subtitle": "Aperçu de votre progression",
+      "streak": "Série",
+      "gamesPlayed": "Parties jouées",
+      "wins": "Victoires",
+      "losses": "Défaites",
+      "draws": "Nulles",
+      "totalMoves": "Coups joués",
+      "lessonsCompleted": "Leçons terminées",
+      "puzzlesSolved": "Puzzles résolus",
+      "puzzlesFailed": "Puzzles échoués"
+    },
+    "streakValue": "{count} j",
+    "goals": {
+      "title": "Objectifs & série",
+      "subtitle": "Gardez votre élan quotidien",
+      "currentStreakTitle": "🔥 Série actuelle",
+      "currentStreakDesc": "Restez actif pour maintenir la série.",
+      "currentStreakValue": "Voir les stats ci-dessus",
+      "weeklyTitle": "🎯 Objectif hebdomadaire",
+      "weeklyDesc": "Terminez 5 puzzles et 2 leçons cette semaine.",
+      "weeklyProgress": "2 / 5 puzzles terminés"
+    },
+    "skills": {
+      "title": "Compétences par thème",
+      "subtitle": "Aperçu de la force (bientôt)",
+      "mateIn1": "Mat en 1",
+      "forks": "Fourchettes",
+      "pins": "Clouages"
+    },
+    "history": {
+      "title": "Historique",
+      "subtitle": "Bientôt : analyse de parties + historique des puzzles",
+      "desc": "Nous ajouterons bientôt un historique détaillé de vos parties et puzzles."
+    },
+    "reset": {
+      "title": "Réinitialiser les données locales",
+      "desc": "Effacer les stats locales et repartir à zéro.",
+      "button": "Réinitialiser"
+    },
+    "resetConfirm": "Réinitialiser la progression locale ?"
+  },
+  "chess": {
+    "title": "♟ Salle de jeu",
+    "subtitle": "Adversaire IA intelligent avec coups légaux uniquement",
+    "settings": {
+      "title": "Paramètres de partie",
+      "subtitle": "Choisissez côté, force et cadence",
+      "side": "Côté",
+      "strength": "Force",
+      "thinkTime": "Temps de réflexion",
+      "thinkTimeAuto": "Auto (selon la force)",
+      "timeControl": "Temps",
+      "custom": "Personnalisé",
+      "customLabel": "Personnalisé (mm:ss)"
+    },
+    "engine": {
+      "fallback": "Moteur : secours",
+      "loading": "Moteur : chargement…",
+      "stockfish": "Moteur : Stockfish",
+      "unavailable": "Indisponible",
+      "initCooldown": "Pause d'init"
+    },
+    "strength": {
+      "beginner": "🍼 Débutant",
+      "easy": "🙂 Facile",
+      "casual": "🎯 Détendu",
+      "club": "♟ Club",
+      "strong": "🔥 Fort",
+      "expert": "🧠 Expert",
+      "master": "🏆 Maître",
+      "im": "🥇 MI",
+      "gm": "👑 GM",
+      "supergm": "🐉 Super GM (mode Magnus)"
+    },
+    "actions": {
+      "newGame": "Nouvelle partie",
+      "resign": "Abandonner",
+      "undo": "Annuler",
+      "hint": "Indice",
+      "coachReview": "Analyse du coach",
+      "resetPosition": "Réinitialiser la position"
+    },
+    "clock": {
+      "off": "Sans pendule",
+      "labelPlain": "Votre temps",
+      "label": "Votre temps ({side})"
+    },
+    "promo": {
+      "title": "Choisir la promotion",
+      "queen": "Promouvoir en dame",
+      "rook": "Promouvoir en tour",
+      "bishop": "Promouvoir en fou",
+      "knight": "Promouvoir en cavalier"
+    },
+    "status": {
+      "title": "Statut de la partie",
+      "subtitle": "Mises à jour en direct du moteur",
+      "labels": {
+        "status": "Statut",
+        "turn": "Tour",
+        "moves": "Coups",
+        "selected": "Sélection"
+      },
+      "aiThinking": "IA réfléchit…",
+      "checkmate": "ÉCHEC ET MAT — {winner} gagne",
+      "stalemate": "PAT — Nulle",
+      "resign": "ABANDON — {winner} gagne",
+      "timeout": "TEMPS — {winner} gagne",
+      "check": "ÉCHEC",
+      "playing": "En cours"
+    },
+    "hint": {
+      "legalMoves": "Coups légaux : {moves}",
+      "noLegalMoves": "Aucun coup légal pour cette pièce.",
+      "gameOver": "Partie terminée. Lancez une nouvelle partie ou annulez.",
+      "aiThinking": "IA réfléchit…",
+      "waitAi": "Attendez le coup de l'IA…",
+      "noMoves": "Aucun coup légal.",
+      "bestMove": "Indice : {move}",
+      "invalidFen": "FEN invalide fourni. Position standard chargée."
+    },
+    "tip": "Astuce : touchez une pièce pour voir les coups légaux. Les échecs sont forcés ; la partie se termine par mat, pat ou au temps.",
+    "coach": {
+      "title": "Analyse du coach",
+      "subtitle": "Analyse courte après votre partie",
+      "summary": "Résumé",
+      "keyMoments": "Moments clés",
+      "mistakes": "Erreurs",
+      "oneTip": "Un conseil",
+      "drills": "Exercices",
+      "noKeyMoments": "Aucun moment clé signalé.",
+      "noMistakes": "Aucune erreur majeure signalée.",
+      "noDrills": "Aucun exercice suggéré.",
+      "loading": "Analyse du coach en cours…",
+      "rateLimit": "Limite atteinte. Veuillez attendre et réessayer.",
+      "failed": "Analyse du coach échouée. Réessayez.",
+      "ready": "Analyse du coach prête.",
+      "copied": "Analyse du coach copiée.",
+      "copyFailed": "Copie échouée. Veuillez réessayer."
+    }
+  },
+  "settings": {
+    "title": "⚙️ Paramètres",
+    "subtitle": "Personnalisez votre expérience",
+    "language": {
+      "title": "Langue",
+      "subtitle": "Choisissez la langue de l'interface TG Chess",
+      "label": "Langue de l'interface",
+      "note": "Le choix de langue est enregistré sur cet appareil.",
+      "english": "English",
+      "russian": "Русский",
+      "turkish": "Türkçe",
+      "german": "Deutsch",
+      "french": "Français"
+    }
+  }
+}

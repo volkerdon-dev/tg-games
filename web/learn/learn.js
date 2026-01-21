@@ -1,6 +1,7 @@
 import { initTelegram, sendEvent } from "../shared/telegram.js";
 import { loadState, saveState, touch } from "../shared/storage.js";
 import { escapeHtml } from "../shared/ui.js";
+import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
 
 initTelegram();
 
@@ -48,8 +49,24 @@ function saveLearnProgress(progress) {
 let learnProgress = loadLearnProgress();
 
 async function loadLessons() {
-  const res = await fetch("../data/lessons.json", { cache: "no-store" });
-  return await res.json();
+  const lang = getLang();
+  const candidates = [
+    `../data/lessons.${lang}.json`,
+    "../data/lessons.en.json",
+    "../data/lessons.json",
+  ];
+
+  for (const path of candidates) {
+    try {
+      const res = await fetch(path, { cache: "no-store" });
+      if (!res.ok) continue;
+      return await res.json();
+    } catch {
+      continue;
+    }
+  }
+
+  return [];
 }
 
 function normalizeTrack(value) {
@@ -112,7 +129,7 @@ function renderLessonDetail(lesson) {
 
   const badges = [];
   if (Number.isFinite(lesson.estimatedMinutes)) {
-    badges.push(`<span class="badge badge-meta">⏱ ${lesson.estimatedMinutes} min</span>`);
+    badges.push(`<span class="badge badge-meta">⏱ ${lesson.estimatedMinutes} ${escapeHtml(t("common.minutes"))}</span>`);
   }
   if (Array.isArray(lesson.tags)) {
     lesson.tags.forEach((tag) => {
@@ -126,10 +143,10 @@ function renderLessonDetail(lesson) {
     ? `
       <div class="tryit-card">
         <div>
-          <h4>Try it</h4>
-          <p>${escapeHtml(tryIt?.prompt || "Practice this position on the board.")}</p>
+          <h4>${escapeHtml(t("learn.tryIt.title"))}</h4>
+          <p>${escapeHtml(tryIt?.prompt || t("learn.tryIt.defaultPrompt"))}</p>
         </div>
-        <a class="btn" href="../chess/index.html?fen=${encodeURIComponent(tryItFen)}&from=learn&lesson=${encodeURIComponent(lesson.id)}">Open on board</a>
+        <a class="btn" href="../chess/index.html?fen=${encodeURIComponent(tryItFen)}&from=learn&lesson=${encodeURIComponent(lesson.id)}">${escapeHtml(t("learn.tryIt.openBoard"))}</a>
       </div>
     `
     : "";
@@ -152,8 +169,8 @@ function renderLessonDetail(lesson) {
     </div>
     ${tryItBlock}
     <div class="cta-row">
-      <a class="btn" href="${trainHref}">Train this theme</a>
-      <a class="btn secondary" href="../chess/index.html">Practice game</a>
+      <a class="btn" href="${trainHref}">${escapeHtml(t("learn.cta.trainTheme"))}</a>
+      <a class="btn secondary" href="../chess/index.html">${escapeHtml(t("learn.cta.practiceGame"))}</a>
     </div>
   `;
 
@@ -170,10 +187,10 @@ function renderLesson(lesson) {
   el.innerHTML = `
     <h3>${escapeHtml(lesson.title)}</h3>
     <p>${escapeHtml(lesson.description || "")}</p>
-    <div class="badge">Level: ${escapeHtml(lesson.level || "Any")} ${done ? " • ✅ Completed" : ""}</div>
+    <div class="badge">${escapeHtml(t("learn.lesson.level"))}: ${escapeHtml(lesson.level || t("learn.lesson.anyLevel"))}${done ? ` • ✅ ${escapeHtml(t("learn.lesson.completed"))}` : ""}</div>
     <div class="row" style="margin-top:10px">
-      <button class="btn" data-action="open">Open</button>
-      <button class="btn secondary" data-action="complete">${done ? "Completed" : "Mark as done"}</button>
+      <button class="btn" data-action="open">${escapeHtml(t("learn.lesson.open"))}</button>
+      <button class="btn secondary" data-action="complete">${escapeHtml(done ? t("learn.lesson.completed") : t("learn.lesson.markDone"))}</button>
     </div>
   `;
 
@@ -203,7 +220,7 @@ function updateTrackUI(track, lessons) {
 
   if (trackEstimatedEl) {
     const totalMinutes = trackLessons.reduce((acc, lesson) => acc + (Number.isFinite(lesson.estimatedMinutes) ? lesson.estimatedMinutes : 0), 0);
-    trackEstimatedEl.textContent = totalMinutes ? String(totalMinutes) : "—";
+    trackEstimatedEl.textContent = totalMinutes ? String(totalMinutes) : t("common.dash");
   }
 
   if (trackProgressBarEl) {
@@ -212,7 +229,10 @@ function updateTrackUI(track, lessons) {
   }
 
   if (trackProgressTextEl) {
-    trackProgressTextEl.textContent = `Progress: ${summary.completedCount}/${summary.total} lessons completed`;
+    trackProgressTextEl.textContent = t("learn.progressTrack", {
+      completed: summary.completedCount,
+      total: summary.total,
+    });
   }
 }
 
@@ -221,7 +241,11 @@ function updateHubUI(lessons) {
   const summary = getProgressSummary(trackLessons);
 
   if (continueSubtitleEl) {
-    continueSubtitleEl.textContent = `Beginner: ${summary.completedCount}/${summary.total} completed`;
+    continueSubtitleEl.textContent = t("learn.continueSubtitle", {
+      track: t("learn.track.beginnerShort"),
+      completed: summary.completedCount,
+      total: summary.total,
+    });
   }
 
   if (beginnerProgressBarEl) {
@@ -234,17 +258,20 @@ function updateHubUI(lessons) {
   }
 
   if (beginnerProgressTextEl) {
-    beginnerProgressTextEl.textContent = `Progress: ${summary.completedCount}/${summary.total}`;
+    beginnerProgressTextEl.textContent = t("learn.progressShort", {
+      completed: summary.completedCount,
+      total: summary.total,
+    });
   }
 
   if (nextLessonBtn) {
     const nextLesson = getNextLesson("Beginner", lessons);
     if (nextLesson) {
-      nextLessonBtn.textContent = `Next lesson: ${nextLesson.title}`;
+      nextLessonBtn.textContent = t("learn.nextLessonWithTitle", { title: nextLesson.title });
       nextLessonBtn.href = `./beginner.html?lesson=${encodeURIComponent(nextLesson.id)}`;
       nextLessonBtn.removeAttribute("aria-disabled");
     } else {
-      nextLessonBtn.textContent = "Next lesson";
+      nextLessonBtn.textContent = t("learn.nextLesson");
       nextLessonBtn.href = "./beginner.html";
       nextLessonBtn.setAttribute("aria-disabled", "true");
     }
@@ -252,6 +279,8 @@ function updateHubUI(lessons) {
 }
 
 async function refresh() {
+  await loadDict(getLang());
+  await applyI18n();
   const lessons = await loadLessons();
 
   updateHubUI(lessons);

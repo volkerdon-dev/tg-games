@@ -1,0 +1,410 @@
+{
+  "nav": {
+    "play": "Play",
+    "learn": "Learn",
+    "train": "Train",
+    "progress": "Progress",
+    "home": "Home",
+    "settings": "Settings"
+  },
+  "common": {
+    "close": "Close",
+    "copy": "Copy",
+    "retry": "Retry",
+    "minutes": "min",
+    "minutesShort": "min",
+    "dash": "—",
+    "comingSoon": "Coming soon",
+    "live": "Live",
+    "white": "White",
+    "black": "Black"
+  },
+  "home": {
+    "title": "♟️ TG Chess",
+    "subtitle": "Play, learn, train — your daily chess studio",
+    "pillInfo": "Chess-only",
+    "today": {
+      "title": "Today",
+      "subtitle": "Jump back in with focused actions",
+      "badge": "✨ Daily focus"
+    },
+    "quick": {
+      "continue": {
+        "title": "▶️ Continue",
+        "desc": "Resume a quick AI game from the Play room."
+      },
+      "puzzle": {
+        "title": "🎯 Daily puzzle",
+        "desc": "Sharpen tactics with one themed puzzle."
+      },
+      "lesson": {
+        "title": "📚 Next lesson",
+        "desc": "Keep your streak with a short lesson."
+      }
+    },
+    "explore": {
+      "title": "Explore",
+      "subtitle": "Four ways to improve your chess",
+      "play": {
+        "title": "♟️ Play",
+        "desc": "Friendly AI match with clock + hints."
+      },
+      "learn": {
+        "title": "📚 Learn",
+        "desc": "Guided tracks and quick lessons."
+      },
+      "train": {
+        "title": "🎯 Train",
+        "desc": "Tactical puzzles and mini-games."
+      },
+      "progress": {
+        "title": "📈 Progress",
+        "desc": "Stats, streaks, and skill focus."
+      }
+    },
+    "progress": {
+      "title": "Today’s progress",
+      "subtitle": "Mini stats from your local progress"
+    },
+    "stats": {
+      "streak": "Streak",
+      "lessons": "Lessons completed",
+      "puzzles": "Puzzles solved",
+      "streakValue": "{count} day(s)"
+    },
+    "tip": "Tip: solve a quick puzzle and a lesson daily to keep your improvement loop active."
+  },
+  "learn": {
+    "title": "📚 Learn",
+    "subtitle": "Structured tracks for every level",
+    "continueTitle": "Continue learning",
+    "continueSubtitle": "{track}: {completed}/{total} completed",
+    "nextLesson": "Next lesson",
+    "nextLessonWithTitle": "Next lesson: {title}",
+    "tracksTitle": "Tracks",
+    "tracksSubtitle": "Pick a track and follow the guided path",
+    "backToLearn": "← Learn",
+    "backToLearnBtn": "Back to Learn",
+    "progressTrack": "Progress: {completed}/{total} lessons completed",
+    "progressShort": "Progress: {completed}/{total}",
+    "track": {
+      "beginnerShort": "Beginner",
+      "beginnerTitle": "🌱 Beginner fundamentals",
+      "beginnerDesc": "Core rules, mating patterns, and clean openings.",
+      "tacticsTitle": "⚡ Tactics toolkit",
+      "tacticsDesc": "Forks, pins, skewers, and fast tactical wins.",
+      "strategyTitle": "🧠 Strategy & plans",
+      "strategyDesc": "Long-term ideas: space, weak squares, and planning.",
+      "endgamesTitle": "🏁 Endgames",
+      "endgamesDesc": "Convert advantages with confident endgame play.",
+      "openTrack": "Open track",
+      "recommended": "Recommended",
+      "beginnerHeader": "🌱 Beginner track",
+      "beginnerSubtitle": "Fundamentals to build a solid chess foundation",
+      "overviewTitle": "Track overview",
+      "lessonCountLabel": "guided lessons",
+      "estimatedLabel": "Estimated",
+      "active": "Active",
+      "beginnerSummary": "Master the rules, key checkmates, and the opening basics before moving to tactics.",
+      "lessonsTitle": "Lessons",
+      "lessonsSubtitle": "Tap a lesson to start or review",
+      "tacticsHeader": "⚡ Tactics track",
+      "tacticsSubtitle": "Pattern recognition for tactical wins",
+      "roadmapTitle": "Track roadmap",
+      "tacticsRoadmapSubtitle": "Coming soon — build fast tactical reflexes",
+      "tacticsRoadmap": {
+        "item1": "Forks in one move",
+        "item2": "Pins & skewers basics",
+        "item3": "Discovered attacks",
+        "item4": "Removing the defender",
+        "item5": "Back-rank patterns",
+        "item6": "Decoy & deflection",
+        "item7": "Counting tactics",
+        "item8": "Mate in 2 patterns",
+        "item9": "Intermediate tactical combos",
+        "item10": "Blunder checks"
+      },
+      "strategyHeader": "🧠 Strategy track",
+      "strategySubtitle": "Plans, structure, and positional play",
+      "strategyRoadmapSubtitle": "Coming soon — learn how to create winning plans",
+      "strategyRoadmap": {
+        "item1": "Pawn structure basics",
+        "item2": "Weak squares & outposts",
+        "item3": "Open files & rook activity",
+        "item4": "King safety plans",
+        "item5": "Piece coordination",
+        "item6": "Creating targets",
+        "item7": "Minor piece imbalances",
+        "item8": "Transition to endgame",
+        "item9": "Strategic sacrifices",
+        "item10": "Positional evaluation checklist"
+      },
+      "endgamesHeader": "🏁 Endgames track",
+      "endgamesSubtitle": "Convert advantages with clean technique",
+      "endgamesRoadmapSubtitle": "Coming soon — learn key endgame patterns",
+      "endgamesRoadmap": {
+        "item1": "Basic checkmates",
+        "item2": "Opposition and pawn races",
+        "item3": "King activity principles",
+        "item4": "Rook endgame basics",
+        "item5": "Minor piece endgames",
+        "item6": "Lucena & Philidor ideas",
+        "item7": "Outside passed pawns",
+        "item8": "Defensive drawing techniques",
+        "item9": "Practical endgame conversions",
+        "item10": "Endgame study collection"
+      }
+    },
+    "tryIt": {
+      "title": "Try it",
+      "defaultPrompt": "Practice this position on the board.",
+      "openBoard": "Open on board"
+    },
+    "cta": {
+      "trainTheme": "Train this theme",
+      "practiceGame": "Practice game"
+    },
+    "lesson": {
+      "level": "Level",
+      "anyLevel": "Any",
+      "completed": "Completed",
+      "open": "Open",
+      "markDone": "Mark as done"
+    }
+  },
+  "train": {
+    "title": "🎯 Train",
+    "subtitle": "Tactical modes to build sharper instincts",
+    "modesTitle": "Modes",
+    "modesSubtitle": "Choose a training mode for today",
+    "openMode": "Open mode",
+    "backToTrain": "← Train",
+    "backToTrainBtn": "Back to Train",
+    "modes": {
+      "daily": {
+        "title": "☀️ Daily plan",
+        "desc": "One puzzle, one lesson, one quick game."
+      },
+      "themes": {
+        "title": "🎯 Themes",
+        "desc": "Solve focused puzzles with instant feedback."
+      },
+      "minigames": {
+        "title": "🎮 Mini-games",
+        "desc": "Fast drills to train instincts under time pressure."
+      }
+    },
+    "themes": {
+      "title": "🎯 Themes",
+      "subtitle": "Solve tactics puzzles by theme",
+      "label": "Theme",
+      "all": "All",
+      "mateIn1": "Mate in 1",
+      "fork": "Fork",
+      "pin": "Pin",
+      "next": "Next puzzle",
+      "puzzleLabel": "Puzzle",
+      "fenLabel": "FEN",
+      "expectedLabel": "Expected",
+      "answerPlaceholder": "Type best move e.g. \"Qg2#\"",
+      "check": "Check"
+    },
+    "daily": {
+      "title": "☀️ Daily plan",
+      "subtitle": "A focused 10-minute chess routine",
+      "routineTitle": "Today’s routine",
+      "routineSubtitle": "Complete each step to keep momentum",
+      "step1Title": "🎯 1 puzzle",
+      "step1Desc": "Solve a themed tactic in under 2 minutes.",
+      "step2Title": "📚 1 lesson",
+      "step2Desc": "Review one lesson from your beginner track.",
+      "step3Title": "♟️ 1 quick game",
+      "step3Desc": "Play a 5–10 minute AI match.",
+      "goThemes": "Go to Themes",
+      "openLesson": "Open lesson",
+      "startGame": "Start game"
+    },
+    "minigames": {
+      "title": "🎮 Mini-games",
+      "subtitle": "Quick drills to train instincts fast",
+      "catalogTitle": "Mini-game catalog",
+      "catalogSubtitle": "Fast-paced drills coming soon",
+      "item1Title": "⚡ Mate in 1 Sprint",
+      "item1Desc": "Find checkmate in one move as fast as possible.",
+      "item2Title": "⏱️ Best Move (30s)",
+      "item2Desc": "Pick the strongest move under time pressure.",
+      "item3Title": "🧯 Blunder Check",
+      "item3Desc": "Spot the mistake before your opponent does.",
+      "item4Title": "🛡️ Defense Only Move",
+      "item4Desc": "Find the precise defensive resource.",
+      "item5Title": "📖 Opening Drill",
+      "item5Desc": "Practice opening moves from popular lines."
+    },
+    "expectedHidden": "{theme} (hidden until check)",
+    "solvePrompt": "Solve: enter best move in simple notation from JSON (e.g. Qg2#).",
+    "correct": "✅ Correct!",
+    "incorrect": "❌ Not correct. Expected: {move}",
+    "noPuzzles": "No puzzles for this theme yet."
+  },
+  "progress": {
+    "title": "📈 Progress",
+    "subtitle": "Your improvement dashboard",
+    "stats": {
+      "title": "Stats",
+      "subtitle": "Snapshot of your progress so far",
+      "streak": "Streak",
+      "gamesPlayed": "Games played",
+      "wins": "Wins",
+      "losses": "Losses",
+      "draws": "Draws",
+      "totalMoves": "Total moves",
+      "lessonsCompleted": "Lessons completed",
+      "puzzlesSolved": "Puzzles solved",
+      "puzzlesFailed": "Puzzles failed"
+    },
+    "streakValue": "{count} day(s)",
+    "goals": {
+      "title": "Goals & streak",
+      "subtitle": "Keep your daily momentum",
+      "currentStreakTitle": "🔥 Current streak",
+      "currentStreakDesc": "Stay active to maintain your streak.",
+      "currentStreakValue": "See stats above",
+      "weeklyTitle": "🎯 Weekly goal",
+      "weeklyDesc": "Finish 5 puzzles and 2 lessons this week.",
+      "weeklyProgress": "2 / 5 puzzles completed"
+    },
+    "skills": {
+      "title": "Skills by theme",
+      "subtitle": "Strength overview (coming soon)",
+      "mateIn1": "Mate in 1",
+      "forks": "Forks",
+      "pins": "Pins"
+    },
+    "history": {
+      "title": "History",
+      "subtitle": "Coming soon: game review + puzzle history",
+      "desc": "We’ll soon add detailed history of your games and puzzle attempts."
+    },
+    "reset": {
+      "title": "Reset local data",
+      "desc": "Clear local stats and start fresh.",
+      "button": "Reset"
+    },
+    "resetConfirm": "Reset local progress?"
+  },
+  "chess": {
+    "title": "♟ Play room",
+    "subtitle": "Smart AI opponent with legal moves only",
+    "settings": {
+      "title": "Game settings",
+      "subtitle": "Choose side, strength, and time controls",
+      "side": "Side",
+      "strength": "Strength",
+      "thinkTime": "Think time",
+      "thinkTimeAuto": "Auto (from strength)",
+      "timeControl": "Time",
+      "custom": "Custom",
+      "customLabel": "Custom (mm:ss)"
+    },
+    "engine": {
+      "fallback": "Engine: Fallback",
+      "loading": "Engine: Loading…",
+      "stockfish": "Engine: Stockfish",
+      "unavailable": "Unavailable",
+      "initCooldown": "Init cooldown"
+    },
+    "strength": {
+      "beginner": "🍼 Beginner",
+      "easy": "🙂 Easy",
+      "casual": "🎯 Casual",
+      "club": "♟ Club",
+      "strong": "🔥 Strong",
+      "expert": "🧠 Expert",
+      "master": "🏆 Master",
+      "im": "🥇 IM",
+      "gm": "👑 GM",
+      "supergm": "🐉 Super GM (Magnus mode)"
+    },
+    "actions": {
+      "newGame": "New Game",
+      "resign": "Resign",
+      "undo": "Undo",
+      "hint": "Hint",
+      "coachReview": "Coach review",
+      "resetPosition": "Reset Position"
+    },
+    "clock": {
+      "off": "No clock",
+      "labelPlain": "Your time",
+      "label": "Your time ({side})"
+    },
+    "promo": {
+      "title": "Choose promotion",
+      "queen": "Promote to Queen",
+      "rook": "Promote to Rook",
+      "bishop": "Promote to Bishop",
+      "knight": "Promote to Knight"
+    },
+    "status": {
+      "title": "Match status",
+      "subtitle": "Live updates from the engine",
+      "labels": {
+        "status": "Status",
+        "turn": "Turn",
+        "moves": "Moves",
+        "selected": "Selected"
+      },
+      "aiThinking": "AI thinking…",
+      "checkmate": "CHECKMATE — {winner} wins",
+      "stalemate": "STALEMATE — Draw",
+      "resign": "RESIGN — {winner} wins",
+      "timeout": "TIMEOUT — {winner} wins",
+      "check": "CHECK",
+      "playing": "Playing"
+    },
+    "hint": {
+      "legalMoves": "Legal moves: {moves}",
+      "noLegalMoves": "No legal moves for this piece.",
+      "gameOver": "Game over. Start a new game or undo.",
+      "aiThinking": "AI thinking…",
+      "waitAi": "Wait for AI move…",
+      "noMoves": "No legal moves.",
+      "bestMove": "Hint: {move}",
+      "invalidFen": "Invalid FEN provided. Loaded the standard position."
+    },
+    "tip": "Tip: tap a piece to see legal moves. Checks are enforced; game ends on mate, stalemate, or timeout.",
+    "coach": {
+      "title": "Coach review",
+      "subtitle": "Short analysis after your game",
+      "summary": "Summary",
+      "keyMoments": "Key moments",
+      "mistakes": "Mistakes",
+      "oneTip": "One tip",
+      "drills": "Drills",
+      "noKeyMoments": "No key moments flagged.",
+      "noMistakes": "No major mistakes flagged.",
+      "noDrills": "No drills suggested.",
+      "loading": "Loading coach review…",
+      "rateLimit": "Rate limit reached. Please wait and try again.",
+      "failed": "Coach review failed. Please retry.",
+      "ready": "Coach review ready.",
+      "copied": "Coach review copied.",
+      "copyFailed": "Copy failed. Please try again."
+    }
+  },
+  "settings": {
+    "title": "⚙️ Settings",
+    "subtitle": "Customize your experience",
+    "language": {
+      "title": "Language",
+      "subtitle": "Pick the UI language for TG Chess",
+      "label": "Interface language",
+      "note": "Language choice is saved on this device.",
+      "english": "English",
+      "russian": "Русский",
+      "turkish": "Türkçe",
+      "german": "Deutsch",
+      "french": "Français"
+    }
+  }
+}

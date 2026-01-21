@@ -1,8 +1,11 @@
 import { initTelegram, sendEvent } from "../shared/telegram.js";
 import { loadState, saveState, touch } from "../shared/storage.js";
 import { setText } from "../shared/ui.js";
+import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
 
 initTelegram();
+await loadDict(getLang());
+await applyI18n();
 
 const state = loadState();
 touch(state);
@@ -91,6 +94,7 @@ function popMoveUci() {
 
 function opponent(color){ return color === WHITE ? BLACK : WHITE; }
 function clonePiece(p){ return p ? { c: p.c, t: p.t } : null; }
+function sideLabel(color) { return color === WHITE ? t("common.white") : t("common.black"); }
 
 // -------------------- engine state --------------------
 let game = null;
@@ -127,9 +131,9 @@ function updateEngineBadge() {
   const isLoading = engineStatus.mode === "loading";
   engineBadgeEl.classList.toggle("stockfish", isSf);
   engineBadgeEl.classList.toggle("fallback", !isSf);
-  let text = "Engine: Fallback";
-  if (isLoading) text = "Engine: Loading…";
-  if (isSf) text = "Engine: Stockfish";
+  let text = t("chess.engine.fallback");
+  if (isLoading) text = t("chess.engine.loading");
+  if (isSf) text = t("chess.engine.stockfish");
   if (!isSf && engineStatus.reason) text += ` (${engineStatus.reason})`;
   engineBadgeEl.textContent = text;
   if (engineRetryEl) {
@@ -355,13 +359,13 @@ function renderPlayerClock() {
   if (!playerClockEl) return;
 
   if (!game.clock.enabled) {
-    playerClockLabelEl.textContent = "No clock";
-    playerClockEl.textContent = "—";
+    playerClockLabelEl.textContent = t("chess.clock.off");
+    playerClockEl.textContent = t("common.dash");
     return;
   }
 
-  const sideName = game.playerColor === WHITE ? "White" : "Black";
-  playerClockLabelEl.textContent = `Your time (${sideName})`;
+  const sideName = sideLabel(game.playerColor);
+  playerClockLabelEl.textContent = t("chess.clock.label", { side: sideName });
   playerClockEl.textContent = formatMs(game.clock.playerMs);
 }
 
@@ -878,7 +882,7 @@ function sfTerminate({ reason = "" } = {}) {
   sf.currentJob = null;
   sf.initPromise = null;
   sf.lastErrorReason = reason;
-  setEngineStatus("fallback", { reason: reason || "Unavailable" });
+  setEngineStatus("fallback", { reason: reason || t("chess.engine.unavailable") });
 }
 
 function createStockfishWorker(url, { timeoutMs = STOCKFISH_INIT_TIMEOUT_MS } = {}) {
@@ -1103,13 +1107,13 @@ async function sfBestMoveFromFEN(fen, preset, token) {
   // Avoid hammering init attempts if the environment blocks workers/CDN.
   const now = Date.now();
   if (!sf.ready && (now - (sf.lastInitAttemptMs || 0)) < STOCKFISH_RETRY_COOLDOWN_MS) {
-    setEngineStatus("fallback", { reason: sf.lastErrorReason || "Init cooldown" });
+    setEngineStatus("fallback", { reason: sf.lastErrorReason || t("chess.engine.initCooldown") });
     return null;
   }
 
   const ok = await initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => false);
   if (!ok || !sf.worker || !sf.ready) {
-    setEngineStatus("fallback", { reason: sf.lastErrorReason || "Unavailable" });
+    setEngineStatus("fallback", { reason: sf.lastErrorReason || t("chess.engine.unavailable") });
     return null;
   }
 
@@ -1368,21 +1372,25 @@ function selectSquare(sq) {
     game.hintMap.set(m.to, m.capture ? "capture" : "move");
   }
 
-  hintTextEl.textContent = game.selectedMoves.length
-    ? `Legal moves: ${game.selectedMoves.map(m => algebraic(m.to)).slice(0,10).join(", ")}${game.selectedMoves.length>10?"…":""}`
-    : "No legal moves for this piece.";
+  if (game.selectedMoves.length) {
+    const moves = game.selectedMoves.map(m => algebraic(m.to)).slice(0, 10).join(", ");
+    const suffix = game.selectedMoves.length > 10 ? "…" : "";
+    hintTextEl.textContent = t("chess.hint.legalMoves", { moves: `${moves}${suffix}` });
+  } else {
+    hintTextEl.textContent = t("chess.hint.noLegalMoves");
+  }
 }
 
 // -------------------- render --------------------
 function statusText() {
-  if (game.aiThinking) return "AI thinking…";
+  if (game.aiThinking) return t("chess.status.aiThinking");
   if (game.gameOver && game.result) {
-    if (game.result.type === "checkmate") return `CHECKMATE — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
-    if (game.result.type === "stalemate") return "STALEMATE — Draw";
-    if (game.result.type === "resign") return `RESIGN — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
-    if (game.result.type === "timeout") return `TIMEOUT — ${game.result.winner === WHITE ? "White" : "Black"} wins`;
+    if (game.result.type === "checkmate") return t("chess.status.checkmate", { winner: sideLabel(game.result.winner) });
+    if (game.result.type === "stalemate") return t("chess.status.stalemate");
+    if (game.result.type === "resign") return t("chess.status.resign", { winner: sideLabel(game.result.winner) });
+    if (game.result.type === "timeout") return t("chess.status.timeout", { winner: sideLabel(game.result.winner) });
   }
-  return inCheck(game.turn) ? "CHECK" : "Playing";
+  return inCheck(game.turn) ? t("chess.status.check") : t("chess.status.playing");
 }
 
 function applyPieceColorStyles(el, piece) {
@@ -1415,7 +1423,7 @@ function openPromotionModal({ color } = {}) {
   if (!promoModalEl) return;
   const pieceColor = color || game?.turn || WHITE;
 
-  if (promoTitleEl) promoTitleEl.textContent = "Choose promotion";
+  if (promoTitleEl) promoTitleEl.textContent = t("chess.promo.title");
 
   for (const btn of promoBtns) {
     const promo = String(btn.dataset.promo || "").toUpperCase();
@@ -1435,9 +1443,9 @@ function render() {
   updateCoords();
 
   setText("status", statusText());
-  setText("turn", game.turn === WHITE ? "White" : "Black");
+  setText("turn", sideLabel(game.turn));
   setText("moves", String(game.plies));
-  setText("selected", game.selectedSq >= 0 ? algebraic(game.selectedSq) : "—");
+  setText("selected", game.selectedSq >= 0 ? algebraic(game.selectedSq) : t("common.dash"));
 
   renderPlayerClock();
   setCoachButtonState();
@@ -1629,34 +1637,34 @@ function renderCoachResult(data) {
   coachContentEl.innerHTML = "";
 
   const sections = [];
-  if (data.summary) sections.push(createCoachSection("Summary", data.summary));
+  if (data.summary) sections.push(createCoachSection(t("chess.coach.summary"), data.summary));
   sections.push(
     createCoachSection(
-      "Key moments",
+      t("chess.coach.keyMoments"),
       Array.isArray(data.keyMoments) && data.keyMoments.length
         ? data.keyMoments.map(item =>
             `Move ${item.moveIndex}: ${item.title} — ${item.whatHappened} Better idea: ${item.betterIdea}`
           )
-        : ["No key moments flagged."]
+        : [t("chess.coach.noKeyMoments")]
     )
   );
   sections.push(
     createCoachSection(
-      "Mistakes",
+      t("chess.coach.mistakes"),
       Array.isArray(data.mistakes) && data.mistakes.length
         ? data.mistakes.map(item =>
             `Move ${item.moveIndex} (${item.side}): ${item.mistake} Why: ${item.why} Better: ${item.better}`
           )
-        : ["No major mistakes flagged."]
+        : [t("chess.coach.noMistakes")]
     )
   );
-  if (data.oneTip) sections.push(createCoachSection("One tip", data.oneTip));
+  if (data.oneTip) sections.push(createCoachSection(t("chess.coach.oneTip"), data.oneTip));
   sections.push(
     createCoachSection(
-      "Drills",
+      t("chess.coach.drills"),
       Array.isArray(data.suggestedDrills) && data.suggestedDrills.length
         ? data.suggestedDrills
-        : ["No drills suggested."]
+        : [t("chess.coach.noDrills")]
     )
   );
 
@@ -1685,7 +1693,7 @@ function createCoachSection(title, content) {
     section.appendChild(list);
   } else {
     const body = document.createElement("p");
-    body.textContent = content || "—";
+    body.textContent = content || t("common.dash");
     section.appendChild(body);
   }
 
@@ -1703,7 +1711,7 @@ async function requestCoachReview() {
 
   openCoachModal();
   resetCoachDisplay();
-  if (coachStatusEl) coachStatusEl.textContent = "Loading coach review…";
+  if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.loading");
   if (coachRetryBtn) coachRetryBtn.disabled = true;
 
   const payload = {
@@ -1729,8 +1737,8 @@ async function requestCoachReview() {
 
     if (!response.ok) {
       const errorText = response.status === 429
-        ? "Rate limit reached. Please wait and try again."
-        : "Coach review failed. Please retry.";
+        ? t("chess.coach.rateLimit")
+        : t("chess.coach.failed");
       if (coachStatusEl) coachStatusEl.textContent = errorText;
       if (coachRetryBtn) coachRetryBtn.disabled = false;
       return;
@@ -1739,14 +1747,14 @@ async function requestCoachReview() {
     const data = await response.json();
     if (mySeq !== coachRequestSeq) return;
     coachData = data;
-    if (coachStatusEl) coachStatusEl.textContent = "Coach review ready.";
+    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.ready");
     renderCoachResult(data);
     if (coachCopyBtn) coachCopyBtn.disabled = false;
     if (coachRetryBtn) coachRetryBtn.disabled = false;
   } catch (error) {
     if (mySeq !== coachRequestSeq) return;
     if (error?.name === "AbortError") return;
-    if (coachStatusEl) coachStatusEl.textContent = "Coach review failed. Please retry.";
+    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.failed");
     if (coachRetryBtn) coachRetryBtn.disabled = false;
   }
 }
@@ -1816,12 +1824,12 @@ function undo() {
 }
 
 function hint() {
-  if (game.gameOver) { hintTextEl.textContent = "Game over. Start a new game or undo."; return; }
-  if (game.aiThinking) { hintTextEl.textContent = "AI thinking…"; return; }
-  if (game.turn !== game.playerColor) { hintTextEl.textContent = "Wait for AI move…"; return; }
+  if (game.gameOver) { hintTextEl.textContent = t("chess.hint.gameOver"); return; }
+  if (game.aiThinking) { hintTextEl.textContent = t("chess.hint.aiThinking"); return; }
+  if (game.turn !== game.playerColor) { hintTextEl.textContent = t("chess.hint.waitAi"); return; }
 
   const moves = genLegalMoves(game.turn);
-  if (!moves.length) { hintTextEl.textContent = "No legal moves."; return; }
+  if (!moves.length) { hintTextEl.textContent = t("chess.hint.noMoves"); return; }
 
   const preset = getAiPreset();
   let best = moves[0], bestScore = -Infinity;
@@ -1829,7 +1837,9 @@ function hint() {
     const s = evaluateMove(m, { ...preset, skill: Math.max(preset.skill, 12) }, { deterministic: true });
     if (s > bestScore) { bestScore = s; best = m; }
   }
-  hintTextEl.textContent = `Hint: ${algebraic(best.from)} → ${algebraic(best.to)}${best.promotion ? ` = ${best.promotion}` : ""}`;
+  hintTextEl.textContent = t("chess.hint.bestMove", {
+    move: `${algebraic(best.from)} → ${algebraic(best.to)}${best.promotion ? ` = ${best.promotion}` : ""}`,
+  });
 }
 
 function resign() {
@@ -1891,7 +1901,7 @@ function initFromQuery() {
     } catch (error) {
       resetGame();
       if (hintTextEl) {
-        hintTextEl.textContent = "Invalid FEN provided. Loaded the standard position.";
+        hintTextEl.textContent = t("chess.hint.invalidFen");
       }
     }
     return;
@@ -1914,9 +1924,9 @@ coachCopyBtn?.addEventListener("click", async () => {
   const text = JSON.stringify(coachData, null, 2);
   try {
     await navigator.clipboard?.writeText(text);
-    if (coachStatusEl) coachStatusEl.textContent = "Coach review copied.";
+    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.copied");
   } catch {
-    if (coachStatusEl) coachStatusEl.textContent = "Copy failed. Please try again.";
+    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.copyFailed");
   }
 });
 
@@ -1962,7 +1972,7 @@ timeControlEl.addEventListener("change", onTimeControlUIChange);
 updateEngineBadge();
 // Kick off engine init early so we don't silently fall back.
 initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => {
-  setEngineStatus("fallback", { reason: sf.lastErrorReason || "Unavailable" });
+  setEngineStatus("fallback", { reason: sf.lastErrorReason || t("chess.engine.unavailable") });
 });
 
 // Diagnostics helper (optional)

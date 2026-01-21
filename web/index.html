@@ -10,11 +10,12 @@
   <div class="app-shell">
     <header class="app-header">
       <div>
-        <h1 class="app-title">♟️ TG Chess</h1>
-        <p class="app-subtitle">Play, learn, train — your daily chess studio</p>
+        <h1 class="app-title" data-i18n="home.title">♟️ TG Chess</h1>
+        <p class="app-subtitle" data-i18n="home.subtitle">Play, learn, train — your daily chess studio</p>
       </div>
       <div class="app-actions">
-        <span class="badge">⚡ <span id="pillInfo">MVP</span></span>
+        <a class="icon-btn" href="./settings/index.html" data-i18n="nav.settings">Settings</a>
+        <span class="badge">⚡ <span id="pillInfo" data-i18n="home.pillInfo">MVP</span></span>
       </div>
     </header>
 
@@ -23,23 +24,23 @@
         <section class="section">
           <div class="section-header">
             <div>
-              <h2 class="section-title">Today</h2>
-              <p class="section-subtitle">Jump back in with focused actions</p>
+              <h2 class="section-title" data-i18n="home.today.title">Today</h2>
+              <p class="section-subtitle" data-i18n="home.today.subtitle">Jump back in with focused actions</p>
             </div>
-            <span class="badge">✨ Daily focus</span>
+            <span class="badge" data-i18n="home.today.badge">✨ Daily focus</span>
           </div>
           <div class="quick-actions">
             <a class="card" href="./chess/index.html">
-              <h3>▶️ Continue</h3>
-              <p>Resume a quick AI game from the Play room.</p>
+              <h3 data-i18n="home.quick.continue.title">▶️ Continue</h3>
+              <p data-i18n="home.quick.continue.desc">Resume a quick AI game from the Play room.</p>
             </a>
             <a class="card" href="./train/themes.html">
-              <h3>🎯 Daily puzzle</h3>
-              <p>Sharpen tactics with one themed puzzle.</p>
+              <h3 data-i18n="home.quick.puzzle.title">🎯 Daily puzzle</h3>
+              <p data-i18n="home.quick.puzzle.desc">Sharpen tactics with one themed puzzle.</p>
             </a>
             <a class="card" href="./learn/beginner.html">
-              <h3>📚 Next lesson</h3>
-              <p>Keep your streak with a short lesson.</p>
+              <h3 data-i18n="home.quick.lesson.title">📚 Next lesson</h3>
+              <p data-i18n="home.quick.lesson.desc">Keep your streak with a short lesson.</p>
             </a>
           </div>
         </section>
@@ -47,26 +48,26 @@
         <section class="section">
           <div class="section-header">
             <div>
-              <h2 class="section-title">Explore</h2>
-              <p class="section-subtitle">Four ways to improve your chess</p>
+              <h2 class="section-title" data-i18n="home.explore.title">Explore</h2>
+              <p class="section-subtitle" data-i18n="home.explore.subtitle">Four ways to improve your chess</p>
             </div>
           </div>
           <div class="card-grid">
             <a class="card" href="./chess/index.html">
-              <h3>♟️ Play</h3>
-              <p>Friendly AI match with clock + hints.</p>
+              <h3 data-i18n="home.explore.play.title">♟️ Play</h3>
+              <p data-i18n="home.explore.play.desc">Friendly AI match with clock + hints.</p>
             </a>
             <a class="card" href="./learn/index.html">
-              <h3>📚 Learn</h3>
-              <p>Guided tracks and quick lessons.</p>
+              <h3 data-i18n="home.explore.learn.title">📚 Learn</h3>
+              <p data-i18n="home.explore.learn.desc">Guided tracks and quick lessons.</p>
             </a>
             <a class="card" href="./train/index.html">
-              <h3>🎯 Train</h3>
-              <p>Tactical puzzles and mini-games.</p>
+              <h3 data-i18n="home.explore.train.title">🎯 Train</h3>
+              <p data-i18n="home.explore.train.desc">Tactical puzzles and mini-games.</p>
             </a>
             <a class="card" href="./progress/index.html">
-              <h3>📈 Progress</h3>
-              <p>Stats, streaks, and skill focus.</p>
+              <h3 data-i18n="home.explore.progress.title">📈 Progress</h3>
+              <p data-i18n="home.explore.progress.desc">Stats, streaks, and skill focus.</p>
             </a>
           </div>
         </section>
@@ -74,36 +75,36 @@
         <section class="section">
           <div class="section-header">
             <div>
-              <h2 class="section-title">Today’s progress</h2>
-              <p class="section-subtitle">Mini stats from your local progress</p>
+              <h2 class="section-title" data-i18n="home.progress.title">Today’s progress</h2>
+              <p class="section-subtitle" data-i18n="home.progress.subtitle">Mini stats from your local progress</p>
             </div>
           </div>
           <div class="stat-grid">
             <div class="stat-card">
-              <div class="stat-label">Streak</div>
+              <div class="stat-label" data-i18n="home.stats.streak">Streak</div>
               <div class="stat-value" id="streak">—</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label">Lessons completed</div>
+              <div class="stat-label" data-i18n="home.stats.lessons">Lessons completed</div>
               <div class="stat-value" id="lessons">—</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label">Puzzles solved</div>
+              <div class="stat-label" data-i18n="home.stats.puzzles">Puzzles solved</div>
               <div class="stat-value" id="puzzles">—</div>
             </div>
           </div>
           <p class="small" style="margin-top:12px">
-            Tip: solve a quick puzzle and a lesson daily to keep your improvement loop active.
+            <span data-i18n="home.tip">Tip: solve a quick puzzle and a lesson daily to keep your improvement loop active.</span>
           </p>
         </section>
       </div>
     </main>
 
     <nav class="bottom-nav">
-      <a class="nav-item" href="./chess/index.html">♟️<span>Play</span></a>
-      <a class="nav-item" href="./learn/index.html">📚<span>Learn</span></a>
-      <a class="nav-item" href="./train/index.html">🎯<span>Train</span></a>
-      <a class="nav-item" href="./progress/index.html">📈<span>Progress</span></a>
+      <a class="nav-item" href="./chess/index.html">♟️<span data-i18n="nav.play">Play</span></a>
+      <a class="nav-item" href="./learn/index.html">📚<span data-i18n="nav.learn">Learn</span></a>
+      <a class="nav-item" href="./train/index.html">🎯<span data-i18n="nav.train">Train</span></a>
+      <a class="nav-item" href="./progress/index.html">📈<span data-i18n="nav.progress">Progress</span></a>
     </nav>
   </div>
 
@@ -111,15 +112,19 @@
     import { initTelegram } from "./shared/telegram.js";
     import { loadState, touch } from "./shared/storage.js";
     import { setText } from "./shared/ui.js";
+    import { applyI18n, getLang, loadDict, t } from "./shared/i18n.js";
 
     initTelegram();
     const state = loadState();
     touch(state);
 
-    setText("streak", `${state.stats.streakDays} day(s)`);
+    await loadDict(getLang());
+    await applyI18n();
+
+    setText("streak", t("home.stats.streakValue", { count: state.stats.streakDays }));
     setText("lessons", String(state.stats.lessonsCompleted));
     setText("puzzles", String(state.stats.puzzlesSolved));
-    setText("pillInfo", "Chess-only");
+    setText("pillInfo", t("home.pillInfo"));
   </script>
 </body>
 </html>

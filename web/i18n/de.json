@@ -1,0 +1,411 @@
+{
+  "nav": {
+    "play": "Spielen",
+    "learn": "Lernen",
+    "train": "Trainieren",
+    "progress": "Fortschritt",
+    "home": "Startseite",
+    "settings": "Einstellungen"
+  },
+  "common": {
+    "close": "Schließen",
+    "copy": "Kopieren",
+    "retry": "Erneut versuchen",
+    "minutes": "min",
+    "minutesShort": "min",
+    "dash": "—",
+    "comingSoon": "Kommt bald",
+    "live": "Live",
+    "white": "Weiß",
+    "black": "Schwarz"
+  },
+  "home": {
+    "title": "♟️ TG Chess",
+    "subtitle": "Spielen, lernen, trainieren — dein tägliches Schachstudio",
+    "pillInfo": "Nur Schach",
+    "today": {
+      "title": "Heute",
+      "subtitle": "Spring zurück mit fokussierten Aktionen",
+      "badge": "✨ Tagesfokus"
+    },
+    "quick": {
+      "continue": {
+        "title": "▶️ Weiter",
+        "desc": "Setze eine schnelle KI-Partie im Play-Raum fort."
+      },
+      "puzzle": {
+        "title": "🎯 Tagespuzzle",
+        "desc": "Schärfe deine Taktik mit einem Themenpuzzle."
+      },
+      "lesson": {
+        "title": "📚 Nächste Lektion",
+        "desc": "Halte deine Serie mit einer kurzen Lektion."
+      }
+    },
+    "explore": {
+      "title": "Entdecken",
+      "subtitle": "Vier Wege, dein Schach zu verbessern",
+      "play": {
+        "title": "♟️ Spielen",
+        "desc": "Freundliche KI-Partie mit Uhr + Tipps."
+      },
+      "learn": {
+        "title": "📚 Lernen",
+        "desc": "Geführte Tracks und kurze Lektionen."
+      },
+      "train": {
+        "title": "🎯 Trainieren",
+        "desc": "Taktikpuzzles und Mini-Spiele."
+      },
+      "progress": {
+        "title": "📈 Fortschritt",
+        "desc": "Statistiken, Serien und Fokusbereiche."
+      }
+    },
+    "progress": {
+      "title": "Heutiger Fortschritt",
+      "subtitle": "Mini-Statistiken aus deinem lokalen Fortschritt"
+    },
+    "stats": {
+      "streak": "Serie",
+      "lessons": "Lektionen abgeschlossen",
+      "puzzles": "Puzzles gelöst",
+      "streakValue": "{count} Tag(e)"
+    },
+    "tip": "Tipp: Löse täglich ein schnelles Puzzle und eine Lektion, um den Lernfluss aktiv zu halten."
+  },
+  "learn": {
+    "title": "📚 Lernen",
+    "subtitle": "Strukturierte Tracks für jedes Level",
+    "continueTitle": "Weiterlernen",
+    "continueSubtitle": "{track}: {completed}/{total} abgeschlossen",
+    "nextLesson": "Nächste Lektion",
+    "nextLessonWithTitle": "Nächste Lektion: {title}",
+    "tracksTitle": "Tracks",
+    "tracksSubtitle": "Wähle einen Track und folge dem Pfad",
+    "backToLearn": "← Lernen",
+    "backToLearnBtn": "Zurück zu Lernen",
+    "progressTrack": "Fortschritt: {completed}/{total} Lektionen abgeschlossen",
+    "progressShort": "Fortschritt: {completed}/{total}",
+    "track": {
+      "beginnerShort": "Anfänger",
+      "beginnerTitle": "🌱 Anfänger-Grundlagen",
+      "beginnerDesc": "Grundregeln, Mattmuster und saubere Eröffnungen.",
+      "tacticsTitle": "⚡ Taktik-Toolkit",
+      "tacticsDesc": "Gabeln, Fesselungen, Spieße und schnelle Gewinne.",
+      "strategyTitle": "🧠 Strategie & Pläne",
+      "strategyDesc": "Langfristige Ideen: Raum, Schwächen und Planung.",
+      "endgamesTitle": "🏁 Endspiele",
+      "endgamesDesc": "Vorteile mit sicherem Endspiel umwandeln.",
+      "openTrack": "Track öffnen",
+      "recommended": "Empfohlen",
+      "beginnerHeader": "🌱 Anfänger-Track",
+      "beginnerSubtitle": "Grundlagen für eine solide Schachbasis",
+      "overviewTitle": "Track-Übersicht",
+      "lessonCountLabel": "geführte Lektionen",
+      "estimatedLabel": "Geschätzt",
+      "active": "Aktiv",
+      "beginnerSummary": "Lerne Regeln, wichtige Matts und Eröffnungsgrundlagen, bevor du in die Taktik gehst.",
+      "lessonsTitle": "Lektionen",
+      "lessonsSubtitle": "Tippe auf eine Lektion zum Starten oder Wiederholen",
+      "tacticsHeader": "⚡ Taktik-Track",
+      "tacticsSubtitle": "Mustererkennung für taktische Siege",
+      "roadmapTitle": "Track-Fahrplan",
+      "tacticsRoadmapSubtitle": "Kommt bald — schnelle taktische Reflexe",
+      "tacticsRoadmap": {
+        "item1": "Gabeln in einem Zug",
+        "item2": "Fesselungen & Spieße – Grundlagen",
+        "item3": "Abzugsangriffe",
+        "item4": "Verteidiger entfernen",
+        "item5": "Grundreihenmatt-Muster",
+        "item6": "Köder & Ablenkung",
+        "item7": "Taktik rechnen",
+        "item8": "Matt-in-2-Muster",
+        "item9": "Mittlere taktische Kombinationen",
+        "item10": "Blunder-Checks"
+      },
+      "strategyHeader": "🧠 Strategie-Track",
+      "strategySubtitle": "Pläne, Struktur und positionelles Spiel",
+      "strategyRoadmapSubtitle": "Kommt bald — lerne Gewinnpläne zu erstellen",
+      "strategyRoadmap": {
+        "item1": "Bauernstruktur-Grundlagen",
+        "item2": "Schwache Felder & Außenposten",
+        "item3": "Offene Linien & Turmaktivität",
+        "item4": "Königssicherheitspläne",
+        "item5": "Figurenkoordination",
+        "item6": "Ziele schaffen",
+        "item7": "Ungleichgewichte der Leichtfiguren",
+        "item8": "Übergang ins Endspiel",
+        "item9": "Strategische Opfer",
+        "item10": "Checkliste der positionellen Bewertung"
+      },
+      "endgamesHeader": "🏁 Endspiel-Track",
+      "endgamesSubtitle": "Vorteile mit sauberer Technik verwerten",
+      "endgamesRoadmapSubtitle": "Kommt bald — wichtige Endspielmuster",
+      "endgamesRoadmap": {
+        "item1": "Grundlegende Mattführungen",
+        "item2": "Opposition und Bauernrennen",
+        "item3": "Prinzipien der Königaktivität",
+        "item4": "Turmendspiel-Grundlagen",
+        "item5": "Leichtfiguren-Endspiele",
+        "item6": "Lucena- & Philidor-Ideen",
+        "item7": "Außen-Freibauern",
+        "item8": "Defensive Remistechniken",
+        "item9": "Praktische Endspielverwertung",
+        "item10": "Endspielstudien-Sammlung"
+      }
+    },
+    "tryIt": {
+      "title": "Ausprobieren",
+      "defaultPrompt": "Übe diese Stellung auf dem Brett.",
+      "openBoard": "Auf dem Brett öffnen"
+    },
+    "cta": {
+      "trainTheme": "Thema trainieren",
+      "practiceGame": "Trainingspartie"
+    },
+    "lesson": {
+      "level": "Level",
+      "anyLevel": "Beliebig",
+      "completed": "Abgeschlossen",
+      "open": "Öffnen",
+      "markDone": "Als erledigt markieren"
+    }
+  },
+  "train": {
+    "title": "🎯 Trainieren",
+    "subtitle": "Taktikmodi für schärfere Instinkte",
+    "modesTitle": "Modi",
+    "modesSubtitle": "Wähle heute einen Trainingsmodus",
+    "openMode": "Modus öffnen",
+    "backToTrain": "← Trainieren",
+    "backToTrainBtn": "Zurück zum Training",
+    "modes": {
+      "daily": {
+        "title": "☀️ Tagesplan",
+        "desc": "Ein Puzzle, eine Lektion, eine schnelle Partie."
+      },
+      "themes": {
+        "title": "🎯 Themen",
+        "desc": "Löse Themenpuzzles mit sofortigem Feedback."
+      },
+      "minigames": {
+        "title": "🎮 Mini-Spiele",
+        "desc": "Schnelle Drills für Instinkte unter Zeitdruck."
+      }
+    },
+    "themes": {
+      "title": "🎯 Themen",
+      "subtitle": "Löse Taktikpuzzles nach Thema",
+      "label": "Thema",
+      "all": "Alle",
+      "mateIn1": "Matt in 1",
+      "fork": "Gabel",
+      "pin": "Fesselung",
+      "next": "Nächstes Puzzle",
+      "puzzleLabel": "Puzzle",
+      "fenLabel": "FEN",
+      "expectedLabel": "Erwartet",
+      "answerPlaceholder": "Besten Zug eingeben, z. B. \"Qg2#\"",
+      "check": "Prüfen"
+    },
+    "daily": {
+      "title": "☀️ Tagesplan",
+      "subtitle": "Eine fokussierte 10-Minuten-Schachroutine",
+      "routineTitle": "Heutige Routine",
+      "routineSubtitle": "Erledige jeden Schritt, um Momentum zu halten",
+      "step1Title": "🎯 1 Puzzle",
+      "step1Desc": "Löse eine thematische Taktik in unter 2 Minuten.",
+      "step2Title": "📚 1 Lektion",
+      "step2Desc": "Wiederhole eine Lektion aus dem Anfänger-Track.",
+      "step3Title": "♟️ 1 schnelle Partie",
+      "step3Desc": "Spiele eine 5–10-Minuten-KI-Partie.",
+      "goThemes": "Zu den Themen",
+      "openLesson": "Lektion öffnen",
+      "startGame": "Partie starten"
+    },
+    "minigames": {
+      "title": "🎮 Mini-Spiele",
+      "subtitle": "Schnelle Drills, die Instinkte trainieren",
+      "catalogTitle": "Mini-Spiel-Katalog",
+      "catalogSubtitle": "Schnelle Drills kommen bald",
+      "item1Title": "⚡ Matt in 1 Sprint",
+      "item1Desc": "Finde so schnell wie möglich Matt in einem Zug.",
+      "item2Title": "⏱️ Bester Zug (30s)",
+      "item2Desc": "Wähle den stärksten Zug unter Zeitdruck.",
+      "item3Title": "🧯 Patzer-Check",
+      "item3Desc": "Erkenne den Fehler, bevor der Gegner es tut.",
+      "item4Title": "🛡️ Einziger Verteidigungszug",
+      "item4Desc": "Finde die präzise Verteidigungsressource.",
+      "item5Title": "📖 Eröffnungsdrill",
+      "item5Desc": "Übe Eröffnungszüge aus beliebten Varianten."
+    },
+    "expectedHidden": "{theme} (bis zur Prüfung verborgen)",
+    "solvePrompt": "Löse: besten Zug in einfacher Notation aus JSON eingeben (z. B. Qg2#).",
+    "correct": "✅ Richtig!",
+    "incorrect": "❌ Falsch. Erwartet: {move}",
+    "noPuzzles": "Für dieses Thema gibt es noch keine Puzzles."
+  },
+  "progress": {
+    "title": "📈 Fortschritt",
+    "subtitle": "Dein Verbesserungsdashboard",
+    "stats": {
+      "title": "Statistiken",
+      "subtitle": "Momentaufnahme deines Fortschritts",
+      "streak": "Serie",
+      "gamesPlayed": "Gespielte Partien",
+      "wins": "Siege",
+      "losses": "Niederlagen",
+      "draws": "Remis",
+      "totalMoves": "Züge gesamt",
+      "lessonsCompleted": "Lektionen abgeschlossen",
+      "puzzlesSolved": "Puzzles gelöst",
+      "puzzlesFailed": "Puzzles verfehlt"
+    },
+    "streakValue": "{count} Tag(e)",
+    "goals": {
+      "title": "Ziele & Serie",
+      "subtitle": "Halte deinen täglichen Schwung",
+      "currentStreakTitle": "🔥 Aktuelle Serie",
+      "currentStreakDesc": "Bleib aktiv, um die Serie zu halten.",
+      "currentStreakValue": "Siehe Statistiken oben",
+      "weeklyTitle": "🎯 Wöchentliches Ziel",
+      "weeklyDesc": "Löse 5 Puzzles und 2 Lektionen in dieser Woche.",
+      "weeklyProgress": "2 / 5 Puzzles abgeschlossen"
+    },
+    "skills": {
+      "title": "Fähigkeiten nach Thema",
+      "subtitle": "Stärkeübersicht (kommt bald)",
+      "mateIn1": "Matt in 1",
+      "forks": "Gabeln",
+      "pins": "Fesselungen"
+    },
+    "history": {
+      "title": "Verlauf",
+      "subtitle": "Kommt bald: Partiereview + Puzzlehistorie",
+      "desc": "Wir fügen bald eine detaillierte Historie deiner Partien und Puzzleversuche hinzu."
+    },
+    "reset": {
+      "title": "Lokale Daten zurücksetzen",
+      "desc": "Lokale Statistiken löschen und neu starten.",
+      "button": "Zurücksetzen"
+    },
+    "resetConfirm": "Lokalen Fortschritt zurücksetzen?"
+  },
+  "chess": {
+    "title": "♟ Spielraum",
+    "subtitle": "Intelligenter KI-Gegner mit nur legalen Zügen",
+    "settings": {
+      "title": "Partie-Einstellungen",
+      "subtitle": "Wähle Seite, Stärke und Zeitkontrolle",
+      "side": "Seite",
+      "strength": "Stärke",
+      "thinkTime": "Bedenkzeit",
+      "thinkTimeAuto": "Auto (nach Stärke)",
+      "timeControl": "Zeit",
+      "custom": "Benutzerdefiniert",
+      "customLabel": "Benutzerdefiniert (mm:ss)"
+    },
+    "engine": {
+      "fallback": "Engine: Fallback",
+      "loading": "Engine: Lädt…",
+      "stockfish": "Engine: Stockfish",
+      "unavailable": "Nicht verfügbar",
+      "initCooldown": "Init-Abkühlung"
+    },
+    "strength": {
+      "beginner": "🍼 Anfänger",
+      "easy": "🙂 Leicht",
+      "casual": "🎯 Locker",
+      "club": "♟ Club",
+      "strong": "🔥 Stark",
+      "expert": "🧠 Experte",
+      "master": "🏆 Meister",
+      "im": "🥇 IM",
+      "gm": "👑 GM",
+      "supergm": "🐉 Super GM (Magnus-Modus)"
+    },
+    "actions": {
+      "newGame": "Neue Partie",
+      "resign": "Aufgeben",
+      "undo": "Rückgängig",
+      "hint": "Hinweis",
+      "coachReview": "Coach-Review",
+      "resetPosition": "Position zurücksetzen"
+    },
+    "clock": {
+      "off": "Keine Uhr",
+      "labelPlain": "Deine Zeit",
+      "label": "Deine Zeit ({side})"
+    },
+    "promo": {
+      "title": "Umwandlung wählen",
+      "queen": "Zu Dame umwandeln",
+      "rook": "Zu Turm umwandeln",
+      "bishop": "Zu Läufer umwandeln",
+      "knight": "Zu Springer umwandeln"
+    },
+    "status": {
+      "title": "Matchstatus",
+      "subtitle": "Live-Updates der Engine",
+      "labels": {
+        "status": "Status",
+        "turn": "Zug",
+        "moves": "Züge",
+        "selected": "Ausgewählt"
+      },
+      "aiThinking": "KI denkt…",
+      "checkmate": "SCHACHMATT — {winner} gewinnt",
+      "stalemate": "PATT — Remis",
+      "resign": "AUFGABE — {winner} gewinnt",
+      "timeout": "ZEIT — {winner} gewinnt",
+      "check": "SCHACH",
+      "playing": "Spiel läuft"
+    },
+    "hint": {
+      "legalMoves": "Legale Züge: {moves}",
+      "noLegalMoves": "Keine legalen Züge für diese Figur.",
+      "gameOver": "Spiel vorbei. Starte eine neue Partie oder mache rückgängig.",
+      "aiThinking": "KI denkt…",
+      "waitAi": "Warte auf KI-Zug…",
+      "noMoves": "Keine legalen Züge.",
+      "bestMove": "Hinweis: {move}",
+      "invalidFen": "Ungültige FEN angegeben. Standardposition geladen."
+    },
+    "tip": "Tipp: Tippe auf eine Figur, um legale Züge zu sehen. Schach wird erzwungen; die Partie endet durch Matt, Patt oder Zeit."
+  ,
+    "coach": {
+      "title": "Coach-Review",
+      "subtitle": "Kurze Analyse nach deiner Partie",
+      "summary": "Zusammenfassung",
+      "keyMoments": "Schlüsselmomente",
+      "mistakes": "Fehler",
+      "oneTip": "Ein Tipp",
+      "drills": "Drills",
+      "noKeyMoments": "Keine Schlüsselmomente markiert.",
+      "noMistakes": "Keine größeren Fehler markiert.",
+      "noDrills": "Keine Drills vorgeschlagen.",
+      "loading": "Coach-Review wird geladen…",
+      "rateLimit": "Rate-Limit erreicht. Bitte warte und versuche es erneut.",
+      "failed": "Coach-Review fehlgeschlagen. Bitte erneut versuchen.",
+      "ready": "Coach-Review bereit.",
+      "copied": "Coach-Review kopiert.",
+      "copyFailed": "Kopieren fehlgeschlagen. Bitte erneut versuchen."
+    }
+  },
+  "settings": {
+    "title": "⚙️ Einstellungen",
+    "subtitle": "Passe dein Erlebnis an",
+    "language": {
+      "title": "Sprache",
+      "subtitle": "Wähle die UI-Sprache für TG Chess",
+      "label": "Oberflächensprache",
+      "note": "Die Sprachwahl wird auf diesem Gerät gespeichert.",
+      "english": "English",
+      "russian": "Русский",
+      "turkish": "Türkçe",
+      "german": "Deutsch",
+      "french": "Français"
+    }
+  }
+}

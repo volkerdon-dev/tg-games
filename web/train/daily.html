@@ -10,11 +10,11 @@
   <div class="app-shell">
     <header class="app-header">
       <div>
-        <h1 class="app-title">☀️ Daily plan</h1>
-        <p class="app-subtitle">A focused 10-minute chess routine</p>
+        <h1 class="app-title" data-i18n="train.daily.title">☀️ Daily plan</h1>
+        <p class="app-subtitle" data-i18n="train.daily.subtitle">A focused 10-minute chess routine</p>
       </div>
       <div class="app-actions">
-        <a class="icon-btn" href="./index.html">← Train</a>
+        <a class="icon-btn" href="./index.html" data-i18n="train.backToTrain">← Train</a>
       </div>
     </header>
 
@@ -24,29 +24,29 @@
           <div class="card">
             <div class="section-header">
               <div>
-                <h2 class="section-title">Today’s routine</h2>
-                <p class="section-subtitle">Complete each step to keep momentum</p>
+                <h2 class="section-title" data-i18n="train.daily.routineTitle">Today’s routine</h2>
+                <p class="section-subtitle" data-i18n="train.daily.routineSubtitle">Complete each step to keep momentum</p>
               </div>
-              <span class="badge soon">Coming soon</span>
+              <span class="badge soon" data-i18n="common.comingSoon">Coming soon</span>
             </div>
             <div class="card-grid" style="margin-top:12px">
               <div class="card soft">
-                <h3>🎯 1 puzzle</h3>
-                <p>Solve a themed tactic in under 2 minutes.</p>
+                <h3 data-i18n="train.daily.step1Title">🎯 1 puzzle</h3>
+                <p data-i18n="train.daily.step1Desc">Solve a themed tactic in under 2 minutes.</p>
               </div>
               <div class="card soft">
-                <h3>📚 1 lesson</h3>
-                <p>Review one lesson from your beginner track.</p>
+                <h3 data-i18n="train.daily.step2Title">📚 1 lesson</h3>
+                <p data-i18n="train.daily.step2Desc">Review one lesson from your beginner track.</p>
               </div>
               <div class="card soft">
-                <h3>♟️ 1 quick game</h3>
-                <p>Play a 5–10 minute AI match.</p>
+                <h3 data-i18n="train.daily.step3Title">♟️ 1 quick game</h3>
+                <p data-i18n="train.daily.step3Desc">Play a 5–10 minute AI match.</p>
               </div>
             </div>
             <div class="row" style="margin-top:16px">
-              <a class="btn" href="./themes.html">Go to Themes</a>
-              <a class="btn secondary" href="../learn/beginner.html">Open lesson</a>
-              <a class="btn ghost" href="../chess/index.html">Start game</a>
+              <a class="btn" href="./themes.html" data-i18n="train.daily.goThemes">Go to Themes</a>
+              <a class="btn secondary" href="../learn/beginner.html" data-i18n="train.daily.openLesson">Open lesson</a>
+              <a class="btn ghost" href="../chess/index.html" data-i18n="train.daily.startGame">Start game</a>
             </div>
           </div>
         </section>
@@ -54,11 +54,18 @@
     </main>
 
     <nav class="bottom-nav">
-      <a class="nav-item" href="../chess/index.html">♟️<span>Play</span></a>
-      <a class="nav-item" href="../learn/index.html">📚<span>Learn</span></a>
-      <a class="nav-item active" href="./index.html">🎯<span>Train</span></a>
-      <a class="nav-item" href="../progress/index.html">📈<span>Progress</span></a>
+      <a class="nav-item" href="../chess/index.html">♟️<span data-i18n="nav.play">Play</span></a>
+      <a class="nav-item" href="../learn/index.html">📚<span data-i18n="nav.learn">Learn</span></a>
+      <a class="nav-item active" href="./index.html">🎯<span data-i18n="nav.train">Train</span></a>
+      <a class="nav-item" href="../progress/index.html">📈<span data-i18n="nav.progress">Progress</span></a>
     </nav>
   </div>
+
+  <script type="module">
+    import { applyI18n, getLang, loadDict } from "../shared/i18n.js";
+
+    await loadDict(getLang());
+    await applyI18n();
+  </script>
 </body>
 </html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Settings — TG Chess</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1 class="app-title" data-i18n="settings.title">⚙️ Settings</h1>
+        <p class="app-subtitle" data-i18n="settings.subtitle">Customize your experience</p>
+      </div>
+      <div class="app-actions">
+        <a class="icon-btn" href="../index.html" data-i18n="nav.home">🏠 Home</a>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <div class="container">
+        <section class="section">
+          <div class="card">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title" data-i18n="settings.language.title">Language</h2>
+                <p class="section-subtitle" data-i18n="settings.language.subtitle">Pick the UI language for TG Chess</p>
+              </div>
+            </div>
+            <div class="control-group">
+              <label for="languageSelect" data-i18n="settings.language.label">Interface language</label>
+              <select id="languageSelect">
+                <option value="en" data-i18n="settings.language.english">English</option>
+                <option value="ru" data-i18n="settings.language.russian">Русский</option>
+                <option value="tr" data-i18n="settings.language.turkish">Türkçe</option>
+                <option value="de" data-i18n="settings.language.german">Deutsch</option>
+                <option value="fr" data-i18n="settings.language.french">Français</option>
+              </select>
+            </div>
+            <p class="small" style="margin-top:12px" data-i18n="settings.language.note">Language choice is saved on this device.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <nav class="bottom-nav">
+      <a class="nav-item" href="../chess/index.html">♟️<span data-i18n="nav.play">Play</span></a>
+      <a class="nav-item" href="../learn/index.html">📚<span data-i18n="nav.learn">Learn</span></a>
+      <a class="nav-item" href="../train/index.html">🎯<span data-i18n="nav.train">Train</span></a>
+      <a class="nav-item" href="../progress/index.html">📈<span data-i18n="nav.progress">Progress</span></a>
+    </nav>
+  </div>
+
+  <script type="module" src="./settings.js"></script>
+</body>
+</html>
