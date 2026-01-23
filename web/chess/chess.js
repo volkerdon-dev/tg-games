@@ -1,4 +1,4 @@
-import { initTelegram, sendEvent } from "../shared/telegram.js";
+import { getInitData, initTelegram, sendEvent } from "../shared/telegram.js";
 import { loadState, saveState, touch } from "../shared/storage.js";
 import { setText } from "../shared/ui.js";
 import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
@@ -1558,14 +1558,17 @@ function updateStatsAndSend(result) {
   saveState(state);
 
   const preset = getAiPreset();
+  const fullMoves = Math.ceil(game.plies / 2);
   sendEvent({
     type: "game_result",
-    mode: "vs_ai_stockfish",
+    mode: engineStatus.mode === "stockfish" ? "vs_ai_stockfish" : "vs_ai_fallback",
+    engine: engineStatus.mode,
     level: String(levelEl.value || preset.key),
     elo: preset.elo ?? null,
     side: game.playerColor === WHITE ? "white" : "black",
     result,
-    plies: game.plies
+    moves: fullMoves,
+    plies: game.plies,
   });
 }
 
@@ -1726,9 +1729,12 @@ async function requestCoachReview() {
   };
 
   try {
+    const initData = getInitData();
+    const headers = { "Content-Type": "application/json" };
+    if (initData) headers["x-telegram-init-data"] = initData;
     const response = await fetch("/api/coachGameReview", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
       signal: coachAbort.signal,
     });

@@ -62,8 +62,8 @@ function enforceRateLimit(req, res, keyPrefix) {
     keyPrefix,
   });
   if (!rate.allowed) {
-    sendJson(res, 429, { error: "rate_limited" });
     res.setHeader("Retry-After", String(rate.retryAfter));
+    sendJson(res, 429, { error: "rate_limited" });
     return false;
   }
   return true;
