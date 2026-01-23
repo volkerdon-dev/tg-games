@@ -904,7 +904,6 @@ let sf = {
 };
 
 const STOCKFISH_LOCAL_URL = "./engine/stockfish.worker.js";
-const STOCKFISH_CDN_URL = "https://cdn.jsdelivr.net/npm/stockfish.wasm@0.10.0/stockfish.worker.js";
 const STOCKFISH_INIT_TIMEOUT_MS = 12000;
 const STOCKFISH_RETRY_COOLDOWN_MS = 5000;
 
@@ -923,7 +922,7 @@ function classifyEngineError(err) {
   if (msg.includes("timeout")) return "Timeout";
   if (msg.includes("worker") && msg.includes("blocked")) return "Worker blocked";
   if (msg.includes("security")) return "Worker blocked";
-  if (msg.includes("cors") || msg.includes("cross-origin") || msg.includes("origin")) return "CORS blocked";
+  if (msg.includes("cors") || msg.includes("cross-origin") || msg.includes("origin")) return "Network blocked";
   if (msg.includes("failed to load") || msg.includes("not found") || msg.includes("404")) return "Missing engine file";
   if (msg.includes("wasm")) return "WASM load error";
   return "Worker error";
@@ -1074,15 +1073,7 @@ async function initStockfish({ timeoutMs = STOCKFISH_INIT_TIMEOUT_MS, force = fa
     } catch (err) {
       const reason = classifyEngineError(err);
       console.warn(`[Stockfish] Local worker failed (${STOCKFISH_LOCAL_URL}): ${reason}`);
-      try {
-        const cdn = await createStockfishWorker(STOCKFISH_CDN_URL, { timeoutMs });
-        sf.worker = cdn.worker;
-        engineStatus.source = "cdn";
-        console.info(`[Stockfish] Loaded CDN worker in ${cdn.initMs.toFixed(0)}ms (${STOCKFISH_CDN_URL})`);
-      } catch (cdnErr) {
-        const cdnReason = classifyEngineError(cdnErr);
-        throw new Error(cdnReason);
-      }
+      throw new Error(reason);
     }
 
     sf.worker.onmessage = (ev) => sfHandleLine(ev?.data);
