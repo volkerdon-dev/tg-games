@@ -92,10 +92,6 @@
                 </div>
               </div>
             </div>
-            <div class="row settingsActions" style="margin-top:16px">
-              <button class="btn" id="newGame" data-i18n="chess.actions.newGame">New Game</button>
-              <button class="btn secondary" id="endGame" data-i18n="chess.actions.resign">Resign</button>
-            </div>
           </div>
         </section>
 
@@ -171,13 +167,6 @@
 
                 <hr />
 
-                <div class="row">
-                  <button class="btn ghost" id="undo" data-i18n="chess.actions.undo">Undo</button>
-                  <button class="btn ghost" id="hint" data-i18n="chess.actions.hint">Hint</button>
-                  <button class="btn ghost" id="coachBtn" type="button" disabled data-i18n="chess.actions.coachReview">Coach review</button>
-                  <button class="btn ghost" id="reset" data-i18n="chess.actions.resetPosition">Reset Position</button>
-                </div>
-
                 <div class="small" id="hintText" style="margin-top:10px"></div>
               </div>
 
@@ -190,6 +179,15 @@
             </div>
           </div>
         </section>
+
+        <div class="chess-action-bar" id="chessActionBar" aria-label="Chess actions">
+          <button class="btn" id="newGame" data-i18n="chess.actions.newGame">New Game</button>
+          <button class="btn secondary" id="endGame" data-i18n="chess.actions.resign">Resign</button>
+          <button class="btn ghost" id="undo" data-i18n="chess.actions.undo">Undo</button>
+          <button class="btn ghost" id="hint" data-i18n="chess.actions.hint">Hint</button>
+          <button class="btn ghost" id="coachBtn" type="button" disabled data-i18n="chess.actions.coachReview">Coach review</button>
+          <button class="btn ghost" id="reset" data-i18n="chess.actions.resetPosition">Reset Position</button>
+        </div>
 
         <p class="small" data-i18n="chess.tip">
           Tip: tap a piece to see legal moves. Checks are enforced; game ends on mate, stalemate, or timeout.
