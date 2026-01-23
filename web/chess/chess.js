@@ -68,6 +68,10 @@ const OFFSETS = {
 
 const WHITE = "w";
 const BLACK = "b";
+const PAWN_ATTACK_OFFSETS = {
+  [WHITE]: [-17, -15],
+  [BLACK]: [17, 15],
+};
 
 // 0x88 helpers
 const isOffboard = (sq) => (sq & 0x88) !== 0;
@@ -442,16 +446,11 @@ function initClockFromUI() {
 // -------------------- attack / check --------------------
 function isSquareAttacked(byColor, targetSq) {
   // pawns
-  if (byColor === WHITE) {
-    const a1 = targetSq + 17;
-    const a2 = targetSq + 15;
-    if (!isOffboard(a1)) { const p = pieceAt(a1); if (p && p.c===WHITE && p.t==="P") return true; }
-    if (!isOffboard(a2)) { const p = pieceAt(a2); if (p && p.c===WHITE && p.t==="P") return true; }
-  } else {
-    const a1 = targetSq - 17;
-    const a2 = targetSq - 15;
-    if (!isOffboard(a1)) { const p = pieceAt(a1); if (p && p.c===BLACK && p.t==="P") return true; }
-    if (!isOffboard(a2)) { const p = pieceAt(a2); if (p && p.c===BLACK && p.t==="P") return true; }
+  for (const offset of PAWN_ATTACK_OFFSETS[byColor]) {
+    const from = targetSq - offset;
+    if (isOffboard(from)) continue;
+    const p = pieceAt(from);
+    if (p && p.c === byColor && p.t === "P") return true;
   }
 
   // knights
@@ -535,7 +534,7 @@ function genPseudoMoves(color) {
         }
       }
 
-      for (const capDir of (color === WHITE ? [-17,-15] : [17,15])) {
+      for (const capDir of PAWN_ATTACK_OFFSETS[color]) {
         const to = sq + capDir;
         if (isOffboard(to)) continue;
 
@@ -1901,7 +1900,8 @@ function retryEngineInit() {
 function initFromQuery() {
   const params = new URLSearchParams(window.location.search);
   const fen = params.get("fen");
-  if (fen) {
+  const devMode = params.get("dev") === "1" || ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  if (fen && devMode) {
     try {
       resetGame({ fen });
     } catch (error) {
@@ -1983,6 +1983,10 @@ initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => {
 
 // Diagnostics helper (optional)
 window.showAiDiagnostics = () => logAiDiagnostics("manual");
+if (new URLSearchParams(window.location.search).get("dev") === "1"
+  || ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+  window.setChessFen = (fen) => resetGame({ fen });
+}
 
 onTimeControlUIChange();
 initFromQuery();
