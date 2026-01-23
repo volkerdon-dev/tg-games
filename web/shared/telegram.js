@@ -2,6 +2,10 @@ export function tg() {
   return window.Telegram?.WebApp || null;
 }
 
+export function getInitData() {
+  return tg()?.initData || "";
+}
+
 export function initTelegram() {
   const app = tg();
   if (!app) return;

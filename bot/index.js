@@ -45,7 +45,8 @@ bot.on('web_app_data', async (ctx) => {
     }
 
     if (payload.type === 'game_result') {
-      await ctx.reply(`♟️ Игра завершена: ${payload.result} — ${payload.moves} ход(ов) — lvl ${payload.level ?? '?'}`);
+      const moves = payload.moves ?? (payload.plies ? Math.ceil(payload.plies / 2) : '?');
+      await ctx.reply(`♟️ Игра завершена: ${payload.result} — ${moves} ход(ов) — lvl ${payload.level ?? '?'}`);
       return;
     }
 

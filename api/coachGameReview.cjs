@@ -6,6 +6,7 @@ const {
   cacheSetWithTtl,
   createCacheKey,
 } = require("./_auth.cjs");
+const { verifyTelegramInitData } = require("./_telegramInitData.cjs");
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -34,6 +35,16 @@ function getOrigin(req) {
     }
   }
   return null;
+}
+
+function getInitDataHeader(req) {
+  const header = req.headers["x-telegram-init-data"];
+  if (Array.isArray(header)) return header[0];
+  return header || "";
+}
+
+function getBotToken() {
+  return process.env.TG_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || "";
 }
 
 function isOriginAllowed(origin) {
@@ -90,8 +101,30 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const ip = getIp(req);
-  const rate = rateLimitWithConfig(ip, {
+  const botToken = getBotToken();
+  let telegramUserId;
+  if (botToken) {
+    const initData = getInitDataHeader(req);
+    if (!initData) {
+      res.statusCode = 401;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: "missing_init_data" }));
+      return;
+    }
+    const maxAgeEnv = Number(process.env.TG_INITDATA_MAX_AGE_SECONDS);
+    const maxAgeSeconds = Number.isFinite(maxAgeEnv) && maxAgeEnv > 0 ? maxAgeEnv : 86400;
+    const verification = verifyTelegramInitData(initData, botToken, { maxAgeSeconds });
+    if (!verification.ok) {
+      res.statusCode = 401;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: verification.error || "invalid_init_data" }));
+      return;
+    }
+    telegramUserId = verification.userId;
+  }
+
+  const rateKey = telegramUserId || getIp(req);
+  const rate = rateLimitWithConfig(rateKey, {
     windowMs: 30 * 60 * 1000,
     limit: 3,
     keyPrefix: "coach",
