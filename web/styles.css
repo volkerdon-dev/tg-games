@@ -430,15 +430,19 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
 
 /* ===== Board frame with coordinates ===== */
 .boardFrame{
+  --coordSize: 26px;
+  --boardSize: clamp(240px, calc(100vw - (2 * var(--coordSize)) - 48px), 360px);
   display:grid;
-  grid-template-columns: 26px auto 26px;
-  grid-template-rows: 26px auto 26px;
+  grid-template-columns: var(--coordSize) var(--boardSize) var(--coordSize);
+  grid-template-rows: var(--coordSize) var(--boardSize) var(--coordSize);
   align-items:stretch;
   justify-items:stretch;
   gap:0;
   position:relative;
+  width: calc(var(--boardSize) + (2 * var(--coordSize)));
+  max-width: 100%;
 }
-.corner{width:26px; height:26px}
+.corner{width:var(--coordSize); height:var(--coordSize)}
 
 .coords{
   display:flex;
@@ -452,22 +456,25 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
   text-shadow: 0 1px 2px rgba(0,0,0,0.55);
   background: rgba(0,0,0,0.18);
   border: 1px solid rgba(255,255,255,0.08);
+  box-sizing:border-box;
 }
 
 .coords.files{
+  width: var(--boardSize);
   padding:0 10px;
   border-radius: 10px;
 }
 .coords.ranks{
   flex-direction:column;
+  height: var(--boardSize);
   padding:10px 0;
   border-radius: 10px;
 }
 
 /* ===== Actual board ===== */
 .board{
-  width: 360px;
-  height: 360px;
+  width: var(--boardSize);
+  height: var(--boardSize);
   border-radius: 14px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
@@ -475,7 +482,6 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
   background: transparent;
 }
 @media (max-width:420px){
-  .board{width: 320px; height:320px}
   .app-header{padding:16px 16px 4px}
   .container{padding:0 16px}
   .bottom-nav{gap:8px}
