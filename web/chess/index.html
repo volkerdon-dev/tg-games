@@ -22,77 +22,77 @@
     <main class="app-content">
       <div class="container">
         <section class="section">
-          <div class="card">
-            <div class="section-header" style="margin-bottom:12px">
+          <div class="card settingsPanel" id="settingsPanel">
+            <button class="settingsHeader" id="settingsToggle" type="button" aria-expanded="false" aria-controls="settingsBody">
               <div>
                 <h2 class="section-title" data-i18n="chess.settings.title">Game settings</h2>
                 <p class="section-subtitle" data-i18n="chess.settings.subtitle">Choose side, strength, and time controls</p>
+                <div class="settingsSummary" id="settingsSummary"></div>
               </div>
-              <div class="engineStatus">
-                <span id="engineBadge" class="engineBadge fallback" data-i18n="chess.engine.fallback">Engine: Fallback</span>
-                <button id="engineRetry" class="engineRetry" type="button" data-i18n="common.retry">Retry</button>
-              </div>
-            </div>
-            <div class="controls-grid">
-              <div class="control-group">
-                <label for="side" data-i18n="chess.settings.side">Side</label>
-                <select id="side">
-                  <option value="white" selected data-i18n="common.white">White</option>
-                  <option value="black" data-i18n="common.black">Black</option>
-                </select>
-              </div>
+              <span class="settingsChevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="settingsBody" id="settingsBody">
+              <div class="controls-grid">
+                <div class="control-group">
+                  <label for="side" data-i18n="chess.settings.side">Side</label>
+                  <select id="side">
+                    <option value="white" selected data-i18n="common.white">White</option>
+                    <option value="black" data-i18n="common.black">Black</option>
+                  </select>
+                </div>
 
-              <div class="control-group">
-                <label for="level" data-i18n="chess.settings.strength">Strength</label>
-                <select id="level">
-                  <option value="beginner" data-i18n="chess.strength.beginner">🍼 Beginner</option>
-                  <option value="easy" data-i18n="chess.strength.easy">🙂 Easy</option>
-                  <option value="casual" selected data-i18n="chess.strength.casual">🎯 Casual</option>
-                  <option value="club" data-i18n="chess.strength.club">♟ Club</option>
-                  <option value="strong" data-i18n="chess.strength.strong">🔥 Strong</option>
-                  <option value="expert" data-i18n="chess.strength.expert">🧠 Expert</option>
-                  <option value="master" data-i18n="chess.strength.master">🏆 Master</option>
-                  <option value="im" data-i18n="chess.strength.im">🥇 IM</option>
-                  <option value="gm" data-i18n="chess.strength.gm">👑 GM</option>
-                  <option value="supergm" data-i18n="chess.strength.supergm">🐉 Super GM (Magnus mode)</option>
-                </select>
-              </div>
+                <div class="control-group">
+                  <label for="level" data-i18n="chess.settings.strength">Strength</label>
+                  <select id="level">
+                    <option value="beginner" data-i18n="chess.strength.beginner">🍼 Beginner</option>
+                    <option value="easy" data-i18n="chess.strength.easy">🙂 Easy</option>
+                    <option value="casual" selected data-i18n="chess.strength.casual">🎯 Casual</option>
+                    <option value="club" data-i18n="chess.strength.club">♟ Club</option>
+                    <option value="strong" data-i18n="chess.strength.strong">🔥 Strong</option>
+                    <option value="expert" data-i18n="chess.strength.expert">🧠 Expert</option>
+                    <option value="master" data-i18n="chess.strength.master">🏆 Master</option>
+                    <option value="im" data-i18n="chess.strength.im">🥇 IM</option>
+                    <option value="gm" data-i18n="chess.strength.gm">👑 GM</option>
+                    <option value="supergm" data-i18n="chess.strength.supergm">🐉 Super GM (Magnus mode)</option>
+                  </select>
+                </div>
 
-              <div class="control-group">
-                <label for="thinkTime" data-i18n="chess.settings.thinkTime">Think time</label>
-                <select id="thinkTime">
-                  <option value="auto" selected data-i18n="chess.settings.thinkTimeAuto">Auto (from strength)</option>
-                  <option value="0.2">0.2s</option>
-                  <option value="0.5">0.5s</option>
-                  <option value="1">1s</option>
-                  <option value="2">2s</option>
-                  <option value="5">5s</option>
-                  <option value="10">10s</option>
-                </select>
-              </div>
+                <div class="control-group">
+                  <label for="thinkTime" data-i18n="chess.settings.thinkTime">Think time</label>
+                  <select id="thinkTime">
+                    <option value="auto" selected data-i18n="chess.settings.thinkTimeAuto">Auto (from strength)</option>
+                    <option value="0.2">0.2s</option>
+                    <option value="0.5">0.5s</option>
+                    <option value="1">1s</option>
+                    <option value="2">2s</option>
+                    <option value="5">5s</option>
+                    <option value="10">10s</option>
+                  </select>
+                </div>
 
-              <div class="control-group">
-                <label for="timeControl" data-i18n="chess.settings.timeControl">Time</label>
-                <select id="timeControl">
-                  <option value="off" data-i18n="chess.clock.off">No clock</option>
-                  <option value="5">5 min</option>
-                  <option value="10">10 min</option>
-                  <option value="20" selected>20 min</option>
-                  <option value="30">30 min</option>
-                  <option value="60">60 min</option>
-                  <option value="custom" data-i18n="chess.settings.custom">Custom</option>
-                </select>
-              </div>
+                <div class="control-group">
+                  <label for="timeControl" data-i18n="chess.settings.timeControl">Time</label>
+                  <select id="timeControl">
+                    <option value="off" data-i18n="chess.clock.off">No clock</option>
+                    <option value="5">5 min</option>
+                    <option value="10">10 min</option>
+                    <option value="20" selected>20 min</option>
+                    <option value="30">30 min</option>
+                    <option value="60">60 min</option>
+                    <option value="custom" data-i18n="chess.settings.custom">Custom</option>
+                  </select>
+                </div>
 
-              <div class="control-group" id="customTimeWrap" style="display:none">
-                <label data-i18n="chess.settings.customLabel">Custom (mm:ss)</label>
-                <div class="row" style="gap:8px">
-                  <input id="timeMinutes" class="input" type="number" min="0" value="20" style="width:100%" />
-                  <input id="timeSeconds" class="input" type="number" min="0" max="59" value="0" style="width:100%" />
+                <div class="control-group" id="customTimeWrap" style="display:none">
+                  <label data-i18n="chess.settings.customLabel">Custom (mm:ss)</label>
+                  <div class="row" style="gap:8px">
+                    <input id="timeMinutes" class="input" type="number" min="0" value="20" style="width:100%" />
+                    <input id="timeSeconds" class="input" type="number" min="0" max="59" value="0" style="width:100%" />
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="row" style="margin-top:16px">
+            <div class="row settingsActions" style="margin-top:16px">
               <button class="btn" id="newGame" data-i18n="chess.actions.newGame">New Game</button>
               <button class="btn secondary" id="endGame" data-i18n="chess.actions.resign">Resign</button>
             </div>
@@ -102,6 +102,13 @@
         <section class="section">
           <div class="game-layout">
             <div class="boardCol">
+              <div class="statusBar" id="statusBar">
+                <span class="tag normal" id="statusTag">Your move</span>
+                <div class="statusBarRight">
+                  <span id="engineBadge" class="engineBadge neutral">Engine: Loading…</span>
+                  <button id="engineRetry" class="engineRetry" type="button" data-i18n="common.retry">Retry</button>
+                </div>
+              </div>
               <div class="clockBar">
                 <div class="clockLabel" id="playerClockLabel" data-i18n="chess.clock.labelPlain">Your time</div>
                 <div class="clockValue" id="playerClock">20:00</div>
@@ -135,42 +142,51 @@
               </div>
             </div>
 
-            <div class="card">
-              <div class="section-header" style="margin-bottom:10px">
-                <div>
-                  <h2 class="section-title" data-i18n="chess.status.title">Match status</h2>
-                  <p class="section-subtitle" data-i18n="chess.status.subtitle">Live updates from the engine</p>
+            <div class="sideCol">
+              <div class="card">
+                <div class="section-header" style="margin-bottom:10px">
+                  <div>
+                    <h2 class="section-title" data-i18n="chess.status.title">Match status</h2>
+                    <p class="section-subtitle" data-i18n="chess.status.subtitle">Live updates from the engine</p>
+                  </div>
                 </div>
-              </div>
-              <div class="status-grid">
-                <div class="status-card">
-                  <h4 data-i18n="chess.status.labels.status">Status</h4>
-                  <div id="status">—</div>
+                <div class="status-grid">
+                  <div class="status-card">
+                    <h4 data-i18n="chess.status.labels.status">Status</h4>
+                    <div id="status">—</div>
+                  </div>
+                  <div class="status-card">
+                    <h4 data-i18n="chess.status.labels.turn">Turn</h4>
+                    <div id="turn">—</div>
+                  </div>
+                  <div class="status-card">
+                    <h4 data-i18n="chess.status.labels.moves">Moves</h4>
+                    <div id="moves">0</div>
+                  </div>
+                  <div class="status-card">
+                    <h4 data-i18n="chess.status.labels.selected">Selected</h4>
+                    <div id="selected">—</div>
+                  </div>
                 </div>
-                <div class="status-card">
-                  <h4 data-i18n="chess.status.labels.turn">Turn</h4>
-                  <div id="turn">—</div>
+
+                <hr />
+
+                <div class="row">
+                  <button class="btn ghost" id="undo" data-i18n="chess.actions.undo">Undo</button>
+                  <button class="btn ghost" id="hint" data-i18n="chess.actions.hint">Hint</button>
+                  <button class="btn ghost" id="coachBtn" type="button" disabled data-i18n="chess.actions.coachReview">Coach review</button>
+                  <button class="btn ghost" id="reset" data-i18n="chess.actions.resetPosition">Reset Position</button>
                 </div>
-                <div class="status-card">
-                  <h4 data-i18n="chess.status.labels.moves">Moves</h4>
-                  <div id="moves">0</div>
-                </div>
-                <div class="status-card">
-                  <h4 data-i18n="chess.status.labels.selected">Selected</h4>
-                  <div id="selected">—</div>
-                </div>
+
+                <div class="small" id="hintText" style="margin-top:10px"></div>
               </div>
 
-              <hr />
-
-              <div class="row">
-                <button class="btn ghost" id="undo" data-i18n="chess.actions.undo">Undo</button>
-                <button class="btn ghost" id="hint" data-i18n="chess.actions.hint">Hint</button>
-                <button class="btn ghost" id="coachBtn" type="button" disabled data-i18n="chess.actions.coachReview">Coach review</button>
-                <button class="btn ghost" id="reset" data-i18n="chess.actions.resetPosition">Reset Position</button>
+              <div class="card movePanel">
+                <div class="moveHeader">
+                  <h3 class="moveTitle">Moves</h3>
+                </div>
+                <div id="moveList" class="moveList" role="log" aria-live="polite"></div>
               </div>
-
-              <div class="small" id="hintText" style="margin-top:10px"></div>
             </div>
           </div>
         </section>

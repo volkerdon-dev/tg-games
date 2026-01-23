@@ -15,8 +15,14 @@ const boardEl = document.getElementById("board");
 const sideEl = document.getElementById("side");
 const levelEl = document.getElementById("level");
 const thinkTimeEl = document.getElementById("thinkTime");
+const statusTagEl = document.getElementById("statusTag");
+const statusBarEl = document.getElementById("statusBar");
 const engineBadgeEl = document.getElementById("engineBadge");
 const engineRetryEl = document.getElementById("engineRetry");
+const moveListEl = document.getElementById("moveList");
+const settingsPanelEl = document.getElementById("settingsPanel");
+const settingsToggleEl = document.getElementById("settingsToggle");
+const settingsSummaryEl = document.getElementById("settingsSummary");
 
 const timeControlEl = document.getElementById("timeControl");
 const customTimeWrap = document.getElementById("customTimeWrap");
@@ -134,11 +140,12 @@ function updateEngineBadge() {
   const isSf = engineStatus.mode === "stockfish";
   const isLoading = engineStatus.mode === "loading";
   engineBadgeEl.classList.toggle("stockfish", isSf);
-  engineBadgeEl.classList.toggle("fallback", !isSf);
-  let text = t("chess.engine.fallback");
-  if (isLoading) text = t("chess.engine.loading");
-  if (isSf) text = t("chess.engine.stockfish");
-  if (!isSf && engineStatus.reason) text += ` (${engineStatus.reason})`;
+  engineBadgeEl.classList.toggle("fallback", !isSf && !isLoading);
+  engineBadgeEl.classList.toggle("neutral", isLoading);
+  let text = "Engine: Smart AI (fallback) ⚠️";
+  if (isLoading) text = "Engine: Loading…";
+  if (isSf) text = "Engine: Stockfish ✅";
+  if (!isSf && !isLoading && engineStatus.reason) text += ` (${engineStatus.reason})`;
   engineBadgeEl.textContent = text;
   if (engineRetryEl) {
     const canRetry = !isSf;
@@ -231,6 +238,8 @@ function initialGame(playerColor) {
 
     // last move highlight
     lastMove: null,
+    moveHistory: [],
+    checkHighlight: { color: null, isMate: false },
 
     aiThinking: false,
 
@@ -502,6 +511,55 @@ function inCheck(color) {
   return isSquareAttacked(opponent(color), game.kingSq[color]);
 }
 
+function formatMoveText(move) {
+  const from = algebraic(move.from);
+  const to = algebraic(move.to);
+  const sep = move.capture ? "x" : "-";
+  let text = `${from}${sep}${to}`;
+  if (move.promotion) text += `=${move.promotion}`;
+  return text;
+}
+
+function renderMoveList() {
+  if (!moveListEl || !game) return;
+  moveListEl.innerHTML = "";
+  const moves = game.moveHistory || [];
+  for (let i = 0; i < moves.length; i += 2) {
+    const row = document.createElement("div");
+    row.className = "moveRow";
+
+    const num = document.createElement("span");
+    num.className = "moveNumber";
+    num.textContent = `${Math.floor(i / 2) + 1}.`;
+
+    const text = document.createElement("span");
+    text.className = "moveText";
+    const white = moves[i] || "";
+    const black = moves[i + 1] ? ` ${moves[i + 1]}` : "";
+    text.textContent = `${white}${black}`.trim();
+
+    row.appendChild(num);
+    row.appendChild(text);
+    moveListEl.appendChild(row);
+  }
+  requestAnimationFrame(() => {
+    moveListEl.scrollTop = moveListEl.scrollHeight;
+  });
+}
+
+function pushMoveHistory(move) {
+  if (!game) return;
+  if (!Array.isArray(game.moveHistory)) game.moveHistory = [];
+  game.moveHistory.push(formatMoveText(move));
+  renderMoveList();
+}
+
+function popMoveHistory() {
+  if (!game?.moveHistory?.length) return;
+  game.moveHistory.pop();
+  renderMoveList();
+}
+
 // -------------------- move gen (pseudo) --------------------
 function addMove(moves, move) {
   if (move.capture && move.capture.t === "K") return;
@@ -731,6 +789,7 @@ function applyMove(move, { recordUndo = false } = {}) {
     game.undoStack.push(prev);
     game.lastMove = { from: move.from, to: move.to };
     gameMovesUci.push(moveToUci(move));
+    pushMoveHistory(move);
     if (game.clock.enabled) game.clock.lastTs = performance.now();
   }
 
@@ -1368,7 +1427,10 @@ function selectSquare(sq) {
   game.hintMap = new Map();
 
   for (const m of game.selectedMoves) {
-    game.hintMap.set(m.to, m.capture ? "capture" : "move");
+    const undo = applyMove(m, { recordUndo: false });
+    const givesCheck = inCheck(game.turn);
+    revertMove(undo);
+    game.hintMap.set(m.to, { type: m.capture ? "capture" : "move", givesCheck });
   }
 
   if (game.selectedMoves.length) {
@@ -1390,6 +1452,43 @@ function statusText() {
     if (game.result.type === "timeout") return t("chess.status.timeout", { winner: sideLabel(game.result.winner) });
   }
   return inCheck(game.turn) ? t("chess.status.check") : t("chess.status.playing");
+}
+
+function updateStatusUI() {
+  if (!game) return;
+  const isMate = game.gameOver && game.result?.type === "checkmate";
+  const isStalemate = game.gameOver && game.result?.type === "stalemate";
+  const isTimeout = game.gameOver && game.result?.type === "timeout";
+  const isResigned = game.gameOver && game.result?.type === "resign";
+  const checkedColor = inCheck(game.turn) ? game.turn : (isMate ? game.turn : null);
+
+  game.checkHighlight = { color: checkedColor, isMate };
+
+  if (!statusTagEl) return;
+  let label = "Your move";
+  let variant = "normal";
+  if (isMate) {
+    label = "CHECKMATE";
+    variant = "mate";
+  } else if (isStalemate) {
+    label = "STALEMATE";
+    variant = "draw";
+  } else if (isTimeout) {
+    label = "TIMEOUT";
+    variant = "warn";
+  } else if (isResigned) {
+    label = "RESIGNED";
+    variant = "warn";
+  } else if (checkedColor) {
+    label = "CHECK!";
+    variant = "check";
+  } else if (game.aiThinking || game.turn !== game.playerColor) {
+    label = "AI thinking…";
+    variant = "thinking";
+  }
+
+  statusTagEl.textContent = label;
+  statusTagEl.className = `tag ${variant}`;
 }
 
 function applyPieceColorStyles(el, piece) {
@@ -1435,6 +1534,7 @@ function openPromotionModal({ color } = {}) {
 }
 
 function render() {
+  updateStatusUI();
   boardEl.innerHTML = "";
   boardEl.style.display = "flex";
   boardEl.style.flexWrap = "wrap";
@@ -1463,11 +1563,16 @@ function render() {
       if (game.selectedSq === internalSq) el.classList.add("sel");
 
       const hint = game.hintMap.get(internalSq);
-      if (hint === "move") el.classList.add("hint-move");
-      if (hint === "capture") el.classList.add("hint-capture");
+      if (hint?.type === "move") el.classList.add("hint-dot");
+      if (hint?.type === "capture") el.classList.add("hint-ring");
+      if (hint?.givesCheck) el.classList.add("hint-check");
 
       if (game.lastMove?.from === internalSq) el.classList.add("last-from");
       if (game.lastMove?.to === internalSq) el.classList.add("last-to");
+      if (game.checkHighlight?.color && internalSq === game.kingSq[game.checkHighlight.color]) {
+        el.classList.add("check-king");
+        if (game.checkHighlight.isMate) el.classList.add("check-mate");
+      }
 
       el.dataset.r = String(r);
       el.dataset.c = String(c);
@@ -1787,10 +1892,12 @@ function resetGame({ fen } = {}) {
   }
   startFen = toFEN();
   gameMovesUci = [];
+  game.moveHistory = [];
 
   initClockFromUI();
   clearSelection();
   game.lastMove = null;
+  renderMoveList();
 
   finalizeIfGameOver();
   render();
@@ -1810,11 +1917,13 @@ function undo() {
   // undo last move
   revertMove(game.undoStack.pop());
   popMoveUci();
+  popMoveHistory();
 
   // if still not player's turn, undo one more (AI move)
   if (game.undoStack.length && game.turn !== game.playerColor) {
     revertMove(game.undoStack.pop());
     popMoveUci();
+    popMoveHistory();
   }
 
   clearSelection();
@@ -1865,6 +1974,33 @@ function onTimeControlUIChange() {
     timeMinutesEl.value = String(parseInt(timeControlEl.value, 10) || 20);
     timeSecondsEl.value = "0";
   }
+}
+
+const SETTINGS_COLLAPSED_KEY = "chess.settingsCollapsed";
+
+function updateSettingsSummary() {
+  if (!settingsSummaryEl) return;
+  const side = sideEl?.options?.[sideEl.selectedIndex]?.textContent?.trim() || "White";
+  const strength = levelEl?.options?.[levelEl.selectedIndex]?.textContent?.trim() || "Casual";
+  const think = thinkTimeEl?.options?.[thinkTimeEl.selectedIndex]?.textContent?.trim() || "Auto";
+  settingsSummaryEl.textContent = `${side} • ${strength} • ${think}`;
+}
+
+function setSettingsCollapsed(collapsed) {
+  if (!settingsPanelEl || !settingsToggleEl) return;
+  settingsPanelEl.classList.toggle("collapsed", collapsed);
+  settingsToggleEl.setAttribute("aria-expanded", String(!collapsed));
+  try {
+    localStorage.setItem(SETTINGS_COLLAPSED_KEY, collapsed ? "1" : "0");
+  } catch {
+    // ignore storage issues
+  }
+}
+
+function toggleSettingsPanel() {
+  if (!settingsPanelEl) return;
+  const collapsed = settingsPanelEl.classList.contains("collapsed");
+  setSettingsCollapsed(!collapsed);
 }
 
 function logAiDiagnostics(reason = "") {
@@ -1969,10 +2105,20 @@ for (const btn of promoBtns) {
   });
 }
 
-sideEl.addEventListener("change", () => newGame());
-levelEl.addEventListener("change", onAiSettingsChanged);
-thinkTimeEl?.addEventListener("change", onAiSettingsChanged);
+sideEl.addEventListener("change", () => {
+  updateSettingsSummary();
+  newGame();
+});
+levelEl.addEventListener("change", () => {
+  updateSettingsSummary();
+  onAiSettingsChanged();
+});
+thinkTimeEl?.addEventListener("change", () => {
+  updateSettingsSummary();
+  onAiSettingsChanged();
+});
 timeControlEl.addEventListener("change", onTimeControlUIChange);
+settingsToggleEl?.addEventListener("click", toggleSettingsPanel);
 
 // init
 updateEngineBadge();
@@ -1989,4 +2135,6 @@ if (new URLSearchParams(window.location.search).get("dev") === "1"
 }
 
 onTimeControlUIChange();
+updateSettingsSummary();
+setSettingsCollapsed(localStorage.getItem(SETTINGS_COLLAPSED_KEY) !== "0");
 initFromQuery();
