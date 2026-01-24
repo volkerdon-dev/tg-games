@@ -6,6 +6,11 @@ export function getInitData() {
   return tg()?.initData || "";
 }
 
+export function getAuthHeaders() {
+  const initData = getInitData();
+  return initData ? { "x-telegram-init-data": initData } : {};
+}
+
 export function initTelegram() {
   const app = tg();
   if (!app) return;

@@ -1,4 +1,4 @@
-import { getInitData, initTelegram, sendEvent } from "../shared/telegram.js";
+import { getAuthHeaders, getInitData, initTelegram, sendEvent } from "../shared/telegram.js";
 import { loadState, saveState, touch } from "../shared/storage.js";
 import { setText } from "../shared/ui.js";
 import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
@@ -23,6 +23,16 @@ const moveListEl = document.getElementById("moveList");
 const settingsPanelEl = document.getElementById("settingsPanel");
 const settingsToggleEl = document.getElementById("settingsToggle");
 const settingsSummaryEl = document.getElementById("settingsSummary");
+const opponentModeEl = document.getElementById("opponentMode");
+const friendControlsEl = document.getElementById("friendControls");
+const createRoomBtn = document.getElementById("createRoomBtn");
+const joinRoomBtn = document.getElementById("joinRoomBtn");
+const joinCodeInput = document.getElementById("joinCodeInput");
+const roomBannerEl = document.getElementById("roomBanner");
+const roomCodeLabelEl = document.getElementById("roomCodeLabel");
+const roomStatusTextEl = document.getElementById("roomStatusText");
+const roomShareBtn = document.getElementById("roomShareBtn");
+const pvpStatusBadgeEl = document.getElementById("pvpStatusBadge");
 
 const timeControlEl = document.getElementById("timeControl");
 const customTimeWrap = document.getElementById("customTimeWrap");
@@ -121,6 +131,14 @@ let coachAbort = null;
 let coachRequestSeq = 0;
 let coachData = null;
 
+const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const PVP_STORAGE_KEY = "chess.pvpRoom";
+const OPPONENT_MODE_KEY = "chess.opponentMode";
+const PVP_POLL_INTERVAL_MS = 1200;
+let pvpRoom = null;
+let pvpRole = null;
+let pvpPollTimer = null;
+
 // -------------------- Engine mode (visible) --------------------
 const engineStatus = {
   mode: "fallback", // "stockfish" | "fallback" | "loading"
@@ -151,6 +169,348 @@ function updateEngineBadge() {
     const canRetry = !isSf;
     engineRetryEl.disabled = !canRetry || isLoading;
     engineRetryEl.style.display = canRetry ? "inline-flex" : "none";
+  }
+}
+
+function isFriendMode() {
+  return opponentModeEl?.value === "friend";
+}
+
+function getStoredOpponentMode() {
+  try {
+    return localStorage.getItem(OPPONENT_MODE_KEY) || "ai";
+  } catch {
+    return "ai";
+  }
+}
+
+function storeOpponentMode(mode) {
+  try {
+    localStorage.setItem(OPPONENT_MODE_KEY, mode);
+  } catch {
+    // ignore storage issues
+  }
+}
+
+function setHint(text) {
+  if (hintTextEl) hintTextEl.textContent = text;
+}
+
+function getTelegramUserId() {
+  const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  if (!user || typeof user.id === "undefined") return null;
+  return String(user.id);
+}
+
+function loadPvpStorage() {
+  try {
+    const raw = localStorage.getItem(PVP_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function savePvpStorage(data) {
+  try {
+    localStorage.setItem(PVP_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearPvpStorage() {
+  try {
+    localStorage.removeItem(PVP_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function getRoomStatusLabel(room) {
+  if (!room) return { text: "Offline", className: "waiting" };
+  if (room.status === "waiting") return { text: "Waiting", className: "waiting" };
+  if (room.status === "active") return { text: "Connected", className: "connected" };
+  if (room.status === "ended") return { text: "Ended", className: "ended" };
+  return { text: "Waiting", className: "waiting" };
+}
+
+function getPlayerColorForRoom(room) {
+  if (!room) return WHITE;
+  const role = pvpRole || null;
+  if (role === "guest") return room.hostColor === WHITE ? BLACK : WHITE;
+  return room.hostColor || WHITE;
+}
+
+function updatePvpUI() {
+  const hasRoom = Boolean(pvpRoom);
+  if (roomBannerEl) roomBannerEl.classList.toggle("hidden", !hasRoom);
+  if (roomShareBtn) roomShareBtn.disabled = !hasRoom;
+  if (roomCodeLabelEl) roomCodeLabelEl.textContent = hasRoom ? `Room: ${pvpRoom.joinCode}` : "Room: —";
+  const status = getRoomStatusLabel(pvpRoom);
+  if (roomStatusTextEl) {
+    roomStatusTextEl.textContent = status.text;
+    roomStatusTextEl.className = `roomStatus ${status.className}`;
+  }
+  if (pvpStatusBadgeEl) {
+    pvpStatusBadgeEl.classList.toggle("hidden", !isFriendMode() || !hasRoom);
+    pvpStatusBadgeEl.textContent = `Friend: ${status.text}`;
+    pvpStatusBadgeEl.className = `pvpBadge ${status.className}`;
+  }
+}
+
+function updateOpponentModeUI() {
+  const friend = isFriendMode();
+  if (friendControlsEl) friendControlsEl.classList.toggle("hidden", !friend);
+  if (engineBadgeEl) engineBadgeEl.style.display = friend ? "none" : "inline-flex";
+  if (engineRetryEl) engineRetryEl.style.display = friend ? "none" : "inline-flex";
+  if (levelEl) levelEl.disabled = friend;
+  if (thinkTimeEl) thinkTimeEl.disabled = friend;
+  if (sideEl) sideEl.disabled = friend && Boolean(pvpRoom);
+  if (hintBtn) hintBtn.disabled = friend;
+  if (undoBtn) undoBtn.disabled = friend;
+  if (coachBtn) coachBtn.disabled = friend || !game?.gameOver;
+  updatePvpUI();
+}
+
+function storePvpRoom(room, role) {
+  pvpRoom = room;
+  pvpRole = role || pvpRole || null;
+  savePvpStorage({ gameId: room.gameId, joinCode: room.joinCode, role: pvpRole });
+  updateOpponentModeUI();
+}
+
+function clearPvpRoom() {
+  pvpRoom = null;
+  pvpRole = null;
+  clearPvpStorage();
+  updateOpponentModeUI();
+}
+
+function setRoomRoleFromRoom(room) {
+  if (pvpRole) return;
+  const userId = getTelegramUserId();
+  if (!userId) return;
+  if (room.hostUserId === userId) pvpRole = "host";
+  if (room.guestUserId === userId) pvpRole = "guest";
+}
+
+function mapRoomResult(room) {
+  if (!room || room.status !== "ended") return null;
+  if (room.endReason === "resign") {
+    let winner = null;
+    if (room.result === "1-0") winner = WHITE;
+    if (room.result === "0-1") winner = BLACK;
+    return { type: "resign", winner };
+  }
+  return { type: "resign", winner: null };
+}
+
+function formatUciMove(uci) {
+  if (!uci || uci.length < 4) return "";
+  const from = uci.slice(0, 2);
+  const to = uci.slice(2, 4);
+  const promo = uci.length > 4 ? `=${uci[4].toUpperCase()}` : "";
+  return `${from}-${to}${promo}`;
+}
+
+function setLastMoveFromUci(uci) {
+  if (!uci || uci.length < 4) {
+    game.lastMove = null;
+    return;
+  }
+  const from = sqFromAlg(uci.slice(0, 2));
+  const to = sqFromAlg(uci.slice(2, 4));
+  if (from < 0 || to < 0) {
+    game.lastMove = null;
+    return;
+  }
+  game.lastMove = { from, to };
+}
+
+function syncGameFromRoom(room) {
+  if (!room) return;
+  setRoomRoleFromRoom(room);
+  const playerColor = getPlayerColorForRoom(room);
+  const parsed = parseFen(room.fen);
+  if (!game) {
+    game = initialGame(playerColor);
+    initClockFromUI();
+  }
+  game.playerColor = playerColor;
+  game.aiColor = opponent(playerColor);
+  game.board = parsed.board;
+  game.turn = parsed.turn;
+  game.castling = parsed.castling;
+  game.ep = parsed.ep;
+  game.kingSq = parsed.kingSq;
+  game.aiThinking = false;
+  game.plies = Array.isArray(room.moves) ? room.moves.length : 0;
+  game.gameOver = room.status === "ended";
+  game.result = mapRoomResult(room);
+  game.selectedSq = -1;
+  game.selectedMoves = [];
+  game.hintMap = new Map();
+  gameMovesUci = Array.isArray(room.moves) ? room.moves.slice() : [];
+  game.moveHistory = gameMovesUci.map(formatUciMove);
+  setLastMoveFromUci(gameMovesUci[gameMovesUci.length - 1]);
+  startFen = INITIAL_FEN;
+  if (sideEl) sideEl.value = playerColor === BLACK ? "black" : "white";
+  renderMoveList();
+  if (game.gameOver) stopClock();
+  render();
+}
+
+function updateRoomFromServer(room) {
+  if (!room) return;
+  pvpRoom = room;
+  setRoomRoleFromRoom(room);
+  savePvpStorage({ gameId: room.gameId, joinCode: room.joinCode, role: pvpRole });
+  updatePvpUI();
+  syncGameFromRoom(room);
+  if (room.status === "ended") stopPvpPolling();
+}
+
+function stopPvpPolling() {
+  if (pvpPollTimer) {
+    clearInterval(pvpPollTimer);
+    pvpPollTimer = null;
+  }
+}
+
+function startPvpPolling() {
+  stopPvpPolling();
+  if (!pvpRoom) return;
+  pvpPollTimer = setInterval(() => {
+    pollPvpState().catch(() => {
+      // ignore polling errors
+    });
+  }, PVP_POLL_INTERVAL_MS);
+}
+
+async function pollPvpState({ force = false } = {}) {
+  if (!pvpRoom) return;
+  const since = force ? 0 : Number(pvpRoom.version || 0);
+  const params = new URLSearchParams({ gameId: pvpRoom.gameId, since: String(since) });
+  const response = await fetch(`/api/pvp/state?${params.toString()}`, {
+    headers: { ...getAuthHeaders() },
+  });
+  if (response.status === 204) return;
+  if (!response.ok) {
+    setHint("Unable to sync room.");
+    return;
+  }
+  const data = await response.json();
+  if (data?.room) updateRoomFromServer(data.room);
+}
+
+async function createPvpRoom() {
+  if (!createRoomBtn) return;
+  createRoomBtn.disabled = true;
+  try {
+    const preferredColor = sideEl?.value === "black" ? "b" : "w";
+    const response = await fetch("/api/pvp/createRoom", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ preferredColor }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setHint("Unable to create room.");
+      return;
+    }
+    pvpRole = "host";
+    storePvpRoom(data.room, "host");
+    updateRoomFromServer(data.room);
+    startPvpPolling();
+    setHint("Room created. Share the join code.");
+  } catch {
+    setHint("Unable to create room.");
+  } finally {
+    createRoomBtn.disabled = false;
+  }
+}
+
+async function joinPvpRoom(code) {
+  if (!joinRoomBtn) return;
+  joinRoomBtn.disabled = true;
+  try {
+    const joinCode = String(code || joinCodeInput?.value || "").trim().toUpperCase();
+    if (!joinCode) {
+      setHint("Enter a join code.");
+      return;
+    }
+    const response = await fetch("/api/pvp/joinRoom", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ joinCode }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setHint("Unable to join room.");
+      return;
+    }
+    pvpRole = "guest";
+    storePvpRoom(data.room, "guest");
+    updateRoomFromServer(data.room);
+    startPvpPolling();
+    setHint("Connected to room.");
+  } catch {
+    setHint("Unable to join room.");
+  } finally {
+    joinRoomBtn.disabled = false;
+  }
+}
+
+async function sendPvpMove(move) {
+  if (!pvpRoom || pvpRoom.status !== "active") return;
+  const payload = {
+    gameId: pvpRoom.gameId,
+    move: moveToUci(move),
+    nextFen: toFEN(),
+    clientVersion: pvpRoom.version || 0,
+  };
+  try {
+    const response = await fetch("/api/pvp/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (response.status === 409) {
+      const data = await response.json().catch(() => ({}));
+      if (data?.room) updateRoomFromServer(data.room);
+      setHint("Sync updated.");
+      return;
+    }
+    if (!response.ok) {
+      setHint("Move failed to sync.");
+      await pollPvpState({ force: true });
+      return;
+    }
+    const data = await response.json().catch(() => ({}));
+    if (data?.room) updateRoomFromServer(data.room);
+  } catch {
+    setHint("Move failed to sync.");
+  }
+}
+
+async function resignPvpRoom() {
+  if (!pvpRoom) return;
+  try {
+    const response = await fetch("/api/pvp/resign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ gameId: pvpRoom.gameId }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setHint("Unable to resign.");
+      return;
+    }
+    if (data?.room) updateRoomFromServer(data.room);
+  } catch {
+    setHint("Unable to resign.");
   }
 }
 
@@ -1335,6 +1695,7 @@ function chooseBlunderMove(legalMoves, preset) {
 }
 
 async function aiMoveIfNeeded() {
+  if (isFriendMode()) return;
   if (game.gameOver) return;
   if (game.turn !== game.aiColor) return;
 
@@ -1435,6 +1796,19 @@ function selectSquare(sq) {
 
 // -------------------- render --------------------
 function statusText() {
+  if (isFriendMode()) {
+    if (game.gameOver && game.result) {
+      if (game.result.type === "checkmate") return t("chess.status.checkmate", { winner: sideLabel(game.result.winner) });
+      if (game.result.type === "stalemate") return t("chess.status.stalemate");
+      if (game.result.type === "resign") return t("chess.status.resign", { winner: sideLabel(game.result.winner) });
+      if (game.result.type === "timeout") return t("chess.status.timeout", { winner: sideLabel(game.result.winner) });
+    }
+    if (!pvpRoom) return "Friend mode: create or join a room.";
+    if (pvpRoom.status === "waiting") return "Waiting for opponent to join…";
+    if (pvpRoom.status === "active") {
+      return game.turn === game.playerColor ? "Your move (online)" : "Opponent's move";
+    }
+  }
   if (game.aiThinking) return t("chess.status.aiThinking");
   if (game.gameOver && game.result) {
     if (game.result.type === "checkmate") return t("chess.status.checkmate", { winner: sideLabel(game.result.winner) });
@@ -1473,6 +1847,17 @@ function updateStatusUI() {
   } else if (checkedColor) {
     label = "CHECK!";
     variant = "check";
+  } else if (isFriendMode()) {
+    if (!pvpRoom) {
+      label = "FRIEND MODE";
+      variant = "normal";
+    } else if (pvpRoom.status === "waiting") {
+      label = "WAITING";
+      variant = "thinking";
+    } else if (pvpRoom.status === "active" && game.turn !== game.playerColor) {
+      label = "OPPONENT MOVE";
+      variant = "thinking";
+    }
   } else if (game.aiThinking || game.turn !== game.playerColor) {
     label = "AI thinking…";
     variant = "thinking";
@@ -1579,6 +1964,10 @@ function onSquareClick(e) {
   if (game.gameOver) return;
   if (game.aiThinking) return;
   if (pendingPromotion) return;
+  if (isFriendMode() && (!pvpRoom || pvpRoom.status !== "active")) {
+    setHint("Waiting for opponent.");
+    return;
+  }
   if (game.turn !== game.playerColor) return;
 
   const r = Number(e.currentTarget.dataset.r);
@@ -1633,6 +2022,7 @@ function onSquareClick(e) {
     render();
 
     if (game.gameOver) onGameFinished();
+    else if (isFriendMode()) sendPvpMove(chosen);
     else aiMoveIfNeeded();
     return;
   }
@@ -1668,6 +2058,7 @@ function updateStatsAndSend(result) {
 }
 
 function onGameFinished() {
+  if (isFriendMode()) return;
   if (!game.result) return;
   if (game.result.type === "stalemate") return updateStatsAndSend("draw");
   if (game.result.type === "checkmate") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
@@ -1678,7 +2069,7 @@ function onGameFinished() {
 // -------------------- coach review --------------------
 function setCoachButtonState() {
   if (!coachBtn) return;
-  coachBtn.disabled = !game?.gameOver;
+  coachBtn.disabled = isFriendMode() || !game?.gameOver;
 }
 
 function openCoachModal() {
@@ -1867,7 +2258,9 @@ function resetGame({ fen } = {}) {
   stopClock();
   abortCoachRequest({ closeModal: true });
 
-  const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
+  const playerColor = isFriendMode() && pvpRoom
+    ? getPlayerColorForRoom(pvpRoom)
+    : ((sideEl.value === "black") ? BLACK : WHITE);
   if (fen) {
     const parsed = parseFen(fen);
     const seeded = initialGame(playerColor);
@@ -1892,14 +2285,22 @@ function resetGame({ fen } = {}) {
 
   finalizeIfGameOver();
   render();
-  aiMoveIfNeeded();
+  if (!isFriendMode()) aiMoveIfNeeded();
 }
 
 function newGame() {
+  if (isFriendMode() && pvpRoom) {
+    setHint("Finish the current room or create a new one.");
+    return;
+  }
   resetGame();
 }
 
 function undo() {
+  if (isFriendMode()) {
+    setHint("Undo is disabled in online play.");
+    return;
+  }
   if (!game.undoStack.length) return;
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
@@ -1929,6 +2330,7 @@ function undo() {
 }
 
 function hint() {
+  if (isFriendMode()) { hintTextEl.textContent = "Hints are disabled in online play."; return; }
   if (game.gameOver) { hintTextEl.textContent = t("chess.hint.gameOver"); return; }
   if (game.aiThinking) { hintTextEl.textContent = t("chess.hint.aiThinking"); return; }
   if (game.turn !== game.playerColor) { hintTextEl.textContent = t("chess.hint.waitAi"); return; }
@@ -1949,6 +2351,10 @@ function hint() {
 
 function resign() {
   if (game.gameOver) return;
+  if (isFriendMode()) {
+    resignPvpRoom();
+    return;
+  }
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
   const winner = opponent(game.playerColor);
@@ -1972,9 +2378,11 @@ const SETTINGS_COLLAPSED_KEY = "chess.settingsCollapsed";
 function updateSettingsSummary() {
   if (!settingsSummaryEl) return;
   const side = sideEl?.options?.[sideEl.selectedIndex]?.textContent?.trim() || "White";
+  const opponent = isFriendMode() ? "Friend (Online)" : "AI";
   const strength = levelEl?.options?.[levelEl.selectedIndex]?.textContent?.trim() || "Casual";
   const think = thinkTimeEl?.options?.[thinkTimeEl.selectedIndex]?.textContent?.trim() || "Auto";
-  settingsSummaryEl.textContent = `${side} • ${strength} • ${think}`;
+  if (isFriendMode()) settingsSummaryEl.textContent = `${side} • ${opponent}`;
+  else settingsSummaryEl.textContent = `${side} • ${opponent} • ${strength} • ${think}`;
 }
 
 function setSettingsCollapsed(collapsed) {
@@ -2010,7 +2418,7 @@ function onAiSettingsChanged() {
   if (!game) return;
   render();
   logAiDiagnostics("settings changed");
-  aiMoveIfNeeded();
+  if (!isFriendMode()) aiMoveIfNeeded();
 }
 
 function retryEngineInit() {
@@ -2024,10 +2432,60 @@ function retryEngineInit() {
   });
 }
 
+function handleOpponentModeChange() {
+  const mode = opponentModeEl?.value || "ai";
+  storeOpponentMode(mode);
+  if (mode === "ai") {
+    stopPvpPolling();
+    clearPvpRoom();
+    updateOpponentModeUI();
+    updateSettingsSummary();
+    resetGame();
+    return;
+  }
+  updateOpponentModeUI();
+  updateSettingsSummary();
+  if (pvpRoom) {
+    syncGameFromRoom(pvpRoom);
+    startPvpPolling();
+  } else {
+    resetGame();
+  }
+}
+
+async function handleShareRoom() {
+  if (!pvpRoom?.joinCode) return;
+  const joinUrl = `${window.location.origin}/chess/?join=${pvpRoom.joinCode}`;
+  const shareText = `Join my chess room: ${pvpRoom.joinCode}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Chess Room", text: shareText, url: joinUrl });
+      return;
+    } catch {
+      // fall back to clipboard
+    }
+  }
+  try {
+    await navigator.clipboard?.writeText(`${shareText} ${joinUrl}`);
+    setHint("Share link copied.");
+  } catch {
+    setHint("Unable to copy share link.");
+  }
+}
+
 function initFromQuery() {
   const params = new URLSearchParams(window.location.search);
   const fen = params.get("fen");
+  const joinCode = params.get("join");
   const devMode = params.get("dev") === "1" || ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  if (joinCode) {
+    if (opponentModeEl) opponentModeEl.value = "friend";
+    storeOpponentMode("friend");
+    updateOpponentModeUI();
+    if (joinCodeInput) joinCodeInput.value = joinCode.toUpperCase();
+    joinPvpRoom(joinCode);
+    return;
+  }
   if (fen && devMode) {
     try {
       resetGame({ fen });
@@ -2037,6 +2495,12 @@ function initFromQuery() {
         hintTextEl.textContent = t("chess.hint.invalidFen");
       }
     }
+    return;
+  }
+  if (isFriendMode() && pvpRoom) {
+    syncGameFromRoom(pvpRoom);
+    startPvpPolling();
+    pollPvpState({ force: true }).catch(() => {});
     return;
   }
   resetGame();
@@ -2092,6 +2556,7 @@ for (const btn of promoBtns) {
     render();
 
     if (game.gameOver) onGameFinished();
+    else if (isFriendMode()) sendPvpMove(chosen);
     else aiMoveIfNeeded();
   });
 }
@@ -2110,6 +2575,13 @@ thinkTimeEl?.addEventListener("change", () => {
 });
 timeControlEl.addEventListener("change", onTimeControlUIChange);
 settingsToggleEl?.addEventListener("click", toggleSettingsPanel);
+opponentModeEl?.addEventListener("change", handleOpponentModeChange);
+createRoomBtn?.addEventListener("click", createPvpRoom);
+joinRoomBtn?.addEventListener("click", () => joinPvpRoom());
+roomShareBtn?.addEventListener("click", handleShareRoom);
+joinCodeInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") joinPvpRoom();
+});
 
 // init
 updateEngineBadge();
@@ -2128,4 +2600,21 @@ if (new URLSearchParams(window.location.search).get("dev") === "1"
 onTimeControlUIChange();
 updateSettingsSummary();
 setSettingsCollapsed(localStorage.getItem(SETTINGS_COLLAPSED_KEY) !== "0");
+if (opponentModeEl) opponentModeEl.value = getStoredOpponentMode();
+updateOpponentModeUI();
+updateSettingsSummary();
+const storedRoom = loadPvpStorage();
+const joinParam = new URLSearchParams(window.location.search).get("join");
+if (!joinParam && storedRoom && opponentModeEl?.value === "friend") {
+  pvpRole = storedRoom.role || null;
+  pvpRoom = {
+    gameId: storedRoom.gameId,
+    joinCode: storedRoom.joinCode,
+    status: "waiting",
+    version: 0,
+  };
+  updatePvpUI();
+  startPvpPolling();
+  pollPvpState({ force: true }).catch(() => {});
+}
 initFromQuery();
