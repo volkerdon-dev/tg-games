@@ -21,8 +21,33 @@
   },
   "home": {
     "title": "♟️ TG Chess",
-    "subtitle": "Jouer, apprendre, s'entraîner — votre studio d'échecs quotidien",
+    "subtitle": "Votre studio d'échecs quotidien, clair",
     "pillInfo": "Échecs uniquement",
+    "continue": {
+      "title": {
+        "resume": "Continuer",
+        "start": "Commencer à jouer"
+      },
+      "subtitle": {
+        "resume": "Reprenez votre dernière activité",
+        "start": "Partie rapide contre l'IA"
+      },
+      "cta": "Ouvrir"
+    },
+    "mode": {
+      "play": {
+        "title": "Jouer",
+        "subtitle": "Partie rapide contre l'IA"
+      },
+      "learn": {
+        "title": "Apprendre",
+        "subtitle": "Leçons guidées"
+      },
+      "train": {
+        "title": "S'entraîner",
+        "subtitle": "Drills tactiques"
+      }
+    },
     "today": {
       "title": "Aujourd'hui",
       "subtitle": "Reprenez avec des actions ciblées",

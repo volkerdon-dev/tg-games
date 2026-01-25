@@ -66,8 +66,10 @@
   </div>
 
   <script type="module">
+    import { setLastRoute } from "../shared/last-activity.js";
     import { applyI18n, getLang, loadDict } from "../shared/i18n.js";
 
+    setLastRoute("/train/index.html");
     await loadDict(getLang());
     await applyI18n();
   </script>

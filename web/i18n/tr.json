@@ -21,8 +21,33 @@
   },
   "home": {
     "title": "♟️ TG Chess",
-    "subtitle": "Oyna, öğren, antrenman yap — günlük satranç stüdyon",
+    "subtitle": "Temiz, günlük satranç stüdyon",
     "pillInfo": "Sadece satranç",
+    "continue": {
+      "title": {
+        "resume": "Devam et",
+        "start": "Oynamaya başla"
+      },
+      "subtitle": {
+        "resume": "Son etkinliğine dön",
+        "start": "Yapay zekaya karşı hızlı oyun"
+      },
+      "cta": "Aç"
+    },
+    "mode": {
+      "play": {
+        "title": "Oyna",
+        "subtitle": "Yapay zekaya karşı hızlı oyun"
+      },
+      "learn": {
+        "title": "Öğren",
+        "subtitle": "Rehberli dersler"
+      },
+      "train": {
+        "title": "Antrenman",
+        "subtitle": "Taktik egzersizler"
+      }
+    },
     "today": {
       "title": "Bugün",
       "subtitle": "Odaklı adımlarla geri dön",

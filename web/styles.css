@@ -117,6 +117,57 @@ a{color:inherit; text-decoration:none}
 .card h3{margin:0 0 6px; font-size:16px}
 .card p{margin:0; color:var(--muted); font-size:13px}
 
+.home-primary{margin-top:10px}
+.primary-card{
+  padding:20px;
+  background: linear-gradient(180deg, rgba(79,209,255,.18), rgba(255,255,255,.03));
+  border-color: rgba(79,209,255,.35);
+}
+.primary-card-main{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.primary-title{
+  margin:0 0 6px;
+  font-size:20px;
+  font-weight:700;
+}
+.primary-subtitle{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+}
+.primary-cta{
+  min-width:120px;
+  justify-content:center;
+}
+
+.mode-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap:14px;
+}
+.mode-tile{
+  padding:18px;
+}
+.mode-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 6px;
+  font-size:16px;
+}
+.mode-icon{font-size:18px}
+.mode-subtitle{margin:0; color:var(--muted); font-size:13px}
+
+@media (max-width: 640px){
+  .primary-card-main{flex-direction:column; align-items:flex-start}
+  .primary-cta{width:100%}
+}
+
 .badge{
   display:inline-flex;
   align-items:center;

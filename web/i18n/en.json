@@ -21,8 +21,33 @@
   },
   "home": {
     "title": "♟️ TG Chess",
-    "subtitle": "Play, learn, train — your daily chess studio",
+    "subtitle": "Your clean, daily chess studio",
     "pillInfo": "Chess-only",
+    "continue": {
+      "title": {
+        "resume": "Continue",
+        "start": "Start playing"
+      },
+      "subtitle": {
+        "resume": "Resume your last activity",
+        "start": "Quick game vs AI"
+      },
+      "cta": "Open"
+    },
+    "mode": {
+      "play": {
+        "title": "Play",
+        "subtitle": "Quick game vs AI"
+      },
+      "learn": {
+        "title": "Learn",
+        "subtitle": "Guided lessons"
+      },
+      "train": {
+        "title": "Train",
+        "subtitle": "Tactical drills"
+      }
+    },
     "today": {
       "title": "Today",
       "subtitle": "Jump back in with focused actions",
