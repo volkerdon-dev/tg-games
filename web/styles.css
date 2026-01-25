@@ -430,6 +430,57 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
   gap:12px;
 }
 .control-group{display:flex; flex-direction:column; gap:6px}
+.control-note{
+  margin:0;
+  font-size:11px;
+  color: rgba(234,240,255,0.72);
+}
+.toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  user-select:none;
+  font-weight:700;
+  color: var(--text);
+}
+.toggle input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.toggle-track{
+  width:44px;
+  height:24px;
+  border-radius:999px;
+  background: rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);
+  position:relative;
+  transition: background .2s ease, border-color .2s ease;
+}
+.toggle-track::after{
+  content:"";
+  position:absolute;
+  top:2px;
+  left:2px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background: rgba(255,255,255,.9);
+  transition: transform .2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+}
+.toggle input:checked + .toggle-track{
+  background: rgba(34,197,94,.28);
+  border-color: rgba(34,197,94,.45);
+}
+.toggle input:checked + .toggle-track::after{
+  transform: translateX(20px);
+}
+.toggle-text{
+  font-size:12px;
+  color: rgba(234,240,255,0.9);
+}
 
 .engineBadge{
   display:inline-flex;

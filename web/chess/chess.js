@@ -14,6 +14,7 @@ touch(state);
 const boardEl = document.getElementById("board");
 const sideEl = document.getElementById("side");
 const levelEl = document.getElementById("level");
+const humanLikeEl = document.getElementById("humanLike");
 const thinkTimeEl = document.getElementById("thinkTime");
 const statusTagEl = document.getElementById("statusTag");
 const statusBarEl = document.getElementById("statusBar");
@@ -156,26 +157,92 @@ function updateEngineBadge() {
 
 // -------------------- AI presets (named) --------------------
 const AI_PRESETS = {
-  // Strength tiers MUST stay as keys:
-  // beginner, easy, casual, club, strong, expert, master, im, gm, supergm
-  //
-  // Two axes:
+  // Six tiers: beginner -> grandmaster
+  // Axes:
   // - UCI_LimitStrength / UCI_Elo / Skill Level
   // - movetime (ms) (can be overridden by Think time control)
+  // - human-like selection (weights + eval drop cap)
   //
   // NOTE: UI enforces a minimum 2s visual delay, so very low movetime still *looks* clear.
-  beginner: { limitStrength:true,  elo:800,  skill:1,  movetime:180,   mistakeRate:0.35, pickFromTopN:3, multiPv:3 },
-  easy:     { limitStrength:true,  elo:1000, skill:4,  movetime:260,   mistakeRate:0.22, pickFromTopN:3, multiPv:3 },
-  casual:   { limitStrength:true,  elo:1300, skill:7,  movetime:420,   mistakeRate:0.12, pickFromTopN:3, multiPv:3 },
-  club:     { limitStrength:true,  elo:1600, skill:10, movetime:800,   mistakeRate:0.06, pickFromTopN:2, multiPv:2 },
-  strong:   { limitStrength:true,  elo:1900, skill:13, movetime:1200,  mistakeRate:0.02, pickFromTopN:2, multiPv:1 },
-  expert:   { limitStrength:true,  elo:2200, skill:16, movetime:2200,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
-  master:   { limitStrength:false, elo:null, skill:20, movetime:3500,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
-  im:       { limitStrength:false, elo:null, skill:20, movetime:5500,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
-  gm:       { limitStrength:false, elo:null, skill:20, movetime:9000,  mistakeRate:0.00, pickFromTopN:1, multiPv:1 },
-  // Brutal: no strength limit, long think time (12–15s).
-  supergm:  { limitStrength:false, elo:null, skill:20, movetime:13000, mistakeRate:0.00, pickFromTopN:1, multiPv:1 }
+  beginner: {
+    limitStrength: true,
+    elo: 800,
+    skill: 2,
+    movetime: 150,
+    multiPv: 4,
+    humanWeights: [0.25, 0.35, 0.25, 0.15],
+    maxDropCp: 500,
+    tacticalBias: 0.14,
+  },
+  easy: {
+    limitStrength: true,
+    elo: 1100,
+    skill: 5,
+    movetime: 250,
+    multiPv: 4,
+    humanWeights: [0.45, 0.3, 0.2, 0.05],
+    maxDropCp: 320,
+    tacticalBias: 0.1,
+  },
+  intermediate: {
+    limitStrength: true,
+    elo: 1400,
+    skill: 8,
+    movetime: 400,
+    multiPv: 3,
+    humanWeights: [0.65, 0.25, 0.1],
+    maxDropCp: 260,
+    tacticalBias: 0.0,
+  },
+  advanced: {
+    limitStrength: true,
+    elo: 1700,
+    skill: 12,
+    movetime: 700,
+    multiPv: 3,
+    humanWeights: [0.8, 0.2],
+    maxDropCp: 150,
+    tacticalBias: 0.0,
+  },
+  expert: {
+    limitStrength: true,
+    elo: 2100,
+    skill: 16,
+    movetime: 1200,
+    multiPv: 2,
+    humanWeights: [0.9, 0.1],
+    maxDropCp: 120,
+    tacticalBias: 0.0,
+  },
+  grandmaster: {
+    limitStrength: true,
+    elo: 2600,
+    skill: 20,
+    movetime: 2800,
+    multiPv: 2,
+    humanWeights: [0.97, 0.03],
+    maxDropCp: 80,
+    tacticalBias: 0.0,
+  },
 };
+
+const AI_LEVEL_STORAGE_KEY = "chess.aiLevel";
+const AI_HUMAN_STORAGE_KEY = "chess.humanLike";
+
+function normalizeLevelKey(raw) {
+  const key = String(raw || "").toLowerCase();
+  if (AI_PRESETS[key]) return key;
+  const legacyMap = {
+    casual: "intermediate",
+    club: "advanced",
+    strong: "expert",
+    master: "grandmaster",
+    im: "grandmaster",
+    gm: "grandmaster",
+    supergm: "grandmaster",
+  };
+  return legacyMap[key] || "intermediate";
+}
 
 function readThinkTimeOverrideMs() {
   const v = String(thinkTimeEl?.value ?? "auto").trim().toLowerCase();
@@ -185,12 +252,49 @@ function readThinkTimeOverrideMs() {
   return Math.round(seconds * 1000);
 }
 
+function loadAiSettingsFromStorage() {
+  try {
+    const savedLevel = localStorage.getItem(AI_LEVEL_STORAGE_KEY);
+    if (savedLevel && levelEl) {
+      const normalized = normalizeLevelKey(savedLevel);
+      levelEl.value = normalized;
+    }
+  } catch {
+    // ignore storage issues
+  }
+  try {
+    const savedHuman = localStorage.getItem(AI_HUMAN_STORAGE_KEY);
+    if (humanLikeEl) {
+      humanLikeEl.checked = savedHuman == null ? true : !(savedHuman === "0" || savedHuman === "false");
+    }
+  } catch {
+    // ignore storage issues
+  }
+}
+
+function saveAiSettingsToStorage() {
+  try {
+    if (levelEl) localStorage.setItem(AI_LEVEL_STORAGE_KEY, String(levelEl.value || "intermediate"));
+    if (humanLikeEl) localStorage.setItem(AI_HUMAN_STORAGE_KEY, humanLikeEl.checked ? "1" : "0");
+  } catch {
+    // ignore storage issues
+  }
+}
+
 function getAiPreset() {
-  const key = String(levelEl?.value || "casual").toLowerCase();
-  const base = AI_PRESETS[key] ? { key, ...AI_PRESETS[key] } : { key: "casual", ...AI_PRESETS.casual };
+  const key = normalizeLevelKey(levelEl?.value || "intermediate");
+  const base = AI_PRESETS[key] ? { key, ...AI_PRESETS[key] } : { key: "intermediate", ...AI_PRESETS.intermediate };
   const override = readThinkTimeOverrideMs();
   const movetime = override != null ? override : base.movetime;
-  return { ...base, movetime, thinkTimeOverrideMs: override };
+  const humanLike = humanLikeEl ? Boolean(humanLikeEl.checked) : true;
+  const multiPv = humanLike ? base.multiPv : 1;
+  return {
+    ...base,
+    movetime,
+    thinkTimeOverrideMs: override,
+    humanLike,
+    multiPv,
+  };
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -897,6 +1001,12 @@ let sf = {
   currentJob: null, // { resolve, reject, bestMovePending, token }
   lastMultiPv: [],
   uciEloRange: null,
+  supports: {
+    elo: false,
+    limitStrength: false,
+    skill: false,
+    multiPv: false,
+  },
   version: null,
   lastErrorReason: "",
   lastInitAttemptMs: 0,
@@ -939,6 +1049,8 @@ function sfTerminate({ reason = "" } = {}) {
   sf.currentJob = null;
   sf.initPromise = null;
   sf.lastErrorReason = reason;
+  sf.uciEloRange = null;
+  sf.supports = { elo: false, limitStrength: false, skill: false, multiPv: false };
   setEngineStatus("fallback", { reason: reason || t("chess.engine.unavailable") });
 }
 
@@ -1005,6 +1117,7 @@ function sfHandleLine(lineRaw) {
   }
 
   if (line.startsWith("option name UCI_Elo")) {
+    sf.supports.elo = true;
     const minMatch = line.match(/\bmin\s+(\d+)/i);
     const maxMatch = line.match(/\bmax\s+(\d+)/i);
     const min = minMatch ? Number(minMatch[1]) : null;
@@ -1012,6 +1125,21 @@ function sfHandleLine(lineRaw) {
     if (Number.isFinite(min) && Number.isFinite(max)) {
       sf.uciEloRange = { min, max };
     }
+    return;
+  }
+
+  if (line.startsWith("option name UCI_LimitStrength")) {
+    sf.supports.limitStrength = true;
+    return;
+  }
+
+  if (line.startsWith("option name Skill Level")) {
+    sf.supports.skill = true;
+    return;
+  }
+
+  if (line.startsWith("option name MultiPV")) {
+    sf.supports.multiPv = true;
     return;
   }
 
@@ -1128,27 +1256,79 @@ function clampElo(elo) {
   return elo;
 }
 
-function shouldAllowMistakes(preset, bestLine) {
-  if (!preset || preset.mistakeRate <= 0) return false;
-  if (!bestLine) return true;
-  if (bestLine.scoreMate != null) return false;
-  if (Number.isFinite(bestLine.scoreCp) && bestLine.scoreCp >= 900) return false;
-  return true;
+const MATE_SCORE_CP = 100000;
+
+function scoreLineToCp(line) {
+  if (!line) return null;
+  if (Number.isFinite(line.scoreMate)) {
+    const sign = Math.sign(line.scoreMate || 0) || 1;
+    const distance = Math.min(99, Math.abs(line.scoreMate || 0));
+    return sign * (MATE_SCORE_CP - distance * 1000);
+  }
+  if (Number.isFinite(line.scoreCp)) return line.scoreCp;
+  return null;
 }
 
-function pickMoveFromMultiPv(preset, bestMoveUci) {
-  const lines = sf.lastMultiPv.filter((entry) => entry?.move);
-  if (!lines.length) return bestMoveUci;
-  const ordered = lines.sort((a, b) => a.index - b.index);
-  const bestLine = ordered[0];
-  if (!shouldAllowMistakes(preset, bestLine)) return bestMoveUci;
-  if (preset.mistakeRate <= 0) return bestMoveUci;
-  if (Math.random() >= preset.mistakeRate) return bestMoveUci;
+function normalizeWeights(weights) {
+  const sum = weights.reduce((acc, v) => acc + v, 0);
+  if (!sum) return weights.map(() => 1 / weights.length);
+  return weights.map((v) => v / sum);
+}
 
-  const pickCount = Math.max(1, Math.min(preset.pickFromTopN || 1, ordered.length));
-  const options = ordered.slice(0, pickCount).map((entry) => entry.move).filter(Boolean);
-  if (options.length <= 1) return bestMoveUci;
-  return options[Math.floor(Math.random() * options.length)];
+function applyTacticalBias(weights, bias) {
+  if (!bias || weights.length < 2) return weights;
+  const normalized = normalizeWeights(weights);
+  const maxShift = Math.max(0, normalized[0] - 0.05);
+  const shift = Math.min(bias, maxShift);
+  if (shift <= 0) return normalized;
+  const tail = normalized.slice(1);
+  const tailSum = tail.reduce((acc, v) => acc + v, 0) || 1;
+  const adjusted = normalized.slice();
+  adjusted[0] -= shift;
+  for (let i = 1; i < adjusted.length; i += 1) {
+    adjusted[i] += shift * (tail[i - 1] / tailSum);
+  }
+  return adjusted;
+}
+
+function weightedPick(options, weights) {
+  if (options.length <= 1) return options[0];
+  const normalized = normalizeWeights(weights.slice(0, options.length));
+  const roll = Math.random();
+  let acc = 0;
+  for (let i = 0; i < options.length; i += 1) {
+    acc += normalized[i] ?? 0;
+    if (roll <= acc) return options[i];
+  }
+  return options[options.length - 1];
+}
+
+function pickHumanMoveFromLines(lines, preset) {
+  if (!preset?.humanLike) return lines[0]?.move || null;
+  if (!lines.length) return null;
+  const scored = lines
+    .map((line) => ({ ...line, scoreCp: scoreLineToCp(line) }))
+    .filter((line) => line.move);
+  if (!scored.length) return null;
+
+  scored.sort((a, b) => (b.scoreCp ?? -Infinity) - (a.scoreCp ?? -Infinity));
+  const bestScore = scored[0]?.scoreCp;
+  let filtered = scored;
+  if (Number.isFinite(bestScore) && Number.isFinite(preset.maxDropCp)) {
+    filtered = scored.filter((line) => {
+      if (!Number.isFinite(line.scoreCp)) return false;
+      const drop = bestScore - line.scoreCp;
+      return drop <= preset.maxDropCp;
+    });
+  }
+  if (!filtered.length) filtered = scored;
+
+  const tactical = Number.isFinite(bestScore) && Math.abs(bestScore) >= 200;
+  const baseWeights = preset.humanWeights || [1];
+  const candidates = filtered.slice(0, baseWeights.length);
+  const weights = applyTacticalBias(baseWeights, tactical ? preset.tacticalBias : 0);
+  const choice = weightedPick(candidates, weights);
+  return choice?.move || scored[0]?.move || null;
 }
 
 async function sfBestMoveFromFEN(fen, preset, token) {
@@ -1172,16 +1352,19 @@ async function sfBestMoveFromFEN(fen, preset, token) {
   await sfIsReady().catch(() => {});
 
   sf.lastMultiPv = [];
-  const multiPv = Math.max(1, Number(preset.multiPv) || 1);
+  const requestedMultiPv = Math.max(1, Number(preset.multiPv) || 1);
+  const multiPv = preset.humanLike && sf.supports.multiPv ? requestedMultiPv : 1;
   const elo = preset.limitStrength && preset.elo != null ? clampElo(Number(preset.elo)) : null;
 
   sfPost("ucinewgame");
   sfPost("setoption name Threads value 1");
   sfPost("setoption name Hash value 64");
-  sfPost(`setoption name MultiPV value ${multiPv}`);
-  sfPost(`setoption name UCI_LimitStrength value ${preset.limitStrength ? "true" : "false"}`);
-  if (elo != null) sfPost(`setoption name UCI_Elo value ${elo}`);
-  sfPost(`setoption name Skill Level value ${Number(preset.skill)}`);
+  if (sf.supports.multiPv || multiPv > 1) sfPost(`setoption name MultiPV value ${multiPv}`);
+  if (sf.supports.limitStrength || sf.supports.elo) {
+    sfPost(`setoption name UCI_LimitStrength value ${preset.limitStrength ? "true" : "false"}`);
+  }
+  if (elo != null && (sf.supports.elo || sf.supports.limitStrength)) sfPost(`setoption name UCI_Elo value ${elo}`);
+  if (sf.supports.skill) sfPost(`setoption name Skill Level value ${Number(preset.skill)}`);
 
   await sfIsReady().catch(() => {});
 
@@ -1206,7 +1389,10 @@ async function sfBestMoveFromFEN(fen, preset, token) {
   }
 
   if (bestMove == null) return null;
-  return pickMoveFromMultiPv(preset, bestMove);
+  const lines = sf.lastMultiPv.filter((entry) => entry?.move);
+  const ordered = lines.sort((a, b) => a.index - b.index);
+  const humanMove = pickHumanMoveFromLines(ordered, preset);
+  return humanMove || bestMove;
 }
 
 // ---- FEN export from 0x88 board ----
@@ -1292,16 +1478,6 @@ function cancelPendingAi({ stopEngine = true } = {}) {
   if (game) game.aiThinking = false;
 }
 
-function chooseHeuristicBestMove(legalMoves, preset) {
-  let best = legalMoves[0];
-  let bestScore = -Infinity;
-  for (const m of legalMoves) {
-    const s = evaluateMove(m, preset);
-    if (s > bestScore) { bestScore = s; best = m; }
-  }
-  return best;
-}
-
 function moveLeadsToCheckmate(move, colorToPlay) {
   const undo = applyMove(move, { recordUndo: false });
   const legal = genLegalMoves(opponent(colorToPlay));
@@ -1325,13 +1501,23 @@ function allowsOpponentMateInOne(move, colorToPlay) {
   return mateInOne;
 }
 
-function chooseBlunderMove(legalMoves, preset) {
-  if (legalMoves.length <= 2) return legalMoves[Math.floor(Math.random() * legalMoves.length)];
-  const scored = legalMoves.map(m => ({ m, s: evaluateMove(m, preset, { deterministic: true }) }));
-  scored.sort((a, b) => a.s - b.s);
-  const cutoff = Math.max(1, Math.ceil(scored.length / 3));
-  const pool = scored.slice(0, cutoff).map(x => x.m);
-  return pool[Math.floor(Math.random() * pool.length)];
+function pickHumanMoveFromScores(scored, preset) {
+  if (!scored.length) return null;
+  const ordered = scored.slice().sort((a, b) => b.score - a.score);
+  if (!preset?.humanLike) return ordered[0].move;
+  const bestScore = ordered[0].score;
+  let filtered = ordered;
+  const dropCap = Number.isFinite(preset.maxDropCp) ? (preset.maxDropCp / 10) : null;
+  if (Number.isFinite(dropCap)) {
+    filtered = ordered.filter((item) => (bestScore - item.score) <= dropCap);
+  }
+  if (!filtered.length) filtered = ordered;
+  const tactical = Number.isFinite(bestScore) && Math.abs(bestScore) >= 30;
+  const baseWeights = preset.humanWeights || [1];
+  const candidates = filtered.slice(0, baseWeights.length);
+  const weights = applyTacticalBias(baseWeights, tactical ? preset.tacticalBias : 0);
+  const choice = weightedPick(candidates, weights);
+  return choice?.move || ordered[0].move;
 }
 
 async function aiMoveIfNeeded() {
@@ -1377,10 +1563,11 @@ async function aiMoveIfNeeded() {
     } else {
       const safeMoves = legalMoves.filter((move) => !allowsOpponentMateInOne(move, game.turn));
       const candidateMoves = safeMoves.length ? safeMoves : legalMoves;
-      chosenMove = chooseHeuristicBestMove(candidateMoves, preset);
-      if (preset.mistakeRate > 0 && Math.random() < preset.mistakeRate) {
-        chosenMove = chooseBlunderMove(candidateMoves, preset);
-      }
+      const scored = candidateMoves.map((move) => ({
+        move,
+        score: evaluateMove(move, preset, { deterministic: true }),
+      }));
+      chosenMove = pickHumanMoveFromScores(scored, preset);
     }
   }
 
@@ -1727,7 +1914,7 @@ function getGameResultInfo() {
 
 function getDifficultyLabel() {
   const option = levelEl?.options?.[levelEl.selectedIndex];
-  return option?.textContent?.trim() || String(levelEl?.value || "casual");
+  return option?.textContent?.trim() || String(levelEl?.value || "intermediate");
 }
 
 function renderCoachResult(data) {
@@ -1972,9 +2159,12 @@ const SETTINGS_COLLAPSED_KEY = "chess.settingsCollapsed";
 function updateSettingsSummary() {
   if (!settingsSummaryEl) return;
   const side = sideEl?.options?.[sideEl.selectedIndex]?.textContent?.trim() || "White";
-  const strength = levelEl?.options?.[levelEl.selectedIndex]?.textContent?.trim() || "Casual";
+  const strength = levelEl?.options?.[levelEl.selectedIndex]?.textContent?.trim() || "Intermediate";
   const think = thinkTimeEl?.options?.[thinkTimeEl.selectedIndex]?.textContent?.trim() || "Auto";
-  settingsSummaryEl.textContent = `${side} • ${strength} • ${think}`;
+  const humanLabel = humanLikeEl && !humanLikeEl.checked
+    ? t("chess.settings.humanLikeSummaryOff")
+    : t("chess.settings.humanLikeSummaryOn");
+  settingsSummaryEl.textContent = `${side} • ${strength} • ${humanLabel} • ${think}`;
 }
 
 function setSettingsCollapsed(collapsed) {
@@ -1999,7 +2189,8 @@ function logAiDiagnostics(reason = "") {
   console.info(
     `[AI] ${reason ? reason + " — " : ""}engine=${engineStatus.mode} level=${p.key} ` +
     `limitStrength=${Boolean(p.limitStrength)} elo=${p.elo ?? "-"} skill=${p.skill} ` +
-    `movetime=${p.movetime}ms multipv=${p.multiPv} mistakes=${p.mistakeRate ?? 0} ` +
+    `movetime=${p.movetime}ms multipv=${p.multiPv} humanLike=${Boolean(p.humanLike)} ` +
+    `drop=${p.maxDropCp ?? "-"} weights=${(p.humanWeights || []).join(",")} ` +
     `${p.thinkTimeOverrideMs != null ? " (override)" : ""}`
   );
 }
@@ -2101,6 +2292,12 @@ sideEl.addEventListener("change", () => {
   newGame();
 });
 levelEl.addEventListener("change", () => {
+  saveAiSettingsToStorage();
+  updateSettingsSummary();
+  onAiSettingsChanged();
+});
+humanLikeEl?.addEventListener("change", () => {
+  saveAiSettingsToStorage();
   updateSettingsSummary();
   onAiSettingsChanged();
 });
@@ -2113,6 +2310,7 @@ settingsToggleEl?.addEventListener("click", toggleSettingsPanel);
 
 // init
 updateEngineBadge();
+loadAiSettingsFromStorage();
 // Kick off engine init early so we don't silently fall back.
 initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => {
   setEngineStatus("fallback", { reason: sf.lastErrorReason || t("chess.engine.unavailable") });

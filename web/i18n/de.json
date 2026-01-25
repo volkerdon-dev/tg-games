@@ -297,9 +297,15 @@
     "subtitle": "Intelligenter KI-Gegner mit nur legalen Zügen",
     "settings": {
       "title": "Partie-Einstellungen",
-      "subtitle": "Wähle Seite, Stärke und Zeitkontrolle",
+      "subtitle": "Wähle Seite, Schwierigkeit und Zeitkontrolle",
       "side": "Seite",
       "strength": "Stärke",
+      "difficultyNote": "Menschliche Schwierigkeit (Anfänger → Großmeister)",
+      "humanLike": "Menschlicher Modus",
+      "humanLikeOn": "AN",
+      "humanLikeHint": "Wenn aus, spielt die KI immer den besten Engine-Zug.",
+      "humanLikeSummaryOn": "Menschlich: An",
+      "humanLikeSummaryOff": "Menschlich: Aus",
       "thinkTime": "Bedenkzeit",
       "thinkTimeAuto": "Auto (nach Stärke)",
       "timeControl": "Zeit",
@@ -316,14 +322,10 @@
     "strength": {
       "beginner": "🍼 Anfänger",
       "easy": "🙂 Leicht",
-      "casual": "🎯 Locker",
-      "club": "♟ Club",
-      "strong": "🔥 Stark",
+      "intermediate": "🎯 Mittel",
+      "advanced": "♟ Fortgeschritten",
       "expert": "🧠 Experte",
-      "master": "🏆 Meister",
-      "im": "🥇 IM",
-      "gm": "👑 GM",
-      "supergm": "🐉 Super GM (Magnus-Modus)"
+      "grandmaster": "👑 Großmeister"
     },
     "actions": {
       "newGame": "Neue Partie",

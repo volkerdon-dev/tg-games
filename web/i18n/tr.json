@@ -297,9 +297,15 @@
     "subtitle": "Yalnızca yasal hamlelerle akıllı yapay zeka",
     "settings": {
       "title": "Oyun ayarları",
-      "subtitle": "Taraf, güç ve zaman kontrolünü seç",
+      "subtitle": "Taraf, zorluk ve zaman kontrolünü seç",
       "side": "Taraf",
       "strength": "Güç",
+      "difficultyNote": "İnsan benzeri zorluk (Başlangıç → Büyükusta)",
+      "humanLike": "İnsan benzeri mod",
+      "humanLikeOn": "AÇIK",
+      "humanLikeHint": "Kapalıyken, YZ her zaman en iyi hamleyi oynar.",
+      "humanLikeSummaryOn": "İnsan benzeri: Açık",
+      "humanLikeSummaryOff": "İnsan benzeri: Kapalı",
       "thinkTime": "Düşünme süresi",
       "thinkTimeAuto": "Otomatik (güce göre)",
       "timeControl": "Süre",
@@ -316,14 +322,10 @@
     "strength": {
       "beginner": "🍼 Başlangıç",
       "easy": "🙂 Kolay",
-      "casual": "🎯 Rahat",
-      "club": "♟ Kulüp",
-      "strong": "🔥 Güçlü",
+      "intermediate": "🎯 Orta",
+      "advanced": "♟ İleri",
       "expert": "🧠 Uzman",
-      "master": "🏆 Usta",
-      "im": "🥇 IM",
-      "gm": "👑 GM",
-      "supergm": "🐉 Süper GM (Magnus modu)"
+      "grandmaster": "👑 Büyükusta"
     },
     "actions": {
       "newGame": "Yeni oyun",
