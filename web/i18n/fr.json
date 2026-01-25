@@ -297,9 +297,15 @@
     "subtitle": "Adversaire IA intelligent avec coups légaux uniquement",
     "settings": {
       "title": "Paramètres de partie",
-      "subtitle": "Choisissez côté, force et cadence",
+      "subtitle": "Choisissez côté, difficulté et cadence",
       "side": "Côté",
       "strength": "Force",
+      "difficultyNote": "Difficulté humaine (Débutant → Grand maître)",
+      "humanLike": "Mode humain",
+      "humanLikeOn": "ACTIVÉ",
+      "humanLikeHint": "Désactivé, l'IA joue toujours le meilleur coup.",
+      "humanLikeSummaryOn": "Humain : Activé",
+      "humanLikeSummaryOff": "Humain : Désactivé",
       "thinkTime": "Temps de réflexion",
       "thinkTimeAuto": "Auto (selon la force)",
       "timeControl": "Temps",
@@ -316,14 +322,10 @@
     "strength": {
       "beginner": "🍼 Débutant",
       "easy": "🙂 Facile",
-      "casual": "🎯 Détendu",
-      "club": "♟ Club",
-      "strong": "🔥 Fort",
+      "intermediate": "🎯 Intermédiaire",
+      "advanced": "♟ Avancé",
       "expert": "🧠 Expert",
-      "master": "🏆 Maître",
-      "im": "🥇 MI",
-      "gm": "👑 GM",
-      "supergm": "🐉 Super GM (mode Magnus)"
+      "grandmaster": "👑 Grand maître"
     },
     "actions": {
       "newGame": "Nouvelle partie",

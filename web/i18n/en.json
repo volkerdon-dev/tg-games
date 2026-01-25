@@ -297,9 +297,15 @@
     "subtitle": "Smart AI opponent with legal moves only",
     "settings": {
       "title": "Game settings",
-      "subtitle": "Choose side, strength, and time controls",
+      "subtitle": "Choose side, difficulty, and time controls",
       "side": "Side",
       "strength": "Strength",
+      "difficultyNote": "Human-like difficulty (Beginner → Grandmaster)",
+      "humanLike": "Human-like mode",
+      "humanLikeOn": "ON",
+      "humanLikeHint": "When off, the AI always plays the best engine move.",
+      "humanLikeSummaryOn": "Human-like: On",
+      "humanLikeSummaryOff": "Human-like: Off",
       "thinkTime": "Think time",
       "thinkTimeAuto": "Auto (from strength)",
       "timeControl": "Time",
@@ -316,14 +322,10 @@
     "strength": {
       "beginner": "🍼 Beginner",
       "easy": "🙂 Easy",
-      "casual": "🎯 Casual",
-      "club": "♟ Club",
-      "strong": "🔥 Strong",
+      "intermediate": "🎯 Intermediate",
+      "advanced": "♟ Advanced",
       "expert": "🧠 Expert",
-      "master": "🏆 Master",
-      "im": "🥇 IM",
-      "gm": "👑 GM",
-      "supergm": "🐉 Super GM (Magnus mode)"
+      "grandmaster": "👑 Grandmaster"
     },
     "actions": {
       "newGame": "New Game",

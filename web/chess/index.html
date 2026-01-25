@@ -26,7 +26,7 @@
             <button class="settingsHeader" id="settingsToggle" type="button" aria-expanded="false" aria-controls="settingsBody">
               <div>
                 <h2 class="section-title" data-i18n="chess.settings.title">Game settings</h2>
-                <p class="section-subtitle" data-i18n="chess.settings.subtitle">Choose side, strength, and time controls</p>
+                <p class="section-subtitle" data-i18n="chess.settings.subtitle">Choose side, difficulty, and time controls</p>
                 <div class="settingsSummary" id="settingsSummary"></div>
               </div>
               <span class="settingsChevron" aria-hidden="true">▾</span>
@@ -46,15 +46,22 @@
                   <select id="level">
                     <option value="beginner" data-i18n="chess.strength.beginner">🍼 Beginner</option>
                     <option value="easy" data-i18n="chess.strength.easy">🙂 Easy</option>
-                    <option value="casual" selected data-i18n="chess.strength.casual">🎯 Casual</option>
-                    <option value="club" data-i18n="chess.strength.club">♟ Club</option>
-                    <option value="strong" data-i18n="chess.strength.strong">🔥 Strong</option>
+                    <option value="intermediate" selected data-i18n="chess.strength.intermediate">🎯 Intermediate</option>
+                    <option value="advanced" data-i18n="chess.strength.advanced">♟ Advanced</option>
                     <option value="expert" data-i18n="chess.strength.expert">🧠 Expert</option>
-                    <option value="master" data-i18n="chess.strength.master">🏆 Master</option>
-                    <option value="im" data-i18n="chess.strength.im">🥇 IM</option>
-                    <option value="gm" data-i18n="chess.strength.gm">👑 GM</option>
-                    <option value="supergm" data-i18n="chess.strength.supergm">🐉 Super GM (Magnus mode)</option>
+                    <option value="grandmaster" data-i18n="chess.strength.grandmaster">👑 Grandmaster</option>
                   </select>
+                  <p class="control-note" data-i18n="chess.settings.difficultyNote">Human-like difficulty (Beginner → Grandmaster)</p>
+                </div>
+
+                <div class="control-group">
+                  <label for="humanLike" data-i18n="chess.settings.humanLike">Human-like mode</label>
+                  <label class="toggle">
+                    <input id="humanLike" type="checkbox" checked />
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="toggle-text" data-i18n="chess.settings.humanLikeOn">ON</span>
+                  </label>
+                  <p class="control-note" data-i18n="chess.settings.humanLikeHint">When off, the AI always plays the best engine move.</p>
                 </div>
 
                 <div class="control-group">
