@@ -15,87 +15,38 @@
       </div>
       <div class="app-actions">
         <a class="icon-btn" href="./settings/index.html" data-i18n="nav.settings">Settings</a>
-        <span class="badge">⚡ <span id="pillInfo" data-i18n="home.pillInfo">MVP</span></span>
       </div>
     </header>
 
     <main class="app-content">
       <div class="container">
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title" data-i18n="home.today.title">Today</h2>
-              <p class="section-subtitle" data-i18n="home.today.subtitle">Jump back in with focused actions</p>
+        <section class="section home-primary">
+          <a class="card primary-card" id="continueCard" href="./chess/index.html">
+            <div class="primary-card-main">
+              <div>
+                <h2 class="primary-title" id="continueTitle" data-i18n="home.continue.title.resume">Continue</h2>
+                <p class="primary-subtitle" id="continueSubtitle" data-i18n="home.continue.subtitle.resume">Resume your last activity</p>
+              </div>
+              <span class="btn primary-cta" id="continueCta" data-i18n="home.continue.cta">Open</span>
             </div>
-            <span class="badge" data-i18n="home.today.badge">✨ Daily focus</span>
-          </div>
-          <div class="quick-actions">
-            <a class="card" href="./chess/index.html">
-              <h3 data-i18n="home.quick.continue.title">▶️ Continue</h3>
-              <p data-i18n="home.quick.continue.desc">Resume a quick AI game from the Play room.</p>
-            </a>
-            <a class="card" href="./train/themes.html">
-              <h3 data-i18n="home.quick.puzzle.title">🎯 Daily puzzle</h3>
-              <p data-i18n="home.quick.puzzle.desc">Sharpen tactics with one themed puzzle.</p>
-            </a>
-            <a class="card" href="./learn/beginner.html">
-              <h3 data-i18n="home.quick.lesson.title">📚 Next lesson</h3>
-              <p data-i18n="home.quick.lesson.desc">Keep your streak with a short lesson.</p>
-            </a>
-          </div>
+          </a>
         </section>
 
         <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title" data-i18n="home.explore.title">Explore</h2>
-              <p class="section-subtitle" data-i18n="home.explore.subtitle">Four ways to improve your chess</p>
-            </div>
-          </div>
-          <div class="card-grid">
-            <a class="card" href="./chess/index.html">
-              <h3 data-i18n="home.explore.play.title">♟️ Play</h3>
-              <p data-i18n="home.explore.play.desc">Friendly AI match with clock + hints.</p>
+          <div class="mode-grid">
+            <a class="card mode-tile" href="./chess/index.html">
+              <h3 class="mode-title"><span class="mode-icon">♟️</span><span data-i18n="home.mode.play.title">Play</span></h3>
+              <p class="mode-subtitle" data-i18n="home.mode.play.subtitle">Quick game vs AI</p>
             </a>
-            <a class="card" href="./learn/index.html">
-              <h3 data-i18n="home.explore.learn.title">📚 Learn</h3>
-              <p data-i18n="home.explore.learn.desc">Guided tracks and quick lessons.</p>
+            <a class="card mode-tile" href="./learn/index.html">
+              <h3 class="mode-title"><span class="mode-icon">📚</span><span data-i18n="home.mode.learn.title">Learn</span></h3>
+              <p class="mode-subtitle" data-i18n="home.mode.learn.subtitle">Guided lessons</p>
             </a>
-            <a class="card" href="./train/index.html">
-              <h3 data-i18n="home.explore.train.title">🎯 Train</h3>
-              <p data-i18n="home.explore.train.desc">Tactical puzzles and mini-games.</p>
-            </a>
-            <a class="card" href="./progress/index.html">
-              <h3 data-i18n="home.explore.progress.title">📈 Progress</h3>
-              <p data-i18n="home.explore.progress.desc">Stats, streaks, and skill focus.</p>
+            <a class="card mode-tile" href="./train/index.html">
+              <h3 class="mode-title"><span class="mode-icon">🎯</span><span data-i18n="home.mode.train.title">Train</span></h3>
+              <p class="mode-subtitle" data-i18n="home.mode.train.subtitle">Tactical drills</p>
             </a>
           </div>
-        </section>
-
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title" data-i18n="home.progress.title">Today’s progress</h2>
-              <p class="section-subtitle" data-i18n="home.progress.subtitle">Mini stats from your local progress</p>
-            </div>
-          </div>
-          <div class="stat-grid">
-            <div class="stat-card">
-              <div class="stat-label" data-i18n="home.stats.streak">Streak</div>
-              <div class="stat-value" id="streak">—</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label" data-i18n="home.stats.lessons">Lessons completed</div>
-              <div class="stat-value" id="lessons">—</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label" data-i18n="home.stats.puzzles">Puzzles solved</div>
-              <div class="stat-value" id="puzzles">—</div>
-            </div>
-          </div>
-          <p class="small" style="margin-top:12px">
-            <span data-i18n="home.tip">Tip: solve a quick puzzle and a lesson daily to keep your improvement loop active.</span>
-          </p>
         </section>
       </div>
     </main>
@@ -111,6 +62,7 @@
   <script type="module">
     import { initTelegram } from "./shared/telegram.js";
     import { loadState, touch } from "./shared/storage.js";
+    import { getLastRoute } from "./shared/last-activity.js";
     import { setText } from "./shared/ui.js";
     import { applyI18n, getLang, loadDict, t } from "./shared/i18n.js";
 
@@ -121,10 +73,20 @@
     await loadDict(getLang());
     await applyI18n();
 
-    setText("streak", t("home.stats.streakValue", { count: state.stats.streakDays }));
-    setText("lessons", String(state.stats.lessonsCompleted));
-    setText("puzzles", String(state.stats.puzzlesSolved));
-    setText("pillInfo", t("home.pillInfo"));
+    const lastRoute = getLastRoute();
+    const continueHref = lastRoute || "/chess/index.html";
+    const isResume = Boolean(lastRoute);
+
+    const titleKey = isResume ? "home.continue.title.resume" : "home.continue.title.start";
+    const subtitleKey = isResume ? "home.continue.subtitle.resume" : "home.continue.subtitle.start";
+
+    const continueCard = document.getElementById("continueCard");
+    if (continueCard) {
+      continueCard.setAttribute("href", continueHref);
+    }
+    setText("continueTitle", t(titleKey));
+    setText("continueSubtitle", t(subtitleKey));
+    setText("continueCta", t("home.continue.cta"));
   </script>
 </body>
 </html>

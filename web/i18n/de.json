@@ -21,8 +21,33 @@
   },
   "home": {
     "title": "♟️ TG Chess",
-    "subtitle": "Spielen, lernen, trainieren — dein tägliches Schachstudio",
+    "subtitle": "Dein klares tägliches Schachstudio",
     "pillInfo": "Nur Schach",
+    "continue": {
+      "title": {
+        "resume": "Weitermachen",
+        "start": "Spiel starten"
+      },
+      "subtitle": {
+        "resume": "Letzte Aktivität fortsetzen",
+        "start": "Schnelles Spiel gegen KI"
+      },
+      "cta": "Öffnen"
+    },
+    "mode": {
+      "play": {
+        "title": "Spielen",
+        "subtitle": "Schnelles Spiel gegen KI"
+      },
+      "learn": {
+        "title": "Lernen",
+        "subtitle": "Geführte Lektionen"
+      },
+      "train": {
+        "title": "Trainieren",
+        "subtitle": "Taktik-Drills"
+      }
+    },
     "today": {
       "title": "Heute",
       "subtitle": "Spring zurück mit fokussierten Aktionen",
