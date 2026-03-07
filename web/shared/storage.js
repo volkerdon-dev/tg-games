@@ -9,6 +9,11 @@ const NUMERIC_STAT_KEYS = [
   "gamesLost",
   "gamesDraw",
   "totalMoves",
+  "adaptiveWinStreak",
+  "adaptiveLossStreak",
+  "learningGamesPlayed",
+  "hintsUsed",
+  "blundersAvoided",
   "lessonsCompleted",
   "puzzlesSolved",
   "puzzlesFailed",
@@ -118,7 +123,17 @@ export function loadState() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultState();
     const parsed = JSON.parse(raw);
-    return { ...defaultState(), ...parsed };
+    const base = defaultState();
+    return {
+      ...base,
+      ...parsed,
+      stats: {
+        ...base.stats,
+        ...(isPlainObject(parsed?.stats) ? parsed.stats : {}),
+      },
+      completedLessons: isPlainObject(parsed?.completedLessons) ? parsed.completedLessons : {},
+      puzzleHistory: isPlainObject(parsed?.puzzleHistory) ? parsed.puzzleHistory : {},
+    };
   } catch {
     return defaultState();
   }
@@ -142,6 +157,11 @@ export function defaultState() {
       gamesLost: 0,
       gamesDraw: 0,
       totalMoves: 0,
+      adaptiveWinStreak: 0,
+      adaptiveLossStreak: 0,
+      learningGamesPlayed: 0,
+      hintsUsed: 0,
+      blundersAvoided: 0,
 
       lessonsCompleted: 0,
       puzzlesSolved: 0,

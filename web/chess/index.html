@@ -55,6 +55,16 @@
                 </div>
 
                 <div class="control-group">
+                  <label for="learningMode" data-i18n="chess.learning.modeLabel">Learning mode</label>
+                  <label class="toggle">
+                    <input id="learningMode" type="checkbox" />
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="toggle-text" data-i18n="chess.learning.modeOn">ON</span>
+                  </label>
+                  <p class="control-note" data-i18n="chess.learning.modeHint">Hints and blunder warnings every move.</p>
+                </div>
+
+                <div class="control-group">
                   <label for="humanLike" data-i18n="chess.settings.humanLike">Human-like mode</label>
                   <label class="toggle">
                     <input id="humanLike" type="checkbox" checked />
@@ -111,6 +121,10 @@
                   <span id="engineBadge" class="engineBadge neutral">Engine: Loading…</span>
                   <button id="engineRetry" class="engineRetry" type="button" data-i18n="common.retry">Retry</button>
                 </div>
+              </div>
+              <div class="learningHintBar hidden" id="learningHintBar">
+                <button class="btn secondary" id="learningHintBtn" type="button" data-i18n="chess.learning.hintBtn">💡 Hint</button>
+                <span class="small" id="learningHintCount"></span>
               </div>
               <div class="clockBar">
                 <div class="clockLabel" id="playerClockLabel" data-i18n="chess.clock.labelPlain">Your time</div>
@@ -219,6 +233,101 @@
           <button class="btn" id="coachRetry" type="button" data-i18n="common.retry">Retry</button>
         </div>
         <div class="small coachDisclaimer" id="coachDisclaimer"></div>
+      </div>
+    </div>
+
+    <div id="postGameModal" class="modal hidden" aria-hidden="true">
+      <div class="modalBackdrop" data-close="true"></div>
+      <div class="modalCard postGameCard" role="dialog" aria-modal="true" aria-labelledby="postGameTitle">
+        <div class="modalHeader">
+          <div>
+            <h3 class="modalTitle" id="postGameTitle" data-i18n="chess.postGame.title">Game finished</h3>
+            <p class="modalSubtitle" id="postGameSubtitle" data-i18n="chess.postGame.subtitle">Review key results and coach advice</p>
+          </div>
+        </div>
+
+        <div class="postGameResult" id="postGameResult">—</div>
+
+        <div class="postGameStats">
+          <div class="postGameStat">
+            <div class="postGameStatLabel" data-i18n="chess.postGame.moves">Moves</div>
+            <div class="postGameStatValue" id="postGameMoves">0</div>
+          </div>
+          <div class="postGameStat">
+            <div class="postGameStatLabel" data-i18n="chess.postGame.level">AI level</div>
+            <div class="postGameStatValue" id="postGameLevel">—</div>
+          </div>
+          <div class="postGameStat hidden" id="postGameDurationWrap">
+            <div class="postGameStatLabel" data-i18n="chess.postGame.duration">Duration</div>
+            <div class="postGameStatValue" id="postGameDuration">—</div>
+          </div>
+        </div>
+
+        <div class="postGameLearning hidden" id="postGameLearningCard">
+          <h4 data-i18n="chess.learning.postTitle">Learning game</h4>
+          <div class="postGameLearningGrid">
+            <div>
+              <span data-i18n="chess.learning.learningGamesPlayed">Learning games</span>
+              <b id="postLearningGamesPlayed">0</b>
+            </div>
+            <div>
+              <span data-i18n="chess.learning.totalHintsUsed">Hints used</span>
+              <b id="postLearningHintsUsed">0</b>
+            </div>
+            <div>
+              <span data-i18n="chess.learning.totalBlundersAvoided">Blunders avoided</span>
+              <b id="postLearningBlundersAvoided">0</b>
+            </div>
+          </div>
+        </div>
+
+        <div class="postGameCoach">
+          <h4 data-i18n="chess.postGame.coachTitle">AI Coach</h4>
+          <div class="postGameCoachStatus" id="postGameCoachStatus">
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="postGameCoachStatusText" data-i18n="chess.postGame.coachLoading">Analyzing your game…</span>
+          </div>
+          <div class="postGameCoachMain">
+            <div class="coachSection">
+              <h4 data-i18n="chess.coach.summary">Summary</h4>
+              <p id="postGameCoachSummary">—</p>
+            </div>
+            <div class="coachSection">
+              <h4 data-i18n="chess.coach.oneTip">One tip</h4>
+              <p id="postGameCoachTip">—</p>
+            </div>
+          </div>
+          <button class="btn ghost hidden" id="postGameCoachToggle" type="button" data-i18n="chess.postGame.details">Detailed breakdown</button>
+          <div class="postGameCoachDetails hidden" id="postGameCoachDetails"></div>
+        </div>
+
+        <div class="row modalActions">
+          <button class="btn" id="postGameNew" type="button" data-i18n="chess.postGame.newGame">New game</button>
+          <button class="btn secondary" id="postGameRematch" type="button" data-i18n="chess.postGame.rematch">Rematch</button>
+          <button class="btn ghost" id="postGameClose" type="button" data-i18n="common.close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="learningBlunderModal" class="modal hidden" aria-hidden="true">
+      <div class="modalBackdrop"></div>
+      <div class="modalCard learningWarningCard" role="dialog" aria-modal="true" aria-labelledby="learningWarningTitle">
+        <h3 class="modalTitle" id="learningWarningTitle" data-i18n="chess.learning.warningTitle">Careful!</h3>
+        <p class="modalSubtitle" id="learningWarningText"></p>
+        <div class="row modalActions">
+          <button class="btn" id="learningUndoMove" type="button" data-i18n="chess.learning.undoMove">Undo move</button>
+          <button class="btn ghost" id="learningKeepMove" type="button" data-i18n="chess.learning.keepMove">Play anyway</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="adaptiveToast" class="adaptive-toast hidden" aria-live="polite">
+      <div class="adaptive-toast-card">
+        <p id="adaptiveToastText"></p>
+        <div class="adaptive-toast-actions">
+          <button class="btn" id="adaptiveToastYes" type="button"></button>
+          <button class="btn ghost" id="adaptiveToastNo" type="button"></button>
+        </div>
       </div>
     </div>
 

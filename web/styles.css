@@ -586,6 +586,16 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
 
 .boardWrap{display:flex; gap:14px; flex-wrap:wrap}
 .boardCol{display:flex; flex-direction:column; gap:10px}
+.learningHintBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(167,139,250,.28);
+  background: rgba(167,139,250,.12);
+}
 
 .chess-action-bar{
   position:fixed;
@@ -843,6 +853,21 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
   top:6px;
   right:6px;
 }
+.square.hint-from{
+  animation: learning-hint-blink 1s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 0 3px rgba(34,197,94,.95),
+    inset 0 0 18px rgba(34,197,94,.28);
+}
+.square.hint-to{
+  box-shadow:
+    inset 0 0 0 3px rgba(250,204,21,.9),
+    inset 0 0 16px rgba(250,204,21,.35);
+}
+@keyframes learning-hint-blink{
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.22)}
+}
 
 .movePanel{
   display:flex;
@@ -890,7 +915,20 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
   font-weight:700;
 }
 .moveText{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
   color: rgba(234,240,255,.95);
+}
+.moveSegment{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.moveQuality{
+  font-size:14px;
+  line-height:1;
 }
 @media (max-width:520px){
   .moveList{max-height: 180px;}
@@ -1015,6 +1053,127 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
 }
 @media (max-width:420px){
   .promoBtn{height:72px; font-size: 38px}
+}
+
+/* ===== Post-game / learning overlays ===== */
+.postGameCard{width:min(780px, 100%)}
+.postGameResult{
+  margin-top:10px;
+  font-size:30px;
+  font-weight:900;
+  letter-spacing:.3px;
+}
+.postGameResult.win{color: rgba(134,239,172,.98)}
+.postGameResult.loss{color: rgba(252,165,165,.98)}
+.postGameResult.draw{color: rgba(147,197,253,.98)}
+.postGameStats{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+  gap:10px;
+}
+.postGameStat{
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  padding:10px;
+}
+.postGameStatLabel{
+  font-size:11px;
+  color:var(--muted);
+}
+.postGameStatValue{
+  margin-top:4px;
+  font-size:15px;
+  font-weight:800;
+}
+.postGameLearning{
+  margin-top:14px;
+  border-radius:12px;
+  border:1px solid rgba(34,197,94,.28);
+  background: rgba(34,197,94,.12);
+  padding:12px;
+}
+.postGameLearning h4{
+  margin:0 0 8px;
+  font-size:14px;
+}
+.postGameLearningGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(120px,1fr));
+  gap:10px;
+}
+.postGameLearningGrid span{
+  display:block;
+  font-size:11px;
+  color: rgba(220,252,231,.88);
+}
+.postGameLearningGrid b{
+  font-size:16px;
+}
+.postGameCoach{
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.postGameCoach h4{
+  margin:0;
+}
+.postGameCoachStatus{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color: rgba(234,240,255,.9);
+}
+.spinner{
+  width:15px;
+  height:15px;
+  border:2px solid rgba(255,255,255,.26);
+  border-top-color: rgba(79,209,255,.95);
+  border-radius:50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.postGameCoachMain{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+.postGameCoachDetails{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.learningWarningCard{
+  width:min(520px, 100%);
+}
+.adaptive-toast{
+  position:fixed;
+  inset:auto 12px calc(var(--bottomNavH) + env(safe-area-inset-bottom) + 12px) 12px;
+  z-index:50;
+  display:flex;
+  justify-content:center;
+}
+.adaptive-toast-card{
+  width:min(560px, 100%);
+  border-radius:14px;
+  border:1px solid rgba(79,209,255,.35);
+  background: rgba(10,16,30,.95);
+  box-shadow: 0 16px 36px rgba(0,0,0,.42);
+  padding:12px;
+}
+.adaptive-toast-card p{
+  margin:0;
+  font-size:14px;
+  font-weight:700;
+}
+.adaptive-toast-actions{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
 }
 
 .tab-bar {
