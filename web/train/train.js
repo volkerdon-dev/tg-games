@@ -1,5 +1,5 @@
 import { initTelegram, sendEvent } from "../shared/telegram.js";
-import { loadState, saveState, touch } from "../shared/storage.js";
+import { loadState, saveState, touch, loadFromServer } from "../shared/storage.js";
 import { setText } from "../shared/ui.js";
 import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
 
@@ -121,3 +121,7 @@ themeEl.addEventListener("change", () => {
 await loadDict(getLang());
 await applyI18n();
 init();
+
+void loadFromServer().then((mergedState) => {
+  Object.assign(state, mergedState);
+});
