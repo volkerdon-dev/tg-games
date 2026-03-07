@@ -11,12 +11,15 @@ const state = loadState();
 touch(state);
 void loadFromServer().then((mergedState) => {
   Object.assign(state, mergedState);
+  ensureExtendedStats();
 });
+ensureExtendedStats();
 
 // -------------------- UI refs --------------------
 const boardEl = document.getElementById("board");
 const sideEl = document.getElementById("side");
 const levelEl = document.getElementById("level");
+const learningModeEl = document.getElementById("learningMode");
 const humanLikeEl = document.getElementById("humanLike");
 const thinkTimeEl = document.getElementById("thinkTime");
 const statusTagEl = document.getElementById("statusTag");
@@ -39,6 +42,9 @@ const ranksLeftEl = document.getElementById("ranksLeft");
 const ranksRightEl = document.getElementById("ranksRight");
 
 const hintTextEl = document.getElementById("hintText");
+const learningHintBarEl = document.getElementById("learningHintBar");
+const learningHintBtn = document.getElementById("learningHintBtn");
+const learningHintCountEl = document.getElementById("learningHintCount");
 
 const playerClockLabelEl = document.getElementById("playerClockLabel");
 const playerClockEl = document.getElementById("playerClock");
@@ -56,6 +62,33 @@ const coachStatusEl = document.getElementById("coachStatus");
 const coachCopyBtn = document.getElementById("coachCopy");
 const coachRetryBtn = document.getElementById("coachRetry");
 const coachDisclaimerEl = document.getElementById("coachDisclaimer");
+const postGameModalEl = document.getElementById("postGameModal");
+const postGameResultEl = document.getElementById("postGameResult");
+const postGameMovesEl = document.getElementById("postGameMoves");
+const postGameLevelEl = document.getElementById("postGameLevel");
+const postGameDurationWrapEl = document.getElementById("postGameDurationWrap");
+const postGameDurationEl = document.getElementById("postGameDuration");
+const postGameCoachStatusEl = document.getElementById("postGameCoachStatus");
+const postGameCoachStatusTextEl = document.getElementById("postGameCoachStatusText");
+const postGameCoachSummaryEl = document.getElementById("postGameCoachSummary");
+const postGameCoachTipEl = document.getElementById("postGameCoachTip");
+const postGameCoachToggleEl = document.getElementById("postGameCoachToggle");
+const postGameCoachDetailsEl = document.getElementById("postGameCoachDetails");
+const postGameNewBtn = document.getElementById("postGameNew");
+const postGameRematchBtn = document.getElementById("postGameRematch");
+const postGameCloseBtn = document.getElementById("postGameClose");
+const postGameLearningCardEl = document.getElementById("postGameLearningCard");
+const postLearningGamesPlayedEl = document.getElementById("postLearningGamesPlayed");
+const postLearningHintsUsedEl = document.getElementById("postLearningHintsUsed");
+const postLearningBlundersAvoidedEl = document.getElementById("postLearningBlundersAvoided");
+const learningBlunderModalEl = document.getElementById("learningBlunderModal");
+const learningWarningTextEl = document.getElementById("learningWarningText");
+const learningUndoMoveBtn = document.getElementById("learningUndoMove");
+const learningKeepMoveBtn = document.getElementById("learningKeepMove");
+const adaptiveToastEl = document.getElementById("adaptiveToast");
+const adaptiveToastTextEl = document.getElementById("adaptiveToastText");
+const adaptiveToastYesBtn = document.getElementById("adaptiveToastYes");
+const adaptiveToastNoBtn = document.getElementById("adaptiveToastNo");
 
 // Promotion modal
 const promoModalEl = document.getElementById("promoModal");
@@ -124,6 +157,13 @@ let gameMovesUci = [];
 let coachAbort = null;
 let coachRequestSeq = 0;
 let coachData = null;
+let coachDataGameId = null;
+let coachRequestGameId = null;
+let adaptiveToastTimerId = null;
+let postGameResultCode = null;
+
+const LEARNING_MODE_STORAGE_KEY = "tg_learning_mode_v1";
+const ADAPTIVE_LEVEL_ORDER = ["beginner", "easy", "intermediate", "advanced", "expert", "grandmaster"];
 
 // -------------------- Engine mode (visible) --------------------
 const engineStatus = {
@@ -284,6 +324,47 @@ function saveAiSettingsToStorage() {
   }
 }
 
+function ensureExtendedStats() {
+  if (!state.stats || typeof state.stats !== "object") state.stats = {};
+  const keys = [
+    "adaptiveWinStreak",
+    "adaptiveLossStreak",
+    "learningGamesPlayed",
+    "hintsUsed",
+    "blundersAvoided",
+    "gamesPlayed",
+    "gamesWon",
+    "gamesLost",
+    "gamesDraw",
+    "totalMoves",
+  ];
+  for (const key of keys) {
+    if (!Number.isFinite(Number(state.stats[key]))) state.stats[key] = 0;
+  }
+}
+
+function isLearningModeEnabled() {
+  return Boolean(learningModeEl?.checked);
+}
+
+function loadLearningModeFromStorage() {
+  try {
+    const raw = localStorage.getItem(LEARNING_MODE_STORAGE_KEY);
+    if (!learningModeEl) return;
+    learningModeEl.checked = raw === "1" || raw === "true";
+  } catch {
+    // ignore storage issues
+  }
+}
+
+function saveLearningModeToStorage() {
+  try {
+    if (learningModeEl) localStorage.setItem(LEARNING_MODE_STORAGE_KEY, learningModeEl.checked ? "1" : "0");
+  } catch {
+    // ignore storage issues
+  }
+}
+
 function getAiPreset() {
   const key = normalizeLevelKey(levelEl?.value || "intermediate");
   const base = AI_PRESETS[key] ? { key, ...AI_PRESETS[key] } : { key: "intermediate", ...AI_PRESETS.intermediate };
@@ -334,6 +415,7 @@ function initialGame(playerColor) {
 
     gameOver: false,
     result: null,
+    finishedHandled: false,
 
     // UI selection
     selectedSq: -1,
@@ -347,6 +429,14 @@ function initialGame(playerColor) {
     lastMove: null,
     moveHistory: [],
     checkHighlight: { color: null, isMate: false },
+    learningMode: isLearningModeEnabled(),
+    learningHintsUsed: 0,
+    learningBlundersAvoided: 0,
+    learningHint: { from: -1, to: -1 },
+    learningBaselineEvalCp: null,
+    learningBaselineFen: "",
+    learningBaselinePendingFen: "",
+    blunderWarningActive: false,
 
     aiThinking: false,
 
@@ -354,6 +444,7 @@ function initialGame(playerColor) {
     clock: {
       enabled: false,
       playerMs: 0,
+      initialPlayerMs: 0,
       timerId: null,
       lastTs: null,
     }
@@ -551,11 +642,13 @@ function initClockFromUI() {
   if (!seconds || seconds <= 0) {
     game.clock.enabled = false;
     game.clock.playerMs = 0;
+    game.clock.initialPlayerMs = 0;
     startClockIfEnabled();
     return;
   }
   game.clock.enabled = true;
   game.clock.playerMs = seconds * 1000;
+  game.clock.initialPlayerMs = seconds * 1000;
   startClockIfEnabled();
 }
 
@@ -627,6 +720,35 @@ function formatMoveText(move) {
   return text;
 }
 
+function normalizeMoveEntry(entry) {
+  if (entry && typeof entry === "object") {
+    return {
+      text: String(entry.text || ""),
+      color: entry.color === WHITE || entry.color === BLACK ? entry.color : null,
+      quality: entry.quality || "",
+    };
+  }
+  return { text: String(entry || ""), color: null, quality: "" };
+}
+
+function appendMoveSegment(container, entry) {
+  const segment = document.createElement("span");
+  segment.className = "moveSegment";
+
+  const textNode = document.createElement("span");
+  textNode.textContent = entry.text;
+  segment.appendChild(textNode);
+
+  if (entry.quality) {
+    const quality = document.createElement("span");
+    quality.className = "moveQuality";
+    quality.textContent = entry.quality;
+    segment.appendChild(quality);
+  }
+
+  container.appendChild(segment);
+}
+
 function renderMoveList() {
   if (!moveListEl || !game) return;
   moveListEl.innerHTML = "";
@@ -641,9 +763,10 @@ function renderMoveList() {
 
     const text = document.createElement("span");
     text.className = "moveText";
-    const white = moves[i] || "";
-    const black = moves[i + 1] ? ` ${moves[i + 1]}` : "";
-    text.textContent = `${white}${black}`.trim();
+    const white = normalizeMoveEntry(moves[i]);
+    const black = normalizeMoveEntry(moves[i + 1]);
+    appendMoveSegment(text, white);
+    if (black.text) appendMoveSegment(text, black);
 
     row.appendChild(num);
     row.appendChild(text);
@@ -657,13 +780,29 @@ function renderMoveList() {
 function pushMoveHistory(move) {
   if (!game) return;
   if (!Array.isArray(game.moveHistory)) game.moveHistory = [];
-  game.moveHistory.push(formatMoveText(move));
+  game.moveHistory.push({
+    text: formatMoveText(move),
+    color: move?.piece?.c || null,
+    quality: "",
+  });
   renderMoveList();
 }
 
 function popMoveHistory() {
   if (!game?.moveHistory?.length) return;
   game.moveHistory.pop();
+  renderMoveList();
+}
+
+function markLatestPlayerMoveQuality(symbol) {
+  if (!symbol || !Array.isArray(game?.moveHistory)) return;
+  for (let i = game.moveHistory.length - 1; i >= 0; i -= 1) {
+    const entry = game.moveHistory[i];
+    if (!entry || typeof entry !== "object") continue;
+    if (entry.color !== game.playerColor) continue;
+    entry.quality = symbol;
+    break;
+  }
   renderMoveList();
 }
 
@@ -818,6 +957,7 @@ function applyMove(move, { recordUndo = false } = {}) {
     prevKingB: game.kingSq.b,
     prevGameOver: game.gameOver,
     prevResult: game.result ? { ...game.result } : null,
+    prevFinishedHandled: game.finishedHandled,
     rookMove: null,
     epCapture: null,
     prevClockPlayerMs: recordUndo ? game.clock.playerMs : null,
@@ -912,6 +1052,7 @@ function revertMove(prev) {
   game.kingSq.b = prev.prevKingB;
   game.gameOver = prev.prevGameOver;
   game.result = prev.prevResult ? { ...prev.prevResult } : null;
+  game.finishedHandled = Boolean(prev.prevFinishedHandled);
 
   if (prev.rookMove) {
     setPiece(prev.rookMove.from, prev.rookMove.piece);
@@ -1481,6 +1622,148 @@ function cancelPendingAi({ stopEngine = true } = {}) {
   if (game) game.aiThinking = false;
 }
 
+function clearLearningHint() {
+  if (!game) return;
+  game.learningHint = { from: -1, to: -1 };
+}
+
+function updateLearningHintBarVisibility() {
+  if (!learningHintBarEl) return;
+  learningHintBarEl.classList.toggle("hidden", !isLearningModeEnabled());
+}
+
+function updateLearningHintCounter() {
+  if (!learningHintCountEl || !game) return;
+  learningHintCountEl.textContent = t("chess.learning.hintsUsed", {
+    count: String(game.learningHintsUsed || 0),
+  });
+}
+
+function getBestSfScoreCp() {
+  const lines = sf.lastMultiPv
+    .filter((entry) => entry?.move)
+    .sort((a, b) => (a.index || 0) - (b.index || 0));
+  if (!lines.length) return null;
+  return scoreLineToCp(lines[0]);
+}
+
+async function sfAnalyzePositionCp(fen, { movetime = 180 } = {}) {
+  if (!sf.ready || !sf.worker || sf.currentJob?.bestMovePending) return null;
+  await sfIsReady().catch(() => {});
+
+  sf.lastMultiPv = [];
+  sfPost("ucinewgame");
+  sfPost("setoption name Threads value 1");
+  sfPost("setoption name Hash value 32");
+  if (sf.supports.multiPv) sfPost("setoption name MultiPV value 1");
+  await sfIsReady().catch(() => {});
+
+  sfPost(`position fen ${fen}`);
+  const token = aiRequestSeq;
+  const bestMovePromise = new Promise((resolve, reject) => {
+    sf.currentJob = { resolve, reject, bestMovePending: true, token };
+  });
+  sfPost(`go movetime ${Math.max(80, Number(movetime) || 80)}`);
+  const bestMove = await Promise.race([
+    bestMovePromise,
+    sleep(Math.max(700, Number(movetime) + 520)).then(() => null),
+  ]).catch(() => null);
+  if (bestMove == null && sf.currentJob?.bestMovePending) {
+    sfStop();
+    sf.currentJob = null;
+  }
+  return getBestSfScoreCp();
+}
+
+function maybeRefreshLearningBaselineEval() {
+  if (!game?.learningMode) return;
+  if (game.gameOver || game.aiThinking) return;
+  if (game.turn !== game.playerColor) return;
+  const fen = toFEN();
+  if (game.learningBaselineFen === fen || game.learningBaselinePendingFen === fen) return;
+  game.learningBaselinePendingFen = fen;
+  const gameId = game.id;
+  void sfAnalyzePositionCp(fen, { movetime: 180 }).then((cp) => {
+    if (!game || game.id !== gameId) return;
+    if (toFEN() !== fen) return;
+    game.learningBaselineEvalCp = Number.isFinite(cp) ? cp : null;
+    game.learningBaselineFen = fen;
+  }).finally(() => {
+    if (game && game.id === gameId && game.learningBaselinePendingFen === fen) {
+      game.learningBaselinePendingFen = "";
+    }
+  });
+}
+
+function classifyPlayerMoveQuality(beforeCp, afterCp) {
+  if (!Number.isFinite(beforeCp) || !Number.isFinite(afterCp)) return "";
+  const drop = Math.max(0, Math.round(beforeCp - afterCp));
+  if (drop <= 50) return "✅";
+  if (drop <= 150) return "⚠️";
+  return "❌";
+}
+
+function pieceTypeToI18nKey(type) {
+  if (type === "Q") return "queen";
+  if (type === "R") return "rook";
+  if (type === "B") return "bishop";
+  if (type === "N") return "knight";
+  return "piece";
+}
+
+function detectLearningBlunderRisk() {
+  if (!game?.learningMode) return null;
+  if (game.gameOver || game.turn !== game.aiColor) return null;
+  const aiMoves = genLegalMoves(game.aiColor);
+  const riskyTypes = new Set(["Q", "R", "B", "N"]);
+  let bestRisk = null;
+
+  for (let sq = 0; sq < 128; sq += 1) {
+    if (isOffboard(sq)) { sq += 7; continue; }
+    const p = pieceAt(sq);
+    if (!p || p.c !== game.playerColor || !riskyTypes.has(p.t)) continue;
+    const attacked = isSquareAttacked(game.aiColor, sq);
+    const defended = isSquareAttacked(game.playerColor, sq);
+    if (!attacked || defended) continue;
+    const captureMove = aiMoves.find((m) => m.to === sq && m.capture?.c === game.playerColor);
+    if (!captureMove) continue;
+    // Reuse fallback move evaluator so warnings stay aligned with AI heuristics.
+    const captureScore = evaluateMove(captureMove, { skill: 10 }, { deterministic: true });
+    if (!Number.isFinite(captureScore) || captureScore <= 0) continue;
+    const value = VALUE[p.t] || 0;
+    if (!bestRisk || value > bestRisk.value || (value === bestRisk.value && captureScore > bestRisk.captureScore)) {
+      bestRisk = { sq, piece: p.t, value, captureScore };
+    }
+  }
+
+  return bestRisk;
+}
+
+function openLearningBlunderWarning(risk) {
+  if (!learningBlunderModalEl || !learningWarningTextEl || !risk) return false;
+  learningWarningTextEl.textContent = t("chess.learning.warningText", {
+    piece: t(`chess.learning.pieces.${pieceTypeToI18nKey(risk.piece)}`),
+    square: algebraic(risk.sq),
+  });
+  game.blunderWarningActive = true;
+  learningBlunderModalEl.classList.remove("hidden");
+  learningBlunderModalEl.setAttribute("aria-hidden", "false");
+  return true;
+}
+
+function closeLearningBlunderWarning() {
+  if (!learningBlunderModalEl) return;
+  if (game) game.blunderWarningActive = false;
+  learningBlunderModalEl.classList.add("hidden");
+  learningBlunderModalEl.setAttribute("aria-hidden", "true");
+}
+
+function maybeShowLearningBlunderWarning() {
+  const risk = detectLearningBlunderRisk();
+  if (!risk) return false;
+  return openLearningBlunderWarning(risk);
+}
+
 function moveLeadsToCheckmate(move, colorToPlay) {
   const undo = applyMove(move, { recordUndo: false });
   const legal = genLegalMoves(opponent(colorToPlay));
@@ -1528,6 +1811,8 @@ async function aiMoveIfNeeded() {
   if (game.turn !== game.aiColor) return;
 
   const preset = getAiPreset();
+  const baselineCp = game.learningMode ? game.learningBaselineEvalCp : null;
+  let afterPlayerCp = null;
 
   const legalMoves = genLegalMoves(game.turn);
   if (!legalMoves.length) {
@@ -1550,6 +1835,8 @@ async function aiMoveIfNeeded() {
   try {
     const fen = toFEN();
     const bestUci = await sfBestMoveFromFEN(fen, preset, mySeq);
+    const bestAiCp = getBestSfScoreCp();
+    if (Number.isFinite(bestAiCp)) afterPlayerCp = -bestAiCp;
     if (game !== myGame || mySeq !== aiRequestSeq) return;
     if (!game.gameOver && game.turn === game.aiColor && bestUci) {
       const mapped = uciToLegalMove(bestUci, legalMoves);
@@ -1588,8 +1875,17 @@ async function aiMoveIfNeeded() {
 
   applyMove(chosenMove, { recordUndo: true });
   clearSelection();
+  clearLearningHint();
+
+  const quality = classifyPlayerMoveQuality(baselineCp, afterPlayerCp);
+  markLatestPlayerMoveQuality(quality);
 
   finalizeIfGameOver();
+  if (!game.gameOver && game.learningMode) {
+    game.learningBaselineEvalCp = null;
+    game.learningBaselineFen = "";
+    game.learningBaselinePendingFen = "";
+  }
   render();
   if (game.gameOver) onGameFinished();
 }
@@ -1729,6 +2025,8 @@ function render() {
 
   renderPlayerClock();
   setCoachButtonState();
+  updateLearningHintBarVisibility();
+  updateLearningHintCounter();
 
   for (let r=0; r<8; r++) {
     for (let c=0; c<8; c++) {
@@ -1747,6 +2045,8 @@ function render() {
       if (hint?.type === "move") el.classList.add("hint-dot");
       if (hint?.type === "capture") el.classList.add("hint-ring");
       if (hint?.givesCheck) el.classList.add("hint-check");
+      if (game.learningHint?.from === internalSq) el.classList.add("hint-from");
+      if (game.learningHint?.to === internalSq) el.classList.add("hint-to");
 
       if (game.lastMove?.from === internalSq) el.classList.add("last-from");
       if (game.lastMove?.to === internalSq) el.classList.add("last-to");
@@ -1762,6 +2062,7 @@ function render() {
       boardEl.appendChild(el);
     }
   }
+  maybeRefreshLearningBaselineEval();
 }
 
 // -------------------- click logic --------------------
@@ -1769,6 +2070,7 @@ function onSquareClick(e) {
   if (game.gameOver) return;
   if (game.aiThinking) return;
   if (pendingPromotion) return;
+  if (game.blunderWarningActive) return;
   if (game.turn !== game.playerColor) return;
 
   const r = Number(e.currentTarget.dataset.r);
@@ -1818,12 +2120,13 @@ function onSquareClick(e) {
     const chosen = candidates[0];
     applyMove(chosen, { recordUndo: true });
     clearSelection();
+    clearLearningHint();
 
     finalizeIfGameOver();
     render();
 
     if (game.gameOver) onGameFinished();
-    else aiMoveIfNeeded();
+    else if (!maybeShowLearningBlunderWarning()) aiMoveIfNeeded();
     return;
   }
 
@@ -1832,76 +2135,59 @@ function onSquareClick(e) {
 }
 
 // -------------------- stats + event --------------------
-function updateStatsAndSend(result) {
-  state.stats.gamesPlayed += 1;
-  if (result === "win") state.stats.gamesWon += 1;
-  if (result === "loss") state.stats.gamesLost += 1;
-  if (result === "draw") state.stats.gamesDraw += 1;
-  state.stats.totalMoves += game.plies;
-
-  touch(state);
-  saveState(state);
-
-  const preset = getAiPreset();
-  const fullMoves = Math.ceil(game.plies / 2);
-  sendEvent({
-    type: "game_result",
-    mode: engineStatus.mode === "stockfish" ? "vs_ai_stockfish" : "vs_ai_fallback",
-    engine: engineStatus.mode,
-    level: String(levelEl.value || preset.key),
-    elo: preset.elo ?? null,
-    side: game.playerColor === WHITE ? "white" : "black",
-    result,
-    moves: fullMoves,
-    plies: game.plies,
-  });
+function getAdaptiveLevelOrder() {
+  const fromSelect = Array.from(levelEl?.options || [])
+    .map((o) => normalizeLevelKey(o.value))
+    .filter(Boolean);
+  return fromSelect.length ? fromSelect : ADAPTIVE_LEVEL_ORDER.slice();
 }
 
-function onGameFinished() {
-  if (!game.result) return;
-  if (game.result.type === "stalemate") return updateStatsAndSend("draw");
-  if (game.result.type === "checkmate") return updateStatsAndSend(game.result.winner === game.playerColor ? "win" : "loss");
-  if (game.result.type === "timeout") return updateStatsAndSend("loss");
-  if (game.result.type === "resign") return updateStatsAndSend("loss");
+function getAdjacentAdaptiveLevel(direction) {
+  const order = getAdaptiveLevelOrder();
+  const current = normalizeLevelKey(levelEl?.value || "intermediate");
+  const idx = order.indexOf(current);
+  if (idx < 0) return null;
+  const nextIdx = direction === "up" ? idx + 1 : idx - 1;
+  if (nextIdx < 0 || nextIdx >= order.length) return null;
+  return order[nextIdx];
 }
 
-// -------------------- coach review --------------------
-function setCoachButtonState() {
-  if (!coachBtn) return;
-  coachBtn.disabled = !game?.gameOver;
-}
-
-function openCoachModal() {
-  if (!coachModalEl) return;
-  coachModalEl.classList.remove("hidden");
-  coachModalEl.setAttribute("aria-hidden", "false");
-}
-
-function closeCoachModal() {
-  if (!coachModalEl) return;
-  coachModalEl.classList.add("hidden");
-  coachModalEl.setAttribute("aria-hidden", "true");
-}
-
-function resetCoachDisplay() {
-  if (coachStatusEl) coachStatusEl.textContent = "";
-  if (coachContentEl) coachContentEl.innerHTML = "";
-  if (coachDisclaimerEl) coachDisclaimerEl.textContent = "";
-  if (coachCopyBtn) coachCopyBtn.disabled = true;
-  if (coachRetryBtn) coachRetryBtn.disabled = true;
-}
-
-function abortCoachRequest({ closeModal = false, bumpSeq = true } = {}) {
-  if (coachAbort) {
-    coachAbort.abort();
-    coachAbort = null;
+function hideAdaptiveToast() {
+  if (!adaptiveToastEl) return;
+  if (adaptiveToastTimerId) {
+    clearTimeout(adaptiveToastTimerId);
+    adaptiveToastTimerId = null;
   }
-  if (bumpSeq) coachRequestSeq += 1;
-  coachData = null;
-  if (closeModal) {
-    closeCoachModal();
-    resetCoachDisplay();
-  }
+  adaptiveToastEl.classList.add("hidden");
+}
+
+function applyAdaptiveLevel(levelKey) {
+  if (!levelEl) return;
+  levelEl.value = levelKey;
+  saveAiSettingsToStorage();
+  updateSettingsSummary();
+  onAiSettingsChanged();
+}
+
+function suggestLevelChange(direction) {
+  if (!adaptiveToastEl || !adaptiveToastTextEl || !adaptiveToastYesBtn || !adaptiveToastNoBtn) return;
+  const next = getAdjacentAdaptiveLevel(direction);
+  if (!next) return;
+
+  adaptiveToastTextEl.textContent = direction === "up"
+    ? t("chess.adaptive.upPrompt")
+    : t("chess.adaptive.downPrompt");
+  adaptiveToastYesBtn.textContent = direction === "up"
+    ? t("chess.adaptive.upYes")
+    : t("chess.adaptive.downYes");
+  adaptiveToastNoBtn.textContent = direction === "up"
+    ? t("chess.adaptive.upNo")
+    : t("chess.adaptive.downNo");
+  adaptiveToastEl.dataset.targetLevel = next;
+  adaptiveToastEl.dataset.direction = direction;
+  adaptiveToastEl.classList.remove("hidden");
+  if (adaptiveToastTimerId) clearTimeout(adaptiveToastTimerId);
+  adaptiveToastTimerId = setTimeout(() => hideAdaptiveToast(), 8000);
 }
 
 function getGameResultInfo() {
@@ -1920,47 +2206,127 @@ function getDifficultyLabel() {
   return option?.textContent?.trim() || String(levelEl?.value || "intermediate");
 }
 
-function renderCoachResult(data) {
-  if (!coachContentEl) return;
-  coachContentEl.innerHTML = "";
+function getGameOutcome() {
+  if (!game?.result) return null;
+  if (game.result.type === "stalemate") return "draw";
+  if (game.result.type === "checkmate") return game.result.winner === game.playerColor ? "win" : "loss";
+  if (game.result.type === "timeout") return "loss";
+  if (game.result.type === "resign") return "loss";
+  return null;
+}
 
-  const sections = [];
-  if (data.summary) sections.push(createCoachSection(t("chess.coach.summary"), data.summary));
-  sections.push(
+function formatPostGameDuration() {
+  if (!game?.clock?.enabled) return "";
+  const initial = Number(game.clock.initialPlayerMs || 0);
+  if (initial <= 0) return "";
+  const used = Math.max(0, initial - Math.max(0, Number(game.clock.playerMs || 0)));
+  return formatMs(used);
+}
+
+function setCoachButtonState() {
+  if (!coachBtn) return;
+  coachBtn.disabled = !game?.gameOver;
+}
+
+function resetPostGameCoachDisplay() {
+  if (postGameCoachStatusEl) postGameCoachStatusEl.classList.remove("hidden");
+  if (postGameCoachStatusTextEl) postGameCoachStatusTextEl.textContent = t("chess.postGame.coachLoading");
+  if (postGameCoachSummaryEl) postGameCoachSummaryEl.textContent = t("common.dash");
+  if (postGameCoachTipEl) postGameCoachTipEl.textContent = t("common.dash");
+  if (postGameCoachDetailsEl) postGameCoachDetailsEl.innerHTML = "";
+  if (postGameCoachDetailsEl) postGameCoachDetailsEl.classList.add("hidden");
+  if (postGameCoachToggleEl) postGameCoachToggleEl.classList.add("hidden");
+}
+
+function openPostGameModal() {
+  if (!postGameModalEl) return;
+  postGameModalEl.classList.remove("hidden");
+  postGameModalEl.setAttribute("aria-hidden", "false");
+}
+
+function closePostGameModal() {
+  if (!postGameModalEl) return;
+  postGameModalEl.classList.add("hidden");
+  postGameModalEl.setAttribute("aria-hidden", "true");
+}
+
+function renderPostGameCoachUnavailable() {
+  if (postGameCoachStatusEl) postGameCoachStatusEl.classList.remove("hidden");
+  if (postGameCoachStatusTextEl) postGameCoachStatusTextEl.textContent = t("chess.postGame.coachUnavailable");
+  if (postGameCoachSummaryEl) postGameCoachSummaryEl.textContent = t("chess.postGame.coachUnavailable");
+  if (postGameCoachTipEl) postGameCoachTipEl.textContent = t("chess.postGame.coachUnavailable");
+  if (postGameCoachDetailsEl) postGameCoachDetailsEl.classList.add("hidden");
+  if (postGameCoachToggleEl) postGameCoachToggleEl.classList.add("hidden");
+}
+
+function renderPostGameCoachResult(data) {
+  if (!data) return renderPostGameCoachUnavailable();
+  if (postGameCoachStatusEl) postGameCoachStatusEl.classList.add("hidden");
+  if (postGameCoachSummaryEl) postGameCoachSummaryEl.textContent = data.summary || t("common.dash");
+  if (postGameCoachTipEl) postGameCoachTipEl.textContent = data.oneTip || t("common.dash");
+  if (!postGameCoachDetailsEl || !postGameCoachToggleEl) return;
+
+  postGameCoachDetailsEl.innerHTML = "";
+  const details = [];
+  details.push(
     createCoachSection(
       t("chess.coach.keyMoments"),
       Array.isArray(data.keyMoments) && data.keyMoments.length
-        ? data.keyMoments.map(item =>
-            `Move ${item.moveIndex}: ${item.title} — ${item.whatHappened} Better idea: ${item.betterIdea}`
-          )
+        ? data.keyMoments.map((item) => `#${item.moveIndex}: ${item.title} — ${item.whatHappened}`)
         : [t("chess.coach.noKeyMoments")]
     )
   );
-  sections.push(
+  details.push(
     createCoachSection(
       t("chess.coach.mistakes"),
       Array.isArray(data.mistakes) && data.mistakes.length
-        ? data.mistakes.map(item =>
-            `Move ${item.moveIndex} (${item.side}): ${item.mistake} Why: ${item.why} Better: ${item.better}`
-          )
+        ? data.mistakes.map((item) => `#${item.moveIndex} (${item.side}): ${item.mistake}`)
         : [t("chess.coach.noMistakes")]
     )
   );
-  if (data.oneTip) sections.push(createCoachSection(t("chess.coach.oneTip"), data.oneTip));
-  sections.push(
-    createCoachSection(
-      t("chess.coach.drills"),
-      Array.isArray(data.suggestedDrills) && data.suggestedDrills.length
-        ? data.suggestedDrills
-        : [t("chess.coach.noDrills")]
-    )
-  );
+  for (const section of details) postGameCoachDetailsEl.appendChild(section);
+  postGameCoachDetailsEl.classList.add("hidden");
+  postGameCoachToggleEl.classList.remove("hidden");
+  postGameCoachToggleEl.textContent = t("chess.postGame.details");
+}
 
-  for (const section of sections) {
-    coachContentEl.appendChild(section);
+function renderPostGameModal(result) {
+  postGameResultCode = result;
+  if (postGameResultEl) {
+    let label = t("chess.postGame.draw");
+    let cls = "draw";
+    if (result === "win") {
+      label = t("chess.postGame.win");
+      cls = "win";
+    } else if (result === "loss") {
+      label = t("chess.postGame.loss");
+      cls = "loss";
+    }
+    postGameResultEl.textContent = label;
+    postGameResultEl.className = `postGameResult ${cls}`;
   }
 
-  if (coachDisclaimerEl) coachDisclaimerEl.textContent = data.disclaimer || "";
+  if (postGameMovesEl) postGameMovesEl.textContent = String(Math.ceil(game.plies / 2));
+  if (postGameLevelEl) postGameLevelEl.textContent = getDifficultyLabel();
+
+  const duration = formatPostGameDuration();
+  if (postGameDurationWrapEl) postGameDurationWrapEl.classList.toggle("hidden", !duration);
+  if (postGameDurationEl) postGameDurationEl.textContent = duration || t("common.dash");
+
+  if (postGameLearningCardEl) {
+    postGameLearningCardEl.classList.toggle("hidden", !game.learningMode);
+  }
+  if (game.learningMode) {
+    if (postLearningGamesPlayedEl) postLearningGamesPlayedEl.textContent = String(state.stats.learningGamesPlayed || 0);
+    if (postLearningHintsUsedEl) postLearningHintsUsedEl.textContent = String(state.stats.hintsUsed || 0);
+    if (postLearningBlundersAvoidedEl) postLearningBlundersAvoidedEl.textContent = String(state.stats.blundersAvoided || 0);
+  }
+
+  if (coachData && coachDataGameId === game.id) {
+    renderPostGameCoachResult(coachData);
+  } else {
+    resetPostGameCoachDisplay();
+  }
 }
 
 function createCoachSection(title, content) {
@@ -1989,18 +2355,21 @@ function createCoachSection(title, content) {
 }
 
 async function requestCoachReview() {
-  if (!game?.gameOver) return;
+  if (!game?.gameOver) return null;
   const resultInfo = getGameResultInfo();
-  if (!resultInfo) return;
+  if (!resultInfo) return null;
+  if (coachData && coachDataGameId === game.id) {
+    renderPostGameCoachResult(coachData);
+    return coachData;
+  }
+  if (coachAbort && coachRequestGameId === game.id) return null;
 
-  abortCoachRequest({ bumpSeq: false });
+  abortCoachRequest({ bumpSeq: false, clearData: false });
   const mySeq = ++coachRequestSeq;
+  coachRequestGameId = game.id;
   coachAbort = new AbortController();
-
-  openCoachModal();
-  resetCoachDisplay();
-  if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.loading");
-  if (coachRetryBtn) coachRetryBtn.disabled = true;
+  if (postGameCoachStatusEl) postGameCoachStatusEl.classList.remove("hidden");
+  if (postGameCoachStatusTextEl) postGameCoachStatusTextEl.textContent = t("chess.postGame.coachLoading");
 
   const payload = {
     startFen,
@@ -2027,35 +2396,126 @@ async function requestCoachReview() {
     if (mySeq !== coachRequestSeq) return;
 
     if (!response.ok) {
-      const errorText = response.status === 429
-        ? t("chess.coach.rateLimit")
-        : t("chess.coach.failed");
-      if (coachStatusEl) coachStatusEl.textContent = errorText;
-      if (coachRetryBtn) coachRetryBtn.disabled = false;
-      return;
+      renderPostGameCoachUnavailable();
+      return null;
     }
 
     const data = await response.json();
     if (mySeq !== coachRequestSeq) return;
     coachData = data;
-    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.ready");
-    renderCoachResult(data);
-    if (coachCopyBtn) coachCopyBtn.disabled = false;
-    if (coachRetryBtn) coachRetryBtn.disabled = false;
+    coachDataGameId = game.id;
+    renderPostGameCoachResult(data);
+    return data;
   } catch (error) {
     if (mySeq !== coachRequestSeq) return;
     if (error?.name === "AbortError") return;
-    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.failed");
-    if (coachRetryBtn) coachRetryBtn.disabled = false;
+    renderPostGameCoachUnavailable();
+    return null;
+  } finally {
+    if (mySeq === coachRequestSeq) {
+      coachAbort = null;
+      coachRequestGameId = null;
+    }
   }
 }
 
+function abortCoachRequest({ bumpSeq = true, clearData = false } = {}) {
+  if (coachAbort) {
+    coachAbort.abort();
+    coachAbort = null;
+  }
+  coachRequestGameId = null;
+  if (bumpSeq) coachRequestSeq += 1;
+  if (clearData) {
+    coachData = null;
+    coachDataGameId = null;
+  }
+}
+
+function updateStatsAndSend(result) {
+  ensureExtendedStats();
+  state.stats.gamesPlayed += 1;
+  if (result === "win") state.stats.gamesWon += 1;
+  if (result === "loss") state.stats.gamesLost += 1;
+  if (result === "draw") state.stats.gamesDraw += 1;
+  state.stats.totalMoves += game.plies;
+
+  if (result === "win") {
+    state.stats.adaptiveWinStreak += 1;
+    state.stats.adaptiveLossStreak = 0;
+  } else if (result === "loss") {
+    state.stats.adaptiveLossStreak += 1;
+    state.stats.adaptiveWinStreak = 0;
+  } else {
+    state.stats.adaptiveWinStreak = 0;
+    state.stats.adaptiveLossStreak = 0;
+  }
+
+  if (game.learningMode) {
+    state.stats.learningGamesPlayed += 1;
+    state.stats.hintsUsed += Number(game.learningHintsUsed || 0);
+    state.stats.blundersAvoided += Number(game.learningBlundersAvoided || 0);
+  }
+
+  touch(state);
+  saveState(state);
+
+  const preset = getAiPreset();
+  const fullMoves = Math.ceil(game.plies / 2);
+  sendEvent({
+    type: "game_result",
+    mode: engineStatus.mode === "stockfish" ? "vs_ai_stockfish" : "vs_ai_fallback",
+    engine: engineStatus.mode,
+    level: String(levelEl.value || preset.key),
+    elo: preset.elo ?? null,
+    side: game.playerColor === WHITE ? "white" : "black",
+    result,
+    moves: fullMoves,
+    plies: game.plies,
+  });
+
+  if (state.stats.adaptiveWinStreak === 2) suggestLevelChange("up");
+  if (state.stats.adaptiveLossStreak === 2) suggestLevelChange("down");
+}
+
+function onGameFinished() {
+  if (!game.result || game.finishedHandled) return;
+  const result = getGameOutcome();
+  if (!result) return;
+  game.finishedHandled = true;
+  updateStatsAndSend(result);
+  renderPostGameModal(result);
+  openPostGameModal();
+  void requestCoachReview();
+}
+
 // -------------------- controls --------------------
+function undoLastPlayerMoveFromWarning() {
+  if (!game?.undoStack?.length) {
+    closeLearningBlunderWarning();
+    return;
+  }
+  revertMove(game.undoStack.pop());
+  popMoveUci();
+  popMoveHistory();
+  game.learningBlundersAvoided += 1;
+  clearSelection();
+  clearLearningHint();
+  game.lastMove = null;
+  finalizeIfGameOver();
+  closeLearningBlunderWarning();
+  render();
+}
+
 function resetGame({ fen } = {}) {
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
   stopClock();
-  abortCoachRequest({ closeModal: true });
+  abortCoachRequest({ clearData: true });
+  closePostGameModal();
+  closeLearningBlunderWarning();
+  hideAdaptiveToast();
+  postGameResultCode = null;
 
   const playerColor = (sideEl.value === "black") ? BLACK : WHITE;
   if (fen) {
@@ -2077,6 +2537,7 @@ function resetGame({ fen } = {}) {
 
   initClockFromUI();
   clearSelection();
+  clearLearningHint();
   game.lastMove = null;
   renderMoveList();
 
@@ -2093,7 +2554,10 @@ function undo() {
   if (!game.undoStack.length) return;
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
-  abortCoachRequest({ closeModal: true });
+  abortCoachRequest({ clearData: true });
+  closePostGameModal();
+  closeLearningBlunderWarning();
+  hideAdaptiveToast();
 
   // undo last move
   revertMove(game.undoStack.pop());
@@ -2108,6 +2572,7 @@ function undo() {
   }
 
   clearSelection();
+  clearLearningHint();
   game.lastMove = null;
 
   finalizeIfGameOver();
@@ -2135,12 +2600,19 @@ function hint() {
   hintTextEl.textContent = t("chess.hint.bestMove", {
     move: `${algebraic(best.from)} → ${algebraic(best.to)}${best.promotion ? ` = ${best.promotion}` : ""}`,
   });
+  if (game.learningMode) {
+    game.learningHintsUsed += 1;
+    game.learningHint = { from: best.from, to: best.to };
+    updateLearningHintCounter();
+    render();
+  }
 }
 
 function resign() {
   if (game.gameOver) return;
   cancelPendingAi({ stopEngine: true });
   cancelPendingPromotion();
+  closeLearningBlunderWarning();
   const winner = opponent(game.playerColor);
   game.gameOver = true;
   game.result = { type: "resign", winner };
@@ -2167,7 +2639,10 @@ function updateSettingsSummary() {
   const humanLabel = humanLikeEl && !humanLikeEl.checked
     ? t("chess.settings.humanLikeSummaryOff")
     : t("chess.settings.humanLikeSummaryOn");
-  settingsSummaryEl.textContent = `${side} • ${strength} • ${humanLabel} • ${think}`;
+  const learningLabel = isLearningModeEnabled()
+    ? t("chess.learning.modeSummaryOn")
+    : t("chess.learning.modeSummaryOff");
+  settingsSummaryEl.textContent = `${side} • ${strength} • ${humanLabel} • ${learningLabel} • ${think}`;
 }
 
 function setSettingsCollapsed(collapsed) {
@@ -2241,29 +2716,68 @@ newGameBtn.addEventListener("click", newGame);
 resetBtn.addEventListener("click", newGame);
 undoBtn.addEventListener("click", undo);
 hintBtn.addEventListener("click", hint);
+learningHintBtn?.addEventListener("click", hint);
 resignBtn.addEventListener("click", resign);
 engineRetryEl?.addEventListener("click", retryEngineInit);
-coachBtn?.addEventListener("click", requestCoachReview);
-coachCloseBtn?.addEventListener("click", () => abortCoachRequest({ closeModal: true }));
-coachRetryBtn?.addEventListener("click", requestCoachReview);
-coachCopyBtn?.addEventListener("click", async () => {
-  if (!coachData) return;
-  const text = JSON.stringify(coachData, null, 2);
-  try {
-    await navigator.clipboard?.writeText(text);
-    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.copied");
-  } catch {
-    if (coachStatusEl) coachStatusEl.textContent = t("chess.coach.copyFailed");
-  }
+coachBtn?.addEventListener("click", () => {
+  if (!game?.gameOver) return;
+  renderPostGameModal(postGameResultCode || getGameOutcome() || "draw");
+  openPostGameModal();
+  void requestCoachReview();
 });
-
-coachModalEl?.addEventListener("click", (event) => {
+postGameCloseBtn?.addEventListener("click", closePostGameModal);
+postGameNewBtn?.addEventListener("click", () => {
+  closePostGameModal();
+  newGame();
+});
+postGameRematchBtn?.addEventListener("click", () => {
+  closePostGameModal();
+  newGame();
+});
+postGameModalEl?.addEventListener("click", (event) => {
   if (event.target?.matches?.(".modalBackdrop")) {
-    abortCoachRequest({ closeModal: true });
+    closePostGameModal();
   }
 });
+postGameCoachToggleEl?.addEventListener("click", () => {
+  if (!postGameCoachDetailsEl) return;
+  const hidden = postGameCoachDetailsEl.classList.toggle("hidden");
+  postGameCoachToggleEl.textContent = hidden
+    ? t("chess.postGame.details")
+    : t("chess.postGame.hideDetails");
+});
 
-window.addEventListener("beforeunload", () => abortCoachRequest({ closeModal: true }));
+adaptiveToastYesBtn?.addEventListener("click", () => {
+  const target = normalizeLevelKey(adaptiveToastEl?.dataset?.targetLevel || "");
+  if (target && AI_PRESETS[target]) applyAdaptiveLevel(target);
+  hideAdaptiveToast();
+});
+adaptiveToastNoBtn?.addEventListener("click", hideAdaptiveToast);
+
+learningUndoMoveBtn?.addEventListener("click", undoLastPlayerMoveFromWarning);
+learningKeepMoveBtn?.addEventListener("click", () => {
+  closeLearningBlunderWarning();
+  aiMoveIfNeeded();
+});
+
+learningModeEl?.addEventListener("change", () => {
+  saveLearningModeToStorage();
+  if (game) {
+    game.learningMode = isLearningModeEnabled();
+    if (!game.learningMode) {
+      clearLearningHint();
+      closeLearningBlunderWarning();
+    }
+    game.learningBaselineEvalCp = null;
+    game.learningBaselineFen = "";
+    game.learningBaselinePendingFen = "";
+  }
+  updateSettingsSummary();
+  updateLearningHintBarVisibility();
+  render();
+});
+
+window.addEventListener("beforeunload", () => abortCoachRequest({ clearData: false }));
 
 for (const btn of promoBtns) {
   btn.addEventListener("click", () => {
@@ -2281,12 +2795,13 @@ for (const btn of promoBtns) {
 
     applyMove(chosen, { recordUndo: true });
     clearSelection();
+    clearLearningHint();
 
     finalizeIfGameOver();
     render();
 
     if (game.gameOver) onGameFinished();
-    else aiMoveIfNeeded();
+    else if (!maybeShowLearningBlunderWarning()) aiMoveIfNeeded();
   });
 }
 
@@ -2314,6 +2829,7 @@ settingsToggleEl?.addEventListener("click", toggleSettingsPanel);
 // init
 updateEngineBadge();
 loadAiSettingsFromStorage();
+loadLearningModeFromStorage();
 // Kick off engine init early so we don't silently fall back.
 initStockfish({ timeoutMs: STOCKFISH_INIT_TIMEOUT_MS }).catch(() => {
   setEngineStatus("fallback", { reason: sf.lastErrorReason || t("chess.engine.unavailable") });
@@ -2328,5 +2844,6 @@ if (new URLSearchParams(window.location.search).get("dev") === "1"
 
 onTimeControlUIChange();
 updateSettingsSummary();
+updateLearningHintBarVisibility();
 setSettingsCollapsed(localStorage.getItem(SETTINGS_COLLAPSED_KEY) !== "0");
 initFromQuery();
