@@ -5,6 +5,7 @@
     { "src": "web/**", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "^/api/progress$", "dest": "/api/progress.cjs" },
     { "src": "^/api/(.*)$", "dest": "/api/$1" },
     { "src": "^/$", "dest": "web/index.html" },
     { "src": "^/games/tictactoe/?$", "dest": "web/games/tictactoe/index.html" },

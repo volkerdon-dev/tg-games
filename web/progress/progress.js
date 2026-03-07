@@ -1,5 +1,5 @@
 import { initTelegram } from "../shared/telegram.js";
-import { loadState, saveState, defaultState, touch } from "../shared/storage.js";
+import { loadState, saveState, defaultState, touch, loadFromServer } from "../shared/storage.js";
 import { setText } from "../shared/ui.js";
 import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
 
@@ -30,3 +30,8 @@ document.getElementById("reset").addEventListener("click", () => {
 await loadDict(getLang());
 await applyI18n();
 render();
+
+void loadFromServer().then((mergedState) => {
+  state = mergedState;
+  render();
+});

@@ -1,5 +1,5 @@
 import { getInitData, initTelegram, sendEvent } from "../shared/telegram.js";
-import { loadState, saveState, touch } from "../shared/storage.js";
+import { loadState, saveState, touch, loadFromServer } from "../shared/storage.js";
 import { setText } from "../shared/ui.js";
 import { applyI18n, getLang, loadDict, t } from "../shared/i18n.js";
 
@@ -9,6 +9,9 @@ await applyI18n();
 
 const state = loadState();
 touch(state);
+void loadFromServer().then((mergedState) => {
+  Object.assign(state, mergedState);
+});
 
 // -------------------- UI refs --------------------
 const boardEl = document.getElementById("board");
