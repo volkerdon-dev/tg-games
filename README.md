@@ -6,6 +6,13 @@ Telegram chess mini-app with three parts:
 - **Web** (`/web`): Static WebApp (no build step).
 - **API** (`/api`): Vercel Serverless Functions (`.cjs`) for coach review and translations.
 
+## Стек
+
+- vanilla JS
+- HTML
+- CSS
+- Vercel Serverless
+
 ## Local development
 
 1. Install dependencies:
@@ -40,4 +47,4 @@ API/infra variables:
 
 ## Notes
 
-- `/web/app` and `/web/components` contain unused React/Next-era assets; current deployment serves the static files in `/web`.
+- Для добавления React-компонентов нужно настроить Vite или Next.js и вынести фронтенд в отдельный пакет (monorepo). Текущая статика в `web/` несовместима с TSX без билда.
