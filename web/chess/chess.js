@@ -169,7 +169,7 @@ const ADAPTIVE_LEVEL_ORDER = ["beginner", "easy", "intermediate", "advanced", "e
 const engineStatus = {
   mode: "fallback", // "stockfish" | "fallback" | "loading"
   reason: "",
-  source: null, // "local" | "cdn"
+  source: null, // "local" | "cloud" | "cdn"
 };
 
 function setEngineStatus(mode, { reason = "", source = null } = {}) {
@@ -189,6 +189,8 @@ function updateEngineBadge() {
   let text = "Engine: Smart AI (fallback) ⚠️";
   if (isLoading) text = "Engine: Loading…";
   if (isSf) text = "Engine: Stockfish ✅";
+  if (isSf && engineStatus.source === "cloud") text = "Engine: Stockfish ✅ (cloud)";
+  if (isSf && engineStatus.source === "local") text = "Engine: Stockfish ✅ (local)";
   if (!isSf && !isLoading && engineStatus.reason) text += ` (${engineStatus.reason})`;
   engineBadgeEl.textContent = text;
   if (engineRetryEl) {
@@ -1539,6 +1541,36 @@ async function sfBestMoveFromFEN(fen, preset, token) {
   return humanMove || bestMove;
 }
 
+async function serverStockfishMove(fen, preset, token) {
+  const movetime = Math.min(5000, Math.max(500, Number(preset.movetime) || 1000));
+  const skill = Math.min(20, Math.max(0, Number(preset.skill) || 10));
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), movetime + 5000);
+
+  try {
+    const resp = await fetch("/api/stockfish", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-telegram-init-data": getInitData(),
+      },
+      body: JSON.stringify({ fen, skill, movetime, multiPv: 1 }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    if (!resp.ok) return null;
+    if (token !== aiRequestSeq) return null;
+
+    const data = await resp.json();
+    return data.bestmove || null;
+  } catch {
+    clearTimeout(timeoutId);
+    return null;
+  }
+}
+
 // ---- FEN export from 0x88 board ----
 function toFEN() {
   const rows = [];
@@ -1831,11 +1863,22 @@ async function aiMoveIfNeeded() {
 
   let chosenMove = null;
 
-  // Try Stockfish first
+  // Try server Stockfish first, fallback to local worker
   try {
     const fen = toFEN();
-    const bestUci = await sfBestMoveFromFEN(fen, preset, mySeq);
-    const bestAiCp = getBestSfScoreCp();
+
+    // Priority: server Stockfish
+    let bestUci = await serverStockfishMove(fen, preset, mySeq);
+
+    if (bestUci) {
+      setEngineStatus("stockfish", { source: "cloud" });
+    } else if (sf.ready && sf.worker) {
+      // Fallback: local worker when available
+      bestUci = await sfBestMoveFromFEN(fen, preset, mySeq);
+      if (bestUci) setEngineStatus("stockfish", { source: "local" });
+    }
+
+    const bestAiCp = engineStatus.source === "local" ? getBestSfScoreCp() : null;
     if (Number.isFinite(bestAiCp)) afterPlayerCp = -bestAiCp;
     if (game !== myGame || mySeq !== aiRequestSeq) return;
     if (!game.gameOver && game.turn === game.aiColor && bestUci) {
