@@ -19,35 +19,94 @@
     </header>
 
     <main class="app-content">
-      <div class="container">
-        <section class="section home-primary">
-          <a class="card primary-card" id="continueCard" href="./chess/index.html">
-            <div class="primary-card-main">
-              <div>
-                <h2 class="primary-title" id="continueTitle" data-i18n="home.continue.title.resume">Continue</h2>
-                <p class="primary-subtitle" id="continueSubtitle" data-i18n="home.continue.subtitle.resume">Resume your last activity</p>
+      <div class="container home-screen">
+        <div class="home-stack">
+          <section class="section home-section">
+            <div class="home-stats-bar">
+              <div class="stats-side stats-streak">
+                <div class="stats-kicker">🔥 Streak</div>
+                <div class="stats-value"><span id="streakCount">0</span> days</div>
               </div>
-              <span class="btn primary-cta" id="continueCta" data-i18n="home.continue.cta">Open</span>
+              <div class="stats-week" id="weekDots" aria-label="Weekly progress"></div>
+              <div class="stats-side stats-rating">
+                <div class="stats-kicker">Rating</div>
+                <div class="stats-value" id="ratingVal">—</div>
+                <div class="rating-delta positive" id="ratingDelta">+0</div>
+              </div>
             </div>
-          </a>
-        </section>
+          </section>
 
-        <section class="section">
-          <div class="mode-grid">
-            <a class="card mode-tile" href="./chess/index.html">
-              <h3 class="mode-title"><span class="mode-icon">♟️</span><span data-i18n="home.mode.play.title">Play</span></h3>
-              <p class="mode-subtitle" data-i18n="home.mode.play.subtitle">Quick game vs AI</p>
+          <section class="section home-section">
+            <a class="daily-card" href="./train/daily.html">
+              <div class="daily-main">
+                <span class="daily-badge">⚡ Daily Challenge</span>
+                <h2 class="daily-title">Mate in 2 · Intermediate</h2>
+                <p class="daily-subtitle">Solve today's puzzle</p>
+              </div>
+              <span class="btn daily-cta">Solve →</span>
             </a>
-            <a class="card mode-tile" href="./learn/index.html">
-              <h3 class="mode-title"><span class="mode-icon">📚</span><span data-i18n="home.mode.learn.title">Learn</span></h3>
-              <p class="mode-subtitle" data-i18n="home.mode.learn.subtitle">Guided lessons</p>
+          </section>
+
+          <section class="section home-section">
+            <a class="card continue-card" id="continueCard" href="./chess/index.html">
+              <div class="continue-icon" aria-hidden="true">♞</div>
+              <div class="continue-main">
+                <h2 class="continue-title" id="continueTitle" data-i18n="home.continue.title.resume">Continue</h2>
+                <p class="continue-subtitle" id="continueSubtitle" data-i18n="home.continue.subtitle.resume">Resume your last activity</p>
+              </div>
+              <span class="btn continue-cta" id="continueCta" data-i18n="home.continue.cta">Open</span>
             </a>
-            <a class="card mode-tile" href="./train/index.html">
-              <h3 class="mode-title"><span class="mode-icon">🎯</span><span data-i18n="home.mode.train.title">Train</span></h3>
-              <p class="mode-subtitle" data-i18n="home.mode.train.subtitle">Tactical drills</p>
-            </a>
-          </div>
-        </section>
+          </section>
+
+          <section class="section home-section">
+            <div class="section-header compact">
+              <h2 class="section-title">Modes</h2>
+            </div>
+            <div class="mode-grid home-mode-grid">
+              <a class="card mode-tile" href="./chess/index.html">
+                <h3 class="mode-title"><span class="mode-icon">♟️</span><span data-i18n="home.mode.play.title">Play</span></h3>
+                <p class="mode-subtitle" data-i18n="home.mode.play.subtitle">Quick game vs AI</p>
+              </a>
+              <a class="card mode-tile" href="./learn/index.html">
+                <h3 class="mode-title"><span class="mode-icon">📚</span><span data-i18n="home.mode.learn.title">Learn</span></h3>
+                <p class="mode-subtitle" data-i18n="home.mode.learn.subtitle">Guided lessons</p>
+              </a>
+              <a class="card mode-tile" href="./train/index.html">
+                <h3 class="mode-title"><span class="mode-icon">🎯</span><span data-i18n="home.mode.train.title">Train</span></h3>
+                <p class="mode-subtitle" data-i18n="home.mode.train.subtitle">Tactical drills</p>
+              </a>
+            </div>
+          </section>
+
+          <section class="section home-section">
+            <div class="section-header compact">
+              <h2 class="section-title">Coming Soon</h2>
+            </div>
+            <div class="coming-list" aria-label="Coming soon features">
+              <div class="coming-item">
+                <div class="coming-copy">
+                  <h3>⚔️ Challenge a Friend</h3>
+                  <p>Send a duel link in Telegram</p>
+                </div>
+                <span class="badge soon">Soon</span>
+              </div>
+              <div class="coming-item">
+                <div class="coming-copy">
+                  <h3>🏆 Weekly Tournament</h3>
+                  <p>Compete with players worldwide</p>
+                </div>
+                <span class="badge soon">Soon</span>
+              </div>
+              <div class="coming-item">
+                <div class="coming-copy">
+                  <h3>👥 Play vs Human</h3>
+                  <p>Real-time online matches</p>
+                </div>
+                <span class="badge soon">Soon</span>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </main>
 
@@ -87,6 +146,38 @@
     setText("continueTitle", t(titleKey));
     setText("continueSubtitle", t(subtitleKey));
     setText("continueCta", t("home.continue.cta"));
+
+    // Streak
+    const streakEl = document.getElementById("streakCount");
+    if (streakEl) streakEl.textContent = state.stats?.streakDays || 0;
+
+    // Weekly dots — определить какой день недели сегодня (0=Mon...6=Sun)
+    // закрашивать дни с понедельника по сегодня включительно
+    const weekDotsEl = document.getElementById("weekDots");
+    if (weekDotsEl) {
+      const days = ["M", "T", "W", "T", "F", "S", "S"];
+      const todayIdx = (new Date().getDay() + 6) % 7; // 0=Mon
+      weekDotsEl.innerHTML = days.map((d, i) => {
+        const cls = i < todayIdx ? "done" : i === todayIdx ? "today" : "";
+        const symbol = i < todayIdx ? "✓" : i === todayIdx ? "•" : "";
+        return `<div class="streak-day">
+      <div class="streak-dot ${cls}">${symbol}</div>
+      <div class="streak-letter ${i <= todayIdx ? "active" : ""}">${d}</div>
+    </div>`;
+      }).join("");
+    }
+
+    // Rating (если есть в state.stats)
+    const ratingEl = document.getElementById("ratingVal");
+    if (ratingEl) ratingEl.textContent = state.stats?.rating ?? "—";
+
+    const ratingDeltaEl = document.getElementById("ratingDelta");
+    const delta = Number(state.stats?.ratingDelta || 0);
+    if (ratingDeltaEl) {
+      ratingDeltaEl.textContent = `${delta > 0 ? "+" : ""}${delta}`;
+      ratingDeltaEl.classList.remove("positive", "negative");
+      ratingDeltaEl.classList.add(delta >= 0 ? "positive" : "negative");
+    }
   </script>
 </body>
 </html>
