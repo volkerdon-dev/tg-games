@@ -1467,3 +1467,140 @@ hr{border:none; height:1px; background: var(--border); margin:16px 0}
     width:100%;
   }
 }
+
+.game-layout{
+  grid-template-columns:minmax(0, 1fr);
+}
+
+.controls-grid{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.settings-row{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.settings-row-toggles .control-note{
+  display:none;
+}
+
+.settings-advanced{
+  margin-top:8px;
+}
+.settings-advanced summary{
+  font-size:13px;
+  color:var(--muted);
+  cursor:pointer;
+  margin-top:8px;
+  list-style:none;
+}
+.settings-advanced > summary::-webkit-details-marker{
+  display:none;
+}
+.settings-advanced summary::after{
+  content:" ▾";
+}
+.settings-advanced[open] summary::after{
+  content:" ▴";
+}
+.settings-row-advanced{
+  margin-top:8px;
+}
+.settings-row-advanced #customTimeWrap{
+  grid-column:1 / -1;
+}
+
+.moveList-compact{
+  max-height:36px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;
+  font-size:12px;
+  color:var(--muted);
+  padding:4px 0;
+  scrollbar-width:none;
+}
+.moveList-compact::-webkit-scrollbar{
+  display:none;
+}
+.moveList-compact .moveRow{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+  padding:4px 8px;
+  white-space:nowrap;
+}
+
+.action-bar-pregame{
+  justify-content:center;
+}
+.action-bar-pregame .btn{
+  min-width:160px;
+}
+
+.action-bar-ingame{
+  justify-content:space-between;
+  gap:8px;
+}
+.btn.icon-only{
+  min-width:44px;
+  padding:0;
+  font-size:18px;
+  letter-spacing:2px;
+}
+.action-bar-ingame .btn.icon-only{
+  flex:0 0 44px;
+}
+
+.more-menu{
+  position:fixed;
+  bottom:calc(var(--bottomNavH) + 80px);
+  right:16px;
+  background:var(--bg-elev);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  overflow:hidden;
+  z-index:200;
+  box-shadow:var(--shadow);
+  min-width:200px;
+}
+.more-menu.hidden{
+  display:none;
+}
+.more-menu-item{
+  display:block;
+  width:100%;
+  padding:14px 16px;
+  background:none;
+  border:none;
+  color:var(--text);
+  font-size:14px;
+  font-weight:500;
+  text-align:left;
+  cursor:pointer;
+  border-bottom:1px solid var(--border);
+}
+.more-menu-item:last-child{
+  border-bottom:none;
+}
+.more-menu-item:disabled{
+  color:var(--muted);
+  cursor:default;
+}
+.more-menu-item:not(:disabled):active{
+  background:rgba(255,255,255,0.06);
+}
+
+@media (max-width: 680px){
+  .settings-row{
+    grid-template-columns:1fr;
+  }
+}
